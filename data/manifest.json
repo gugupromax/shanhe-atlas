@@ -1,0 +1,261 @@
+{
+  "accessedAt": "2026-11-17T08:26:20.325306+00:00",
+  "sourceTemplate": "https://elevation-tiles-prod.s3.amazonaws.com/terrarium/{z}/{x}/{y}.png",
+  "datasets": [
+    {
+      "key": "overview",
+      "bounds": [
+        111.3,
+        34.7,
+        117.2,
+        41.0
+      ],
+      "width": 401,
+      "height": 601,
+      "tileZoom": 8,
+      "sourcePixelMetresApprox": 483,
+      "gridStepMetresApprox": [
+        1297,
+        1169
+      ],
+      "min": -90,
+      "max": 2952,
+      "tileCount": 35,
+      "sha256": "ddcac10d36da2a83275698431aa5042bd0ad7467a0dd47529c840651ca73b029"
+    },
+    {
+      "key": "zhiguan",
+      "bounds": [
+        111.96,
+        34.84,
+        112.8,
+        35.48
+      ],
+      "width": 501,
+      "height": 401,
+      "tileZoom": 10,
+      "sourcePixelMetresApprox": 125,
+      "gridStepMetresApprox": [
+        153,
+        178
+      ],
+      "min": 17,
+      "max": 2307,
+      "tileCount": 12,
+      "sha256": "5386dbfabeb90bbe9a0e7ca4c8ec6908857375d697c6323b1e08247325377051"
+    },
+    {
+      "key": "taihang",
+      "bounds": [
+        112.41,
+        34.97,
+        113.25,
+        35.61
+      ],
+      "width": 501,
+      "height": 401,
+      "tileZoom": 10,
+      "sourcePixelMetresApprox": 125,
+      "gridStepMetresApprox": [
+        153,
+        178
+      ],
+      "min": 92,
+      "max": 1354,
+      "tileCount": 12,
+      "sha256": "e7e7e892a18fa83f026b19ae2e697cced68b69c89c4a3cf893c21386be84610b"
+    },
+    {
+      "key": "baixing",
+      "bounds": [
+        113.07,
+        35.35,
+        113.91,
+        35.99
+      ],
+      "width": 501,
+      "height": 401,
+      "tileZoom": 10,
+      "sourcePixelMetresApprox": 124,
+      "gridStepMetresApprox": [
+        152,
+        178
+      ],
+      "min": 49,
+      "max": 1751,
+      "tileCount": 12,
+      "sha256": "02b42d922cbc111d13748edda097cc9e5b3aa002aaa3f453e9097b61713d3940"
+    },
+    {
+      "key": "fukou",
+      "bounds": [
+        113.68,
+        36.08,
+        114.52,
+        36.72
+      ],
+      "width": 501,
+      "height": 401,
+      "tileZoom": 10,
+      "sourcePixelMetresApprox": 123,
+      "gridStepMetresApprox": [
+        151,
+        178
+      ],
+      "min": 50,
+      "max": 1615,
+      "tileCount": 9,
+      "sha256": "9af30df56fb3d92c2a22d320962cd31d176eec2e3d7b0a8b9ce50d8ac29b7535"
+    },
+    {
+      "key": "jingxing",
+      "bounds": [
+        113.6,
+        37.71,
+        114.44,
+        38.35
+      ],
+      "width": 501,
+      "height": 401,
+      "tileZoom": 10,
+      "sourcePixelMetresApprox": 120,
+      "gridStepMetresApprox": [
+        147,
+        178
+      ],
+      "min": -23,
+      "max": 1381,
+      "tileCount": 12,
+      "sha256": "9ef7780439edb17dbf2f160aaf0059c6ce8bfe6c070df4a239c73af77a2d9c2c"
+    },
+    {
+      "key": "feihu",
+      "bounds": [
+        114.25,
+        39.25,
+        115.09,
+        39.89
+      ],
+      "width": 501,
+      "height": 401,
+      "tileZoom": 10,
+      "sourcePixelMetresApprox": 118,
+      "gridStepMetresApprox": [
+        144,
+        178
+      ],
+      "min": 206,
+      "max": 2713,
+      "tileCount": 12,
+      "sha256": "0d5c7dfcfe2ce4ff1efe88a29de587aea4ca22febaf571441e023afbd696e725"
+    },
+    {
+      "key": "puyin",
+      "bounds": [
+        114.75,
+        39.11,
+        115.59,
+        39.75
+      ],
+      "width": 501,
+      "height": 401,
+      "tileZoom": 10,
+      "sourcePixelMetresApprox": 118,
+      "gridStepMetresApprox": [
+        144,
+        178
+      ],
+      "min": 25,
+      "max": 2188,
+      "tileCount": 9,
+      "sha256": "da55130edcd1163a8bbb4f1cc679783090d4b433a4a11fb57d48547a8f2f02fb"
+    },
+    {
+      "key": "jundu",
+      "bounds": [
+        115.65,
+        39.97,
+        116.49,
+        40.61
+      ],
+      "width": 501,
+      "height": 401,
+      "tileZoom": 10,
+      "sourcePixelMetresApprox": 117,
+      "gridStepMetresApprox": [
+        143,
+        178
+      ],
+      "min": 24,
+      "max": 2197,
+      "tileCount": 12,
+      "sha256": "42a5f31553863e8b0af6d2438dd59747a229991dc9024e5e2dfb2cab477e0946"
+    }
+  ],
+  "passes": [
+    [
+      "zhiguan",
+      "轵关陉",
+      112.38,
+      35.16,
+      "济源—垣曲一带",
+      "看王屋山南侧与黄河以北的山间通道。"
+    ],
+    [
+      "taihang",
+      "太行陉",
+      112.83,
+      35.29,
+      "沁阳—晋城一带",
+      "从山前平原向北看，观察进入高地时的陡升。"
+    ],
+    [
+      "baixing",
+      "白陉",
+      113.49,
+      35.67,
+      "辉县—陵川一带",
+      "比较南太行山前的陡壁与山内谷地。"
+    ],
+    [
+      "fukou",
+      "滏口陉",
+      114.1,
+      36.4,
+      "峰峰—磁县一带",
+      "从邯郸以西的山口向太行内部观察。"
+    ],
+    [
+      "jingxing",
+      "井陉",
+      114.02,
+      38.03,
+      "井陉—鹿泉一带",
+      "观察石家庄以西从平原进入山地的通道环境。"
+    ],
+    [
+      "feihu",
+      "飞狐陉",
+      114.67,
+      39.57,
+      "涞源—蔚县一带",
+      "观察南北向谷地与两侧山体的夹峙。"
+    ],
+    [
+      "puyin",
+      "蒲阴陉",
+      115.17,
+      39.43,
+      "易县—紫荆关一带",
+      "从易县向西北看，比较谷地与相邻山脊。"
+    ],
+    [
+      "jundu",
+      "军都陉",
+      116.07,
+      40.29,
+      "昌平—居庸关一带",
+      "观察平原与山间盆地之间的山口。"
+    ]
+  ]
+}

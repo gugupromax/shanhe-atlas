@@ -1,0 +1,35 @@
+{
+  "accessedAt": "2026-11-17T09:45:06.523071+00:00",
+  "sourceTemplate": "https://elevation-tiles-prod.s3.amazonaws.com/terrarium/{z}/{x}/{y}.png",
+  "dataset": {
+    "key": "context",
+    "bounds": [
+      40,
+      -10,
+      165,
+      70
+    ],
+    "width": 1251,
+    "height": 901,
+    "tileZoom": 5,
+    "sourcePixelMetresApprox": 4237,
+    "gridStepMetresApprox": [
+      9641,
+      9895
+    ],
+    "min": -10406,
+    "max": 6754,
+    "tileCount": 120,
+    "sha256": "6059358ed965ad46c346a9c9dca73a30c8457b6f3a681c32e45169743a74b0dd"
+  },
+  "initialViewBounds": [
+    66,
+    14,
+    142,
+    55
+  ],
+  "initialViewSource": "jiangshan-map@897b9ad4e987fcface8728ffdfbe33e801a3dbae/js/app.js:399-402",
+  "coverageNote": "中国及欧亚、东南亚周边缓冲高程，数据外缘不作为地图板块显示；默认视野与原项目一致。",
+  "historicalTerrain": false,
+  "licenseReference": "https://github.com/tilezen/joerd/blob/master/docs/attribution.md"
+}

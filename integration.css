@@ -1,0 +1,23 @@
+/* Local additions only; original atlas cards keep their own stacking and layout. */
+#fusion-terrain { position:absolute; inset:0; width:100%; height:100%; border:0; z-index:0; visibility:hidden; pointer-events:none; background:#ddd9c7; }
+#viewport-frame.fusion-is-3d #fusion-terrain { visibility:visible; pointer-events:auto; }
+#viewport-frame.fusion-is-3d #svg-stage-wrap { visibility:hidden; pointer-events:none; }
+#viewport-frame.fusion-is-3d #milestone-balloon { left:18px !important; top:70px !important; transform:none !important; max-width:calc(100% - 36px); }
+#viewport-frame.fusion-is-3d #milestone-balloon::before { display:none; }
+#viewport-frame.fusion-is-3d #milestone-balloon.is-offscreen { opacity:1; pointer-events:auto; }
+.fusion-mode-switch { display:inline-flex; align-items:center; border:1px solid var(--hairline,#c8bda7); border-radius:5px; padding:2px; flex-shrink:0; gap:2px; }
+.fusion-mode-switch button,.fusion-view-options button { appearance:none; border:0; border-radius:3px; background:transparent; color:var(--ink-main,#342c23); font:inherit; font-size:12px; white-space:nowrap; padding:6px 10px; cursor:pointer; }
+.fusion-mode-switch button[aria-pressed="true"],.fusion-view-options button[aria-pressed="true"] { background:#65583e; color:#fffaf0; }
+.fusion-mode-switch button:focus-visible,.fusion-view-options button:focus-visible { outline:2px solid #a44632; outline-offset:2px; }
+.fusion-view-options { display:flex; gap:3px; flex-wrap:wrap; }
+.fusion-height { display:flex; align-items:center; gap:8px; margin:12px 0 6px; font-size:12px; }
+.fusion-height input { min-width:0; flex:1; accent-color:#65583e; }
+.fusion-height output { min-width:35px; font-variant-numeric:tabular-nums; }
+.fusion-help { margin:6px 0 0; font-size:11px; line-height:1.7; color:#706451; }
+#fusion-status { position:absolute; left:50%; top:70px; transform:translateX(-50%); max-width:calc(100% - 40px); padding:9px 14px; background:#fff8e9; color:#51452f; border:1px solid #baab8f; border-radius:6px; font-size:12px; line-height:1.6; z-index:25; pointer-events:none; opacity:0; }
+#fusion-status.is-visible { opacity:1; }
+@media(max-width:900px) {
+  .fusion-mode-switch button { padding:6px 8px; font-size:11px; }
+  #nav-bar .control-strip { flex-wrap:wrap; }
+  #fusion-status { top:80px; }
+}

@@ -423,7 +423,7 @@ async function runApiSearchSuite(ctx) {
   // CUJ 9k: Python CLI (skills/jiangshan-atlas/scripts/jiangshan.py) Execution Smoke Test
   if (!FAST_MODE) {
     const cliOut = execFileSync(
-      'python3',
+      process.platform === 'win32' ? 'python' : 'python3',
       [skillPyPath, '--year', '1079, 1080, 1094, 1097', '--place', '湖州 → 黄州 → 惠州 → 儋州'],
       { encoding: 'utf8' }
     ).trim();

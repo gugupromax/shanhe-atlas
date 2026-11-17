@@ -1,16 +1,7 @@
 name: Deploy GitHub Pages
 
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - 'scripts/**'
-      - 'skills/**'
-      - 'workers/**'
-      - 'data/**'
-      - '.github/ISSUE_TEMPLATE/**'
+  # Fork code uploads do not automatically publish a public map site.
   workflow_dispatch:
 
 permissions:
@@ -41,7 +32,11 @@ jobs:
             --exclude='.git/' \
             --exclude='.github/' \
             --exclude='_site/' \
-            --exclude='data/' \
+            --exclude='data/atlas/' \
+            --exclude='data/sources/' \
+            --exclude='data/tiles/' \
+            --exclude='.runtime/' \
+            --exclude='.impeccable/' \
             --exclude='docs/' \
             --exclude='scripts/' \
             --exclude='skills/' \

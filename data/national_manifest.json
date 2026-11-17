@@ -1,0 +1,28 @@
+{
+  "accessedAt": "2026-11-17T09:06:29.655446+00:00",
+  "sourceTemplate": "https://elevation-tiles-prod.s3.amazonaws.com/terrarium/{z}/{x}/{y}.png",
+  "dataset": {
+    "key": "national",
+    "bounds": [
+      70,
+      3,
+      138,
+      55
+    ],
+    "width": 701,
+    "height": 601,
+    "tileZoom": 5,
+    "sourcePixelMetresApprox": 4279,
+    "gridStepMetresApprox": [
+      9458,
+      9648
+    ],
+    "min": -9571,
+    "max": 6875,
+    "tileCount": 42,
+    "sha256": "e83b4290bde551b6d04eeba56d4208273ce4cbfc666348e17ab28fde2cda6f00"
+  },
+  "coverageNote": "全国与周边地形参照，包含南海范围；矩形是数据范围，不是国界。",
+  "historicalTerrain": false,
+  "licenseReference": "https://github.com/tilezen/joerd/blob/master/docs/attribution.md"
+}

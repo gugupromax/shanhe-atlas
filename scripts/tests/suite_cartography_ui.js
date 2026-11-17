@@ -91,23 +91,19 @@ async function runCartographyUiSuite(ctx) {
       assert(refCorpus.includes(assetFile), `Unreferenced file in assets/: ${assetFile}`);
     }
 
-    const maShanLinkMatch = indexHtml.match(
-      /<link href="(https:\/\/fonts\.googleapis\.com\/css2\?family=Ma\+Shan\+Zheng&text=([^"&]+)&display=swap)" rel="stylesheet" media="print" onload="this\.media='all'" \/>/
-    );
-    assert(maShanLinkMatch, 'Expected non-blocking subsetted Ma Shan Zheng stylesheet <link> in index.html');
-    assert(
-      !/<link href="https:\/\/fonts\.googleapis\.com[^>]*rel="stylesheet" \/>/.test(indexHtml),
-      'Google Fonts stylesheets must not block rendering (media="print" + onload): the host is unreachable for some readers'
-    );
-    const subsetChars = new Set(decodeURIComponent(maShanLinkMatch[2]));
-    const requiredCalligraphyChars = [
-      '江山时序',
-      ...dynasties.map((d) => d.title || ''),
-      ...dynasties.map((d) => (enLocale.dynasties[d.key] && enLocale.dynasties[d.key].name) || ''),
-    ].join('');
-    for (const ch of requiredCalligraphyChars) {
-      assert(subsetChars.has(ch), `Ma Shan Zheng subset missing glyph "${ch}"`);
+    // This fork renders with installed system fonts and local CSS, including offline.
+    for (const link of indexHtml.match(/<link\b[^>]*>/gi) || []) {
+      if (!/\brel=["']stylesheet["']/i.test(link)) continue;
+      assert(
+        !/\bhref=["'](?:https?:)?\/\//i.test(link),
+        'Fork stylesheets (including fonts) must load locally rather than from a remote font host'
+      );
     }
+    assert(
+      /--calligraphy-stack:[^;]*(?:STKaiti|KaiTi)/.test(styleCss) &&
+        /--sans-stack:[^;]*Microsoft YaHei/.test(styleCss),
+      'Fork typography must retain locally installed Chinese calligraphy and UI font fallbacks'
+    );
 
     const pyHelperSrc = fs.readFileSync(
       path.join(ROOT, 'skills', 'jiangshan-atlas', 'scripts', 'jiangshan.py'),

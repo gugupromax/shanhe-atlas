@@ -4,7 +4,11 @@ docs
 scripts
 skills
 workers
-data
+data/atlas
+data/sources
+data/tiles
+.runtime
+.impeccable
 geojson/demo.html
 assets/hero_demo_*.webp
 assets/preview_*.webp

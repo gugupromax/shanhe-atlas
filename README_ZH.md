@@ -1,4 +1,26 @@
-# 江山时序 · Chronicles of the Realm
+# 山河地图 · Shanhe Atlas
+
+基于 [江山时序 / jiangshan-map](https://github.com/DeanChensj/jiangshan-map) 二次开发的 2D/3D 中国历史地图，结合真实地形探索朝代疆域、历史事件、人物行迹与城市沿革。本 Fork 用于个人非商业学习与交流，保留原项目作者声明、GPL-3.0 及第三方数据许可例外；用途说明不改变原许可证。
+
+本次扩展基于上游提交 `897b9ad4e987fcface8728ffdfbe33e801a3dbae` 开发。新增内容为本地真实高程、3D 渲染、原版地图贴地形、双模式状态同步及本地启动工具；上游地图数据与原版业务脚本保留其来源与许可。
+
+## 本 Fork 的 3D 扩展
+
+- 顶部切换「平面 / 3D 地形」，保留年份、人物站点、城市沿革与视野中心、比例。
+- 将原版实时 SVG 地图铺到真实现代高程上，沿用原图配色、文字、边界、水系和人物标记。默认起伏 20×，图层菜单可调为 1×—120×。
+- 3D 左键拖动平移、右键或 Shift 拖动旋转、滚轮缩放；H 统一复位。人物年谱及城市沿革共用原版面板，小试仍使用平面模式。
+- 全国及周边高程覆盖 40°E—165°E、10°S—70°N，网格约 9—10 千米；太行及八陉试验数据另附较细网格。高程不能随放大恢复更细实测细节。
+- 现代地形不随年代变形。原图历史边界、水系、海岸与人物连线仍为示意，尚未考证或测绘具体古道路基。
+
+使用已有 Python 3，在仓库根目录运行 `python -m http.server 8000`，浏览器打开 `http://127.0.0.1:8000/`。Windows 也可双击「启动地图.cmd」，结束后用「停止地图.cmd」停止本机服务。无需安装第三方 Python 包；浏览器需支持 WebGL。为可靠读取本地资源，推荐通过本机 HTTP 服务打开，不直接双击 HTML。
+
+新增高程来自 [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/)，数据下载日期、范围、网格及哈希见 `data/context_manifest.json`、`data/manifest.json`。署名：SRTM、GMTED2010 terrain data courtesy of the U.S. Geological Survey；Global ETOPO1 terrain data: NOAA；详见 [原始署名要求](https://github.com/tilezen/joerd/blob/master/docs/attribution.md)。Three.js r160 使用 MIT，许可证保存在 `vendor/LICENSE-three.txt`。
+
+原有 CHGIS/Hartwell 及 DataV 图层仍保留上游的许可说明与例外，不因新增 3D 而统一改为 GPL 或声明为本 Fork 原创。下方保留上游 README，其在线演示仍指向原作者网站，不代表本 Fork 已部署 3D 网站。
+
+---
+
+# 上游项目说明：江山时序 · Chronicles of the Realm
 
 <p align="left">
   <a href="README.md">English</a> · <strong>简体中文</strong> · <a href="README_ZH_HANT.md">繁體中文</a> · <a href="README_JA.md">日本語</a>

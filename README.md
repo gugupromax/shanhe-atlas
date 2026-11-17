@@ -1,4 +1,26 @@
-# Chronicles of the Realm · 江山时序
+# Shanhe Atlas · 山河地图
+
+A learning-oriented, non-commercial 2D/3D extension of [Chronicles of the Realm / jiangshan-map](https://github.com/DeanChensj/jiangshan-map). This fork retains upstream authorship, GPL-3.0, and the separately licensed data-layer exceptions. The project's intended use does not add restrictions to the GPL license.
+
+The extension was developed against upstream commit `897b9ad4e987fcface8728ffdfbe33e801a3dbae`. It adds measured terrain, 3D rendering, live original-SVG map textures, shared 2D/3D state, and a local launcher. Upstream map data and business scripts retain their provenance and license notices.
+
+## 3D extension
+
+- Switch between **Flat / 3D terrain** while retaining the year, person, place genealogy, and map center/scale.
+- The original atlas artwork is draped over a real modern elevation mesh. Colors, labels, boundaries, rivers, and journey marks follow the original map. Vertical exaggeration defaults to 20× and is adjustable from 1× to 120×.
+- Drag to pan; right-drag or Shift-drag to rotate; scroll to zoom; H resets the shared view. Person chronicles and place genealogy use the original controller. The quiz uses flat mode.
+- The buffered China-region DEM covers 40°E–165°E and 10°S–70°N, at approximately 9–10 km grid spacing. Taihang and eight-pass experimental grids are also included. Zooming does not create finer measurements.
+- Elevation is modern and does not change with historical years. Historical boundaries, coasts, rivers, and journey lines retain the upstream schematic character; they are not surveyed ancient road alignments.
+
+With an existing Python 3 installation, run `python -m http.server 8000` at the repository root and open `http://127.0.0.1:8000/`. Windows users can also run `启动地图.cmd` and later `停止地图.cmd`. No third-party Python package is required. A WebGL-capable browser is needed. Use a local HTTP server rather than opening the HTML file directly.
+
+Elevation: [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/); dates, bounds, spacing, and hashes are recorded in `data/context_manifest.json` and `data/manifest.json`. SRTM and GMTED2010 terrain data courtesy of the U.S. Geological Survey; Global ETOPO1 terrain data: NOAA. Preserve the [source attribution requirements](https://github.com/tilezen/joerd/blob/master/docs/attribution.md). Three.js r160 is MIT-licensed; see `vendor/LICENSE-three.txt`.
+
+CHGIS/Hartwell and DataV data-layer exceptions remain as documented upstream; the 3D extension does not relicense those layers or claim original authorship. The upstream README below is retained; its live-demo links lead to the upstream site, not a deployed 3D site for this fork. [中文说明](README_ZH.md)
+
+---
+
+# Upstream project: Chronicles of the Realm · 江山时序
 
 <p align="left">
   <strong>English</strong> · <a href="README_ZH.md">简体中文 (Chinese)</a> · <a href="README_ZH_HANT.md">繁體中文 (Traditional Chinese)</a> · <a href="README_JA.md">日本語 (Japanese)</a>

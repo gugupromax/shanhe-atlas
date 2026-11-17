@@ -16,7 +16,7 @@
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
-const { LAZY_ATTR_ASSETS } = require('./sync_version');
+const { LAZY_ATTR_ASSETS, readNormalizedAsset } = require('./sync_version');
 
 const ROOT = path.resolve(__dirname, '..');
 const BASELINE_PATH = 'data/atlas/perf_baseline.json';
@@ -46,7 +46,7 @@ function measureBundle(relPath, rootDir = ROOT) {
   if (!fs.existsSync(fullPath)) {
     throw new Error(`Missing bundle referenced in index.html: ${relPath}`);
   }
-  const buf = fs.readFileSync(fullPath);
+  const buf = readNormalizedAsset(fullPath);
   const gz = zlib.gzipSync(buf, { level: 9 });
   return {
     relPath,

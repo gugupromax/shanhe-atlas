@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <script>if(new URLSearchParams(location.search).get('embedded')==='1')document.documentElement.classList.add('embedded-map');</script>
+  <title>江山地图 · 全国地形与历史时序</title>
+  <link rel="stylesheet" href="terrain-style.css?v=atlas-20261117-2">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><svg viewBox="0 0 36 30" aria-hidden="true"><path d="M2 26 12 7l6 11 5-15 11 23M8 26l8-11 9 11"/></svg><h1>江山地图<span>全国地形 · 历史时序</span></h1></div>
+    <button id="sidebar-toggle" aria-controls="sidebar" aria-expanded="true">收起侧栏</button>
+    <span class="edition">山川有形，关陉可寻</span>
+    <button class="text-button" id="sources-open">数据与历史依据</button>
+  </header>
+  <main>
+    <aside class="sidebar" id="sidebar">
+      <button id="national" class="overview active" aria-pressed="true"><span>全国地形总览</span><small>真实高程 · 含周边地形参照</small></button>
+      <section id="history-sidebar" aria-label="历史年代与事件"><div class="list-heading"><h2>选择时代</h2><span>前403年—今</span></div><label class="select-label" for="period-select">历史时期</label><select id="period-select" aria-label="历史时期"></select><details id="events-details" open><summary>附近的重要节点</summary><p class="small-note">点击事件切换年份，并标出相关地点。</p><div id="history-events"></div></details><details class="polity-details" open><summary>政权图例 <span id="polity-count"></span></summary><div id="polity-list"></div></details></section>
+      <details id="taihang-details"><summary>太行试验区 · 通道待校准</summary>
+      <button id="overview" class="overview" aria-pressed="false"><span>太行全貌</span><small>南起豫北 · 北至京西</small><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></button>
+      <div class="list-heading"><h2>太行八陉</h2><span>由南向北</span></div>
+      <nav id="pass-list" aria-label="选择八陉局部"></nav>
+      <div class="location-note"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-11v2"/></svg><p>标记为区域概略定位，供观察周边山势；不是关址测绘点，也不是古道轨迹。</p></div>
+      </details>
+    </aside>
+    <section class="workspace" aria-label="三维地形">
+      <div class="scene-head"><div><h2 id="view-title">全国地形总览</h2><p id="view-description">现代地形底座 · 朝代疆域与历史事件按年代切换</p></div><span class="terrain-label">现代高程底座</span></div>
+      <section id="time-panel" aria-label="历史时间轴"><div class="time-row"><button id="time-prev" aria-label="上一个重要节点">上一节点</button><button id="time-play" aria-pressed="false">播放</button><button id="time-next" aria-label="下一个重要节点">下一节点</button><strong id="time-readout">公元 741 年 · 唐</strong><label for="time-year">年份<input id="time-year" type="number" min="-403" max="2026" value="741" step="1"></label><button id="time-go">跳转</button></div><label class="sr-only" for="time-range">拖动选择历史年份，负数表示公元前，无公元零年</label><input id="time-range" type="range" min="-403" max="2026" value="741" step="1"><div class="time-ends"><span>前403 · 战国</span><span>公元1年</span><span>1000年</span><span>2026年</span></div><p id="time-context" aria-live="polite">正在读取历史阶段…</p><button id="time-retry" hidden>重试加载疆域</button></section>
+      <div id="stage" tabindex="0" role="application" aria-label="连续三维地图。左键拖动平移，右键或Shift拖动旋转，滚轮缩放，方向键旋转，H键复位全国视图。">
+        <div id="canvas-host"></div><svg id="route-overlay" aria-hidden="true"></svg><div id="labels"></div>
+        <div class="route-legend" id="route-legend"><span class="line-sample"></span>通道走向示意 · 虚线非实测古道</div>
+        <div id="history-notice">历史疆域为示意 · 山体及海陆底座为现代参照</div>
+        <div id="load-state" role="status">正在读取本地高程…</div>
+        <div id="fatal" hidden role="alert"><h3>三维地形没有启动</h3><p id="fatal-message"></p><button id="retry">重新载入</button></div>
+        <div class="map-tools"><button id="zoom-in" aria-label="放大">＋</button><button id="zoom-out" aria-label="缩小">−</button><button id="reset-view" aria-label="复位视角"><svg viewBox="0 0 24 24"><path d="M4 10a8 8 0 1 1 1 8M4 4v6h6"/></svg></button></div>
+        <div class="north" aria-label="地理北方向"><svg viewBox="0 0 56 56"><g id="compass-needle"><path d="m28 9-7 23 7-5 7 5Z" fill="currentColor"/><path d="m28 45-7-13 7 5 7-5Z" fill="none" stroke="currentColor"/></g></svg><span>北 N</span></div>
+        <div class="relief-legend"><span>海拔 / 米</span><div class="spectrum"></div><div class="legend-ticks" id="legend-ticks"><span>0</span><span>1,000</span><span>2,000</span><span>3,000</span></div></div>
+        <div id="coordinate" class="coordinate" aria-live="polite">单击山体，查看经纬度与海拔</div>
+        <div id="measure-hint" class="measure-hint" hidden>请在山体上选取剖面起点</div>
+      </div>
+      <details id="map-tools-panel" open><summary>视角与图层</summary><div class="controls">
+        <div class="view-controls" role="group" aria-label="观察方向"><button id="map-view" class="selected" aria-pressed="true">地图</button><button id="oblique" aria-pressed="false">立体</button><button id="top" aria-pressed="false">俯视</button><button id="east">从东侧看</button><button id="national-wide">含南海全域</button></div>
+        <label class="height-control" for="exaggeration">高度放大 <input id="exaggeration" type="range" min="1" max="120" value="60" step="0.5"><output id="height-value" for="exaggeration">60×</output></label>
+        <label class="polity-toggle"><input id="polity-toggle" type="checkbox" checked>叠加历史疆域</label>
+        <button id="profile-toggle" aria-pressed="false">绘制地形剖面</button>
+        <label class="route-toggle"><input id="route-toggle" type="checkbox" checked>显示通道走向</label>
+        <button id="route-full" hidden>看整条通道</button><button id="route-local" hidden>回到局部</button>
+      </div></details>
+      <div class="below-map"><span id="data-summary">正在检查数据…</span><span>左键拖动平移 · 右键／Shift拖动旋转 · 滚轮缩放</span></div>
+      <div class="reading-note" id="reading-note"><strong>先看整体，再看险要</strong><p>全貌使用较大的高度放大倍数，帮助辨认山势。进入局部后可切换至 1× 真实比例，对照山谷、坡面与山前平原。</p></div>
+      <section class="route-panel" aria-label="通道节点与依据"><div class="route-heading"><h3 id="route-title">八陉通道走向</h3></div><p id="route-scope">已标出八条通道的概略走向，点击陉名查看沿线节点。</p><ol id="route-nodes" aria-label="通道节点顺序"></ol><p id="route-note">虚线只连接资料所述主要地区，不能据此确定古道路基、盘山曲线或真实通行距离。蒲阴陉的对应存在争议，使用橙色虚线。</p><div id="route-sources"></div></section>
+      <section id="profile-panel" hidden aria-label="地形剖面"><div class="profile-heading"><h3>直线地形剖面</h3><span id="profile-stats"></span><button id="profile-close" aria-label="关闭剖面">关闭</button></div><svg id="profile-chart" role="img" aria-label="所选两点之间的地形高程变化" viewBox="0 0 840 170"></svg><p>按两点之间的直线采样，不代表古道、可通行路线或行军难度；海拔数值不随高度放大改变。</p></section>
+    </section>
+  </main>
+  <dialog id="sources"><div class="dialog-head"><h2>数据与历史依据</h2><button id="sources-close" autofocus>关闭</button></div>
+    <h3>全国底座与历史时序</h3><p>默认视野与原项目一致：东经66°—142°、北纬14°—55°。为连续拖动浏览，实际离线高程覆盖东经40°—165°、南纬10°—北纬70°。全国使用墨卡托地图投影，原始网格约9.6×9.9千米。地图铺满窗口，不绘制矩形底板和侧壁；平移、缩小会约束在已加载数据范围内，不代表无限世界地图。近岸海陆按现代高程连通海洋近似判别，不用于考证精细海岸、小岛、通道或隘口。</p><p>历史政权轮廓和事件取自 <a href="https://github.com/DeanChensj/jiangshan-map/tree/897b9ad4e987fcface8728ffdfbe33e801a3dbae" target="_blank" rel="noopener">江山时序 jiangshan-map 固定版本</a>。仅复用该项目GPL-3.0的政权轮廓与自行整理的年表，未导入CHGIS州郡层、一级政区和现代省界。轮廓为原项目的示意近似，非本项目独立考证的精确边界。许可见 <code>licenses/</code>，历史清单见 <code>data/history_manifest.json</code>，当前地形清单见 <code>data/context_manifest.json</code>。</p><p>政权图层覆盖前403年至1948年；1949年以后只显示现代地形与所收录事件。疆域按阶段切换，不在两幅快照间虚构连续扩张。古海岸、古河道、湖泊和地形变迁均待考证，现代底座不随年份伪造改变。</p>
+    <h3>真实高程，现代底座</h3><p>山体来自 <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">AWS Open Data · Mapzen Terrain Tiles</a> 的 Terrarium 高程瓦片，已下载到本地。这里显示的是现代地表高程的采样结果，不是对某个朝代地貌的复原。</p>
+    <p>太行全貌网格约每 1.2–1.3 千米采样一次；八陉局部约每 150–180 米采样一次。全国网格约9—10千米。瓦片像元与输出网格尺度不同，均不代表高程精度。插值和取整会影响细小沟壑，局部最大可见范围以数据边框为限。</p>
+    <p>来源注明：SRTM、GMTED2010 terrain data courtesy of the U.S. Geological Survey；Global ETOPO1 terrain data: NOAA。具体数据源拼接与署名规则见 <a href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md" target="_blank" rel="noopener">Tilezen / Joerd 数据署名</a>。当前取数清单、时间及文件摘要保存在 <code>data/manifest.json</code>。</p>
+    <h3>八陉在哪里，古道如何走</h3><p>八陉名称和排列参考《地理研究》<a href="https://www.dlyj.ac.cn/CN/abstract/article/1000-0585/10049" target="_blank" rel="noopener">《刍议太行八陉及其历史变迁》</a>。标记坐标由作者按相关地区人工概略设置，未经古道专项测绘验证。</p>
+    <p><a href="https://wenwu.hebei.gov.cn/system/2025/05/26/030344164.shtml" target="_blank" rel="noopener">河北省文物局：寻踪太行古陉的历史脉动（2025-05-26）</a>介绍了八陉、井陉古驿道及专项调查，指出实际古道网络远比文献记载复杂。本版新增八陉“通道走向示意”：节点依据各条资料所述地名人工概略定位，节点之间以虚线相连。尚未取得实测古道数据，也未加入战役路线。</p>
+    <p>通道节点及逐条出处保存在 <code>data/routes.js</code>，也显示在地图下方。所有虚线都是示意线，没有任何一段被标为已测绘古道。蒲阴陉采用常见的易县—紫荆关—涞源对应说法，以橙色标示争议；不把它作为学术定论。局部边框以外的线路会截断，点击“看整条通道”查看完整示意。</p>
+    <h3>如何理解“高度放大”</h3><p>全国默认60×、太行全貌10×、八陉局部3×，只将山体竖向放大，东西南北距离不变。1× 才是水平与垂直使用同一尺度。原始海拔和剖面数值始终使用真实采样值。</p>
+    <p>三维显示库：Three.js r160，MIT 许可，保存在 <code>vendor/</code>。页面运行不请求在线地图、字体、统计服务或账号。</p>
+  </dialog>
+  <script src="vendor/three.min.js"></script><script src="viewport-geometry.js"></script><script src="data/context.js"></script><script src="data/history.js"></script><script src="history-core.js"></script><script src="data/routes.js"></script><script src="route-geometry.js"></script><script src="fusion-protocol.js?v=atlas-20261117-2"></script><script src="fusion-layers.js"></script><script src="map-surface-material.js?v=atlas-20261117-2"></script><script src="terrain-app.js?v=atlas-20261117-2"></script>
+</body>
+</html>

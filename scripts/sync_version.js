@@ -6,6 +6,7 @@
  *
  * Usage:
  *   node scripts/sync_version.js                            # Update index.html in place & configure git merge driver
+ *   node scripts/sync_version.js --write-only               # Update index.html without changing local Git config
  *   node scripts/sync_version.js --check                    # Verify index.html & controller scripts without writing
  *   node scripts/sync_version.js --merge-driver %O %A %B    # Git custom merge driver for index.html ?v= conflicts
  */
@@ -37,12 +38,14 @@ const SYNC_CONTROLLER_SCRIPTS = [
 
 const STATIC_TAG_ASSETS = [
   'css/style.css',
+  'integration.css',
   'js/china_geo_data.js',
   'js/atlas_boot.js',
   'js/map_data.js',
   'js/lore_core.js',
-  'js/atlas_track.js',
   ...SYNC_CONTROLLER_SCRIPTS,
+  'map-surface.js',
+  'integration.js',
 ];
 
 const LAZY_ATTR_ASSETS = [
@@ -60,8 +63,17 @@ const LAZY_ATTR_ASSETS = [
 const PRELOADED_LAZY_ASSETS = ['js/atlas_snapshots.js'];
 const preloadRe = (relPath) => new RegExp(`('${escapeRegExp(relPath)}\\?v=)([0-9a-zA-Z_.-]+)(')`, 'g');
 
-function shortSha256(filePath) {
+// Git text checkouts may use CRLF on Windows. Hash and measure the same LF bytes
+// on every platform, without rewriting the assets themselves.
+function readNormalizedAsset(filePath) {
   const buf = fs.readFileSync(filePath);
+  return /\.(?:js|css)$/i.test(filePath)
+    ? Buffer.from(buf.toString('utf8').replace(/\r\n?/g, '\n'), 'utf8')
+    : buf;
+}
+
+function shortSha256(filePath) {
+  const buf = readNormalizedAsset(filePath);
   return crypto.createHash('sha256').update(buf).digest('hex').slice(0, 8);
 }
 
@@ -228,7 +240,7 @@ function verifyIndexHtmlAssetHashes(rootDir = ROOT, indexHtmlInput = null, appCo
   return hashes;
 }
 
-function syncIndexHtmlAssetHashes(rootDir = ROOT) {
+function syncIndexHtmlAssetHashes(rootDir = ROOT, { configureGitMergeDriver = true } = {}) {
   const indexPath = path.join(rootDir, 'index.html');
   const before = fs.readFileSync(indexPath, 'utf8');
   const hashes = computeAssetHashes(rootDir);
@@ -237,7 +249,7 @@ function syncIndexHtmlAssetHashes(rootDir = ROOT) {
   if (changed) {
     fs.writeFileSync(indexPath, after, 'utf8');
   }
-  ensureGitMergeDriverConfig(rootDir);
+  if (configureGitMergeDriver) ensureGitMergeDriverConfig(rootDir);
   return { changed, hashes };
 }
 
@@ -246,9 +258,10 @@ if (require.main === module) {
   const args = new Set(rawArgs);
   if (args.has('--help') || args.has('-h')) {
     console.log(
-      'Usage: node scripts/sync_version.js [--check | --merge-driver %O %A %B]\n' +
+      'Usage: node scripts/sync_version.js [--check | --write-only | --merge-driver %O %A %B]\n' +
         '  (default)                   Compute SHA-256 short hashes for CSS/JS assets and update index.html\n' +
         '  --check                     Verify index.html & controller asset hashes without modifying files\n' +
+        '  --write-only                Update index.html without configuring the local Git merge driver\n' +
         '  --merge-driver %O %A %B     Git merge driver to auto-resolve index.html ?v= hash conflicts'
     );
     process.exit(0);
@@ -265,7 +278,9 @@ if (require.main === module) {
       `✓ Asset content hashes verified across ${Object.keys(hashes).length} bundles in index.html & js/app.js`
     );
   } else {
-    const { changed, hashes } = syncIndexHtmlAssetHashes(ROOT);
+    const { changed, hashes } = syncIndexHtmlAssetHashes(ROOT, {
+      configureGitMergeDriver: !args.has('--write-only'),
+    });
     verifyIndexHtmlAssetHashes(ROOT);
     console.log(
       `✓ ${changed ? 'Updated' : 'Already up-to-date:'} index.html per-asset content hashes:`
@@ -280,6 +295,7 @@ module.exports = {
   CONTROLLER_SCRIPTS,
   STATIC_TAG_ASSETS,
   LAZY_ATTR_ASSETS,
+  readNormalizedAsset,
   computeAssetHashes,
   applyHashesToIndexHtml,
   normalizeIndexHtmlHashes,

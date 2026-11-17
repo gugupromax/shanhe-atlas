@@ -23,8 +23,8 @@ async function runSearchRuntimeSuite(ctx) {
     loreData,
     enLocale,
     indexHtml,
-    cssSrc,
-    appCode,
+    cssSrc: rawCssSrc,
+    appCode: rawAppCode,
     zgDyn,
     qinDyn,
     xihanDyn,
@@ -35,6 +35,9 @@ async function runSearchRuntimeSuite(ctx) {
     pointInShape,
     getCachedPersonEvents,
   } = ctx;
+  // Source-shape assertions use LF literals; CRLF checkouts have identical behavior.
+  const cssSrc = rawCssSrc.replace(/\r\n?/g, '\n');
+  const appCode = rawAppCode.replace(/\r\n?/g, '\n');
   const zgSnap = snapshots[ctrl._resolveSnapKey(zgDyn, -231)];
   const bsKey = ctrl._resolveSnapKey(bsDyn, 1100);
 
@@ -420,7 +423,10 @@ async function runSearchRuntimeSuite(ctx) {
           ctrl.activePolity = null;
 
           const indexHtml = require('fs').readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-          assert(/data-cf-beacon='[^']*"spa":\s*false/.test(indexHtml), 'Cloudflare beacon must keep "spa": false, or every URL state write is counted as a pageview');
+          assert(
+            !/data-cf-beacon|cloudflareinsights|vercount/i.test(indexHtml.replace(/<!--[\s\S]*?-->/g, '')),
+            'Fork URL state changes must stay local without Cloudflare or Vercount analytics'
+          );
 
           Object.assign(ctrl, { activePerson: { profiles: [{ key: 'libai' }, { key: 'dufu' }] }, activePersonEventIdx: 3 });
           ctrl._writeUrlState();
@@ -2603,7 +2609,7 @@ async function runSearchRuntimeSuite(ctx) {
     // Issue #299 regression check: #milestone-list hover style must be distinct from .is-current,
     // and clicking a visible milestone item must not force-scroll #chronicle-pane to 42% height.
     {
-      const cssSrc = fs.readFileSync(path.join(ROOT, 'css', 'style.css'), 'utf8');
+      const cssSrc = fs.readFileSync(path.join(ROOT, 'css', 'style.css'), 'utf8').replace(/\r\n?/g, '\n');
       assert(
         !cssSrc.includes('#milestone-list li:hover,\n#milestone-list li.is-current'),
         'css/style.css must not share identical styles between #milestone-list li:hover and #milestone-list li.is-current (#299)'
@@ -3092,14 +3098,16 @@ async function runSearchRuntimeSuite(ctx) {
   }
 
   {
+    // The fork must not load the upstream tracker. Keep testing the retained upstream
+    // source in isolation, so its legacy behavior is still covered without enabling it.
+    assert(
+      !/<script\b[^>]*\bsrc=["'][^"']*\batlas_track\.js(?:\?[^"']*)?["']/i.test(indexHtml),
+      'Fork HTML must not load the upstream atlas_track analytics script'
+    );
     // js/atlas_track.js: anonymous click & feature counter. It is run here against a fake
     // controller in the real load order: the deferred script executes first, then app.js's
     // window listener (registered earlier, while parsing) creates the controller.
     const trackSrc = fs.readFileSync(path.join(JS_DIR, 'atlas_track.js'), 'utf8');
-    assert(
-      /<script defer src="js\/atlas_track\.js\?v=/.test(indexHtml),
-      'atlas_track.js must load with defer so it stays out of the first-paint budget'
-    );
 
     const bootTracker = ({ hostname = 'deanchen.me', search = '', doNotTrack = null } = {}) => {
       const listeners = { window: {}, document: {} };
