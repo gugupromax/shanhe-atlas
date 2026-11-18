@@ -10,6 +10,31 @@
     return Array.isArray(value) && value.length === 2 && value.every(finite) &&
       Math.abs(value[0]) <= 180 && Math.abs(value[1]) < 85.1;
   }
+  function isCurrentMapPick(message, sceneKey, year) {
+    return Boolean(sceneKey && message.sceneKey === sceneKey && message.year === year &&
+      validCoord(message.coord));
+  }
+  function renderedSettlementLocations(group, getStyle) {
+    return Array.from(group.querySelectorAll('.settlement-node:not(.is-pass)'))
+      .filter(node => getStyle(node).display !== 'none')
+      .map(({ dataset }) => ({
+        name: dataset.ancient,
+        coord: [dataset.lng?.trim() ? Number(dataset.lng) : NaN,
+          dataset.lat?.trim() ? Number(dataset.lat) : NaN],
+        kind: 'city',
+      }))
+      .filter(city => city.name && validCoord(city.coord));
+  }
+  function tangTileTier(app, layers, protocol) {
+    if (app.year !== 741 || app.locale !== 'zh' || protocol === 'file:' ||
+        app.activePerson || app.activeCustomRoute || app.activeTrace || app.activePolity ||
+        layers.modernProvinceNames ||
+        !['polities','settlements','prefectures','corridors','hydro','modernProvinces','milestones']
+          .every(name => layers[name] === true)) return null;
+    const classes = app.svg.classList;
+    if (classes.contains('is-tang741-counties')) return 'near';
+    return classes.contains('is-tang741-overview') || !classes.contains('is-zoomed-cities') ? 'far' : 'mid';
+  }
   function readView(app, rect) {
     const c = app.camera;
     const ratio = rect.width > 0 && rect.height > 0 ? rect.width / rect.height : c.w / c.h;
@@ -41,7 +66,8 @@
     return { key: message.key, code: codes[message.key], bubbles: true, cancelable: true,
       shiftKey: message.shiftKey === true, ctrlKey: message.ctrlKey === true, metaKey: message.metaKey === true };
   }
-  const helpers = { validCoord, readView, cameraForView, shortcutInit, CHANNEL };
+  const helpers = { validCoord, readView, cameraForView, shortcutInit, isCurrentMapPick,
+    renderedSettlementLocations, tangTileTier, CHANNEL };
   if (typeof module === 'object' && module.exports) module.exports = helpers;
   if (!root || !root.document) return;
   root.JiangshanFusionGeometry = helpers;
@@ -64,6 +90,10 @@
     const surfaceBounds = [40, -10, 165, 70];
     const mapSurface = root.JiangshanMapSurface?.create({ app, svg: app.svg });
     let surfaceTimer, surfaceRequest = 0, surfaceKey = '', surfaceBaseKey = '', surfaceBasePendingId = -1;
+    let surfaceGeneration = 0, surfaceRenderJob = null, queuedSurface = null;
+    let startupTimer, presented = false;
+    let pendingChildCamera = null;
+    let lastTileTier = null, tilesFailed = false;
     const ids = new WeakMap();
     let nextId = 0;
     const id = value => {
@@ -77,8 +107,6 @@
     frame.title = '三维地形历史地图';
     frame.setAttribute('aria-hidden', 'true');
     frame.tabIndex = -1;
-    // Source is fixed, never obtained from an incoming message or user text.
-    frame.src = 'terrain.html?embedded=1&v=atlas-20261117-2';
     viewport.insertBefore(frame, viewport.firstChild);
 
     const strip = doc.querySelector('#nav-bar .control-strip');
@@ -98,7 +126,7 @@
       '<button type="button" data-view="relief" aria-pressed="true">斜俯</button>' +
       '<button type="button" data-view="top" aria-pressed="false">正上</button>' +
       '<button type="button" data-view="east" aria-pressed="false">东望</button></div>' +
-      '<label class="fusion-height">地形起伏 <input id="fusion-height" type="range" min="1" max="120" step="1" value="20"><output id="fusion-height-value">20×</output></label>' +
+      '<label class="fusion-height" title="地形高程的垂直放大倍数">地形起伏 <input id="fusion-height" type="range" min="1" max="120" step="1" value="20"><output id="fusion-height-value">20×</output></label>' +
       '<p class="fusion-help">原版地图铺在真实地形上。点击地名或双击地图查看沿革；拖动平移，右键或 Shift 拖动旋转。小试使用平面地图。</p>';
     doc.getElementById('layers-popover').appendChild(section);
     const status = doc.createElement('div');
@@ -107,11 +135,32 @@
     status.setAttribute('aria-live', 'polite');
     viewport.appendChild(status);
     let statusTimer;
-    function announce(text) {
+    function announce(text, keepVisible = false) {
       status.textContent = text;
       status.classList.add('is-visible');
       clearTimeout(statusTimer);
-      statusTimer = setTimeout(() => status.classList.remove('is-visible'), 4500);
+      if (!keepVisible) statusTimer = setTimeout(() => status.classList.remove('is-visible'), 4500);
+    }
+    function presentTerrain(show) {
+      presented = show;
+      viewport.classList.toggle('fusion-is-3d', show);
+      frame.setAttribute('aria-hidden', String(!show));
+      frame.tabIndex = show ? 0 : -1;
+      if (show) {
+        root.performance?.clearMarks?.('atlas-3d:interactive');
+        root.performance?.mark?.('atlas-3d:interactive');
+        clearTimeout(startupTimer);
+        status.classList.remove('is-visible');
+      }
+    }
+    function failTerrain(message) {
+      if (!active) return;
+      ready = false;
+      surfaceBaseKey = '';
+      surfaceBasePendingId = -1;
+      surfaceRenderJob = null;
+      frame.removeAttribute('src');
+      setMode(false, message);
     }
     function post(message) {
       if (message.type === 'surface') {
@@ -120,44 +169,69 @@
       }
       if (frame.contentWindow) frame.contentWindow.postMessage({ channel: CHANNEL, ...message }, '*');
     }
+    function detailBounds(cameraView, padding = 1.2) {
+      const rect = app.svg.getBoundingClientRect();
+      const p = app.projector.toScreen(...cameraView.center);
+      const halfW = cameraView.widthKm / KM_PER_DEGREE * app.projector.scale * padding;
+      const halfH = halfW * rect.height / Math.max(1, rect.width);
+      const nw = app.projector.toGeo(p[0] - halfW, p[1] - halfH);
+      const se = app.projector.toGeo(p[0] + halfW, p[1] + halfH);
+      const bounds = [Math.max(surfaceBounds[0], nw[0]), Math.max(surfaceBounds[1], se[1]),
+        Math.min(surfaceBounds[2], se[0]), Math.min(surfaceBounds[3], nw[1])];
+      return bounds[0] < bounds[2] && bounds[1] < bounds[3] ? bounds : null;
+    }
     function requestSurface(sceneKey, cameraView) {
+      if (pendingChildCamera || lastTileTier) return;
       const key = JSON.stringify([sceneKey, cameraView]);
       if (key === surfaceKey) return;
       surfaceKey = key;
       const request = ++surfaceRequest;
+      const generation = surfaceGeneration;
       clearTimeout(surfaceTimer);
-      surfaceTimer = setTimeout(async () => {
+      const run = async () => {
         if (!active || request !== surfaceRequest) return;
+        if (surfaceRenderJob !== null) { queuedSurface = run; return; }
+        surfaceRenderJob = request;
+        const currentScene = () => active && !pendingChildCamera &&
+          generation === surfaceGeneration && sceneKey === lastSceneKey;
         try {
           if (!mapSurface) throw new Error('Missing original map surface');
-          if (surfaceBaseKey !== sceneKey) {
+          if (surfaceBaseKey !== sceneKey && surfaceBasePendingId < 0) {
             const started = root.performance.now();
-            const base = await mapSurface.render({ bounds: surfaceBounds, width: 2048, height: 2048 });
-            if (!active || request !== surfaceRequest || sceneKey !== lastSceneKey) return;
+            const base = await mapSurface.render({ bounds: surfaceBounds, width: 1024, height: 1024,
+              screenPasses: true, screenLabels: app.year === 741 });
+            if (!currentScene()) return;
             surfaceBasePendingId = request * 2;
             post({ type: 'surface', quality: 'base', sceneKey, renderId: request * 2, renderMs: root.performance.now() - started, ...base });
           }
-          const rect = app.svg.getBoundingClientRect();
-          const p = app.projector.toScreen(...cameraView.center);
-          const halfW = cameraView.widthKm / KM_PER_DEGREE * app.projector.scale * 1.2;
-          const halfH = halfW * rect.height / Math.max(1, rect.width);
-          const nw = app.projector.toGeo(p[0] - halfW, p[1] - halfH);
-          const se = app.projector.toGeo(p[0] + halfW, p[1] + halfH);
-          const bounds = [Math.max(surfaceBounds[0], nw[0]), Math.max(surfaceBounds[1], se[1]),
-            Math.min(surfaceBounds[2], se[0]), Math.min(surfaceBounds[3], nw[1])];
-          if (bounds[0] >= bounds[2] || bounds[1] >= bounds[3]) return;
+          if (!currentScene() || request !== surfaceRequest) return;
+          const bounds = detailBounds(cameraView);
+          if (!bounds) return;
           const started = root.performance.now();
-          const detail = await mapSurface.render({ bounds, width: 3072, height: 3072 });
-          if (!active || request !== surfaceRequest || sceneKey !== lastSceneKey) return;
+          const detail = await mapSurface.render({ bounds, width: 3072, height: 3072,
+            screenPasses: true, screenLabels: app.year === 741 });
+          if (!currentScene() || request !== surfaceRequest) return;
           post({ type: 'surface', quality: 'detail', sceneKey, renderId: request * 2 + 1, renderMs: root.performance.now() - started, ...detail });
         } catch (error) {
-          if (active && request === surfaceRequest) {
+          if (currentScene() && request === surfaceRequest) {
             console.error('Original map surface:', error);
-            post({ type: 'surface-error', sceneKey });
-            announce('原版地图暂未铺到地形，可切回平面继续查看。');
+            if (!presented) {
+              failTerrain('三维贴图生成失败，已保留平面地图。可以再次点击 3D 地形重试。');
+            } else {
+              post({ type: 'surface-error', sceneKey });
+              announce('原版地图暂未铺到地形，可切回平面继续查看。');
+            }
+          }
+        } finally {
+          if (surfaceRenderJob === request) {
+            surfaceRenderJob = null;
+            const queued = queuedSurface;
+            queuedSurface = null;
+            if (queued) await queued();
           }
         }
-      }, 160);
+      };
+      surfaceTimer = setTimeout(run, 160);
     }
     const checked = name => {
       const el = doc.getElementById('chk-' + name);
@@ -170,10 +244,14 @@
     }
     function locations() {
       const dynasty = app.dynasties[app.dynastyIdx] || {};
-      const city = (dynasty.settlements || [])
-        .filter(s => validCoord(s.coord) && (s.appear === undefined || app.year >= s.appear) &&
-          (s.vanish === undefined || app.year < s.vanish))
-        .map(s => ({ name: app._settlementAncient(s, app.year), coord: s.coord, kind: 'city' }));
+      // The parent SVG also defines which supplemental Tang labels are visible.
+      // Only read display: 3D intentionally hides visibility of the whole SVG.
+      const city = app.year === 741 && app.grpSettlements
+        ? renderedSettlementLocations(app.grpSettlements, node => root.getComputedStyle(node))
+        : (dynasty.settlements || [])
+          .filter(s => validCoord(s.coord) && (s.appear === undefined || app.year >= s.appear) &&
+            (s.vanish === undefined || app.year < s.vanish))
+          .map(s => ({ name: app._settlementAncient(s, app.year), coord: s.coord, kind: 'city' }));
       const events = app.activePerson ? app.activePerson.events || [] : app.activeCustomRoute || [];
       const stops = events.map((s, index) => ({ name: s.siteZh || s.query || s.name || '',
         coord: s.coord || [s.lng, s.lat], kind: 'journey', year: s.year, index,
@@ -209,25 +287,49 @@
       if (!ready || applyingChild) return;
       const cameraView = readView(app, app.svg.getBoundingClientRect());
       const layerState = layers();
+      if (app.year !== 741) tilesFailed = false;
+      const tileTier = tilesFailed ? null : tangTileTier(app, layerState, root.location.protocol);
+      const passLayerActive = layerState.corridors && !app.challenge;
+      const revealPasses = passLayerActive && app.camera?.w <= 500;
+      const area = app.activeMapArea;
       const person = app.activePerson;
       const selection = { personKey: person && (person.profiles || [person.profile]).filter(Boolean).map(p => p.key).join(','),
         personTitle: person && person.profile && (person.profile.zh || person.profile.titleZh),
         stopIndex: person ? app.activePersonEventIdx : app.customRouteStopIdx,
         traceCoord: app.activeTrace };
-      // Scene identity intentionally excludes the camera, activation and transport sequence.
+      const tangDetail = app.year === 741 ? [
+        id(app.grpSettlements?.firstElementChild),
+        app.svg.classList.contains('is-tang741-overview'),
+        app.svg.classList.contains('is-tang741-counties'),
+        app.svg.classList.contains('is-zoomed-cities'),
+        app.svg.classList.contains('is-mobile-zoomed-detail'),
+      ] : null;
+      // Scene identity excludes raw camera coordinates, activation and transport sequence.
       // The child can retain its textures and labels while applying a view-only update.
       const sceneKey = JSON.stringify([app.year, layerState, selection, app.locale,
-        id(app.lastRenderedSnap), id(person), id(app.activeCustomRoute), app.activeHydroMask,
+        id(app.lastRenderedSnap), id(person), id(app.activeCustomRoute), tileTier ? '' : id(area), tangDetail, tileTier, revealPasses, app.activeHydroMask,
         app.activeSettlementMask, app.activeCorridorMask, app.svg.classList.contains('is-awaiting-snapshot')]);
-      const signature = JSON.stringify([active, cameraView, sceneKey]);
-      if (!force && signature === lastSignature) return;
+      const signature = JSON.stringify([active, cameraView, sceneKey, tileTier ? id(area) : '']);
+      if (!force && signature === lastSignature) {
+        if (active && !surfaceKey) requestSurface(sceneKey, cameraView);
+        return;
+      }
       lastSignature = signature;
-      const fullScene = active && (force || reason !== 'child-view' || sceneKey !== lastSceneKey);
-      if (sceneKey !== lastSceneKey) { surfaceBaseKey = ''; surfaceBasePendingId = -1; }
+      const fullScene = active && (force || sceneKey !== lastSceneKey || (!tileTier && reason !== 'child-view'));
+      if (sceneKey !== lastSceneKey) { surfaceGeneration++; surfaceBaseKey = ''; surfaceBasePendingId = -1; }
       lastSceneKey = sceneKey;
+      lastTileTier = tileTier;
       post({ type: 'state', active, reason, seq: ++sequence, sceneKey, year: Math.round(app.year),
         ...cameraView, locations: fullScene ? locations() : [], selection,
-        snapshot: fullScene ? snapshot() : { polities: [] }, layers: layerState, overlays: fullScene ? overlays() : {} });
+        tangLabels: fullScene && app.year === 741
+          ? root.JiangshanMapSurface.tangScreenLabels(app, node => root.getComputedStyle(node)) : [],
+        passLabels: fullScene && passLayerActive
+          ? root.JiangshanMapSurface.passScreenLabels(app, node => root.getComputedStyle(node), revealPasses) : [],
+        tileTier, tileBounds: tileTier ? detailBounds(cameraView, .72) : null,
+        areaHighlight: tileTier ? area?.highlight : null,
+        areaHighlightId: tileTier ? id(area) : 0,
+        snapshot: fullScene && !tileTier ? snapshot() : { polities: [] },
+        layers: layerState, overlays: fullScene && !tileTier ? overlays() : {} });
       if (active) requestSurface(sceneKey, cameraView);
     }
     function schedule(reason = 'controller') {
@@ -245,21 +347,55 @@
       section.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === view)));
       post({ type: 'config', view, exaggeration });
     }
+    function applyChildCamera(camera) {
+      applyingChild = true;
+      try {
+        app._cancelCameraAnimation();
+        app.camera = camera;
+        app._applyCamera(true);
+      } finally { applyingChild = false; }
+    }
     function setMode(next, explanation) {
       if (next && app.challenge) {
         announce('小试需要在平面地图答题，结束后可切换 3D。');
         return;
       }
+      const starting = Boolean(next) && !active;
+      if (starting) {
+        tilesFailed = false;
+        root.performance?.clearMarks?.('atlas-3d:open');
+        root.performance?.mark?.('atlas-3d:open');
+      }
       active = Boolean(next);
-      if (!active) { clearTimeout(surfaceTimer); surfaceRequest++; surfaceKey = ''; }
-      viewport.classList.toggle('fusion-is-3d', active);
-      frame.setAttribute('aria-hidden', String(!active));
-      frame.tabIndex = active ? 0 : -1;
+      if (!active) {
+        const camera = pendingChildCamera;
+        pendingChildCamera = null;
+        if (camera) applyChildCamera(camera);
+        clearTimeout(surfaceTimer);
+        clearTimeout(startupTimer);
+        clearTimeout(statusTimer);
+        status.classList.remove('is-visible');
+        surfaceRequest++;
+        surfaceGeneration++;
+        surfaceKey = '';
+        queuedSurface = null;
+        presentTerrain(false);
+      }
+      // Keep the flat map responsive until the user actually requests WebGL.
+      if (starting && !frame.getAttribute('src')) frame.src = 'terrain.html?embedded=1&v=atlas-20261119-10';
       doc.getElementById('fusion-flat').setAttribute('aria-pressed', String(!active));
       doc.getElementById('fusion-3d').setAttribute('aria-pressed', String(active));
-      if (active && !ready) announce('正在载入本地三维地形…');
       if (explanation) announce(explanation);
       sync('activate', true);
+      if (starting) {
+        if (ready && surfaceBaseKey && surfaceBaseKey === lastSceneKey) presentTerrain(true);
+        else {
+          announce('正在载入三维地形和地图…', true);
+          startupTimer = setTimeout(() => {
+            failTerrain('三维地图载入超时，已保留平面地图。可以再次点击 3D 地形重试。');
+          }, 30000);
+        }
+      }
       if (active) configure();
     }
     doc.getElementById('fusion-flat').addEventListener('click', () => setMode(false));
@@ -278,6 +414,7 @@
     ['jumpToYear', '_applyCamera', '_renderPolitiesAndPrefectures', '_renderSettlements',
       '_buildTerrainRivers', '_renderCorridors', 'openGenealogyAt', 'closeGenealogyCard',
       'openPersonChronicle', 'selectPersonEvent', '_renderPersonChronicleCard', '_clearActivePerson',
+      'openMapAreaAt', 'closeMapArea', 'openMapSettlementAt',
       '_clearActiveTrace', 'selectCustomRouteStop', 'clearCustomRoute', '_drawCustomRouteOverlay', 'applyLocale']
       .forEach(name => {
         const original = app[name];
@@ -323,30 +460,53 @@
       if (root.location.protocol !== 'file:' && event.origin !== root.location.origin) return;
       if (message.type === 'ready') {
         ready = true;
-        surfaceBaseKey = ''; surfaceBasePendingId = -1; surfaceKey = ''; surfaceRequest++;
+        tilesFailed = false;
+        surfaceBaseKey = ''; surfaceBasePendingId = -1; surfaceKey = ''; surfaceRequest++; surfaceGeneration++;
         configure();
         sync('activate', true);
       } else if (message.type === 'surface-applied' && message.quality === 'base' && message.sceneKey === lastSceneKey && message.renderId === surfaceBasePendingId) {
         surfaceBaseKey = message.sceneKey;
-      } else if (message.type === 'applied' && Number.isInteger(message.seq) && message.seq === sequence) {
-        status.classList.remove('is-visible');
+        if (active && !presented) presentTerrain(true);
+      } else if (message.type === 'tiles-ready' && active && lastTileTier && message.sceneKey === lastSceneKey) {
+        surfaceBaseKey = message.sceneKey;
+        if (!presented) presentTerrain(true);
+      } else if (message.type === 'tiles-error' && active && lastTileTier && message.sceneKey === lastSceneKey) {
+        tilesFailed = true;
+        sync('controller', true);
+      } else if (message.type === 'terrain-error') {
+        failTerrain('三维地形加载失败，已保留平面地图。可以再次点击 3D 地形重试。');
+      } else if (message.type === 'applied' && message.seq === sequence && message.supported === false && active && !presented) {
+        setMode(false, '当前位置超出三维高程范围，已保留平面地图。');
       } else if (message.type === 'shortcut' && active) {
         const init = shortcutInit(message);
         // The atlas owns its keyboard handler on window. A bubbling document event
         // follows that same path without pretending a parent input received this key.
         if (init) doc.dispatchEvent(new root.KeyboardEvent('keydown', init));
       } else if (message.type === 'reset-view' && active) {
+        pendingChildCamera = null;
         app.resetCamera();
+      } else if (message.type === 'view-preview' && active) {
+        const camera = cameraForView(app, app.svg.getBoundingClientRect(), message.center, message.widthKm);
+        if (!camera) return;
+        if (!pendingChildCamera) {
+          clearTimeout(surfaceTimer);
+          surfaceRequest++;
+          surfaceKey = '';
+          queuedSurface = null;
+        }
+        pendingChildCamera = camera;
       } else if (message.type === 'view' && active) {
         const camera = cameraForView(app, app.svg.getBoundingClientRect(), message.center, message.widthKm);
         if (!camera) return;
-        applyingChild = true;
-        try {
-          app._cancelCameraAnimation();
-          app.camera = camera;
-          app._applyCamera(true);
-        } finally { applyingChild = false; }
+        pendingChildCamera = null;
+        applyChildCamera(camera);
         sync('child-view');
+      } else if (message.type === 'area-pick' && active && isCurrentMapPick(message, lastSceneKey, app.year)) {
+        app.openMapAreaAt?.(...message.coord);
+      } else if (message.type === 'place-pick' && active && isCurrentMapPick(message, lastSceneKey, app.year) &&
+        typeof message.label === 'string' && message.label.length <= 200) {
+        if (typeof app.openMapSettlementAt === 'function') app.openMapSettlementAt(...message.coord, message.label);
+        else app.openGenealogyAt(...message.coord);
       } else if (message.type === 'trace' && active && validCoord(message.coord)) {
         app.openGenealogyAt(message.coord[0], message.coord[1]);
       } else if (message.type === 'event' && active && Number.isInteger(message.year) &&

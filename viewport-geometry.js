@@ -43,5 +43,34 @@
     }
     return {constrain,footprint};
   }
-  return {createFrame,createGuard,mercatorY};
+
+  // Tiles share the same vertex and normal buffers. Only their index ranges differ.
+  function meshIndices(width,height,tileSize=Math.max(width,height),step=1){
+    const tiles=[];
+    let length=0;
+    for(let row=0;row<height-1;row+=tileSize){
+      for(let col=0;col<width-1;col+=tileSize){
+        const lastRow=Math.min(height-1,row+tileSize);
+        const lastCol=Math.min(width-1,col+tileSize);
+        const count=Math.ceil((lastRow-row)/step)*Math.ceil((lastCol-col)/step)*6;
+        tiles.push({row,col,lastRow,lastCol,start:length,count});
+        length+=count;
+      }
+    }
+    const indices=new Uint32Array(length);
+    let i=0;
+    for(const tile of tiles){
+      for(let row=tile.row;row<tile.lastRow;row+=step){
+        const nextRow=Math.min(row+step,tile.lastRow);
+        for(let col=tile.col;col<tile.lastCol;col+=step){
+          const nextCol=Math.min(col+step,tile.lastCol);
+          const a=row*width+col,b=row*width+nextCol,c=nextRow*width+col,d=nextRow*width+nextCol;
+          indices[i++]=a;indices[i++]=c;indices[i++]=b;
+          indices[i++]=b;indices[i++]=c;indices[i++]=d;
+        }
+      }
+    }
+    return {indices,tiles};
+  }
+  return {createFrame,createGuard,mercatorY,meshIndices};
 });

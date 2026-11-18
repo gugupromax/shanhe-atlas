@@ -32,6 +32,14 @@ jobs:
           node --check fusion-protocol.js
           node --check map-surface-material.js
           node --test scripts/tests/test_fork_ci_compat.cjs
+          node --test scripts/tests/test_longmarch_ui.cjs
+          node --test scripts/tests/test_tang_741.cjs
+          node --test scripts/tests/test_tang_741_tiles.cjs scripts/tests/test_terrain_area_highlight.cjs scripts/tests/test_terrain_pass_markers.cjs
+          node --test scripts/tests/test_site_navigation.cjs
+          node scripts/build_tang_741_tiles.cjs --check --allow-unbuilt
+          node scripts/build_tang_741.cjs --check
+          node scripts/build_longmarch.cjs --check
+          node scripts/verify_longmarch.cjs
           for test in fusion fusion_layers history map_surface routes surface_races surface_registration viewport; do
             node "scripts/verify_${test}.cjs"
           done
@@ -39,7 +47,9 @@ jobs:
           python3 scripts/verify_launcher.py --offline
 
       - name: Verify polygon bundles are canonical encodings
-        run: node scripts/build_atlas.js --check
+        run: |
+          node scripts/build_atlas.js --check
+          node --test scripts/tests/test_atlas_build_crlf.cjs
 
       - name: Check polity border topology against baseline
         run: node scripts/audit_topology.js --check
@@ -48,7 +58,9 @@ jobs:
         run: node scripts/audit_prefectures.js --check
 
       - name: Check data references against baseline
-        run: node scripts/audit_sources.js --check
+        run: |
+          node scripts/audit_sources.js --check
+          node --test scripts/tests/test_source_audit_crlf.cjs
 
       - name: Test the click-stats Worker
         run: node workers/stats/test.js

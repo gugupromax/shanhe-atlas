@@ -14,4 +14,41 @@ const manifest=JSON.parse(fs.readFileSync(path.join(root,'data/context_manifest.
 let limit=guard.constrain({theta:0,phi:.08,distance:80000,x:0,z:0},frame,1.92,40,-30,150);
 for(let i=0;i<10;i++){const next=guard.constrain({...limit,distance:limit.distance*1.25},frame,1.92,40,-30,150);assert.ok(Math.abs(next.distance-limit.distance)<.02,'zoom-out limit drifts or zooms inward');limit=next;}
 assert.ok(!fs.readFileSync(path.join(root,'terrain-app.js'),'utf8').includes('new THREE.BoxGeometry'));
+const whole=geo.meshIndices(12,10),tiled=geo.meshIndices(12,10,4);
+const triangles=(indices)=>{
+  const list=[];
+  for(let i=0;i<indices.length;i+=3)list.push(Array.from(indices.slice(i,i+3)).join(','));
+  return list.sort();
+};
+assert.deepEqual(triangles(tiled.indices),triangles(whole.indices),'near tiles retain each original triangle with no seams or overlap');
+const overview=geo.meshIndices(12,10,12,4);
+assert.equal(overview.indices.length,54);
+assert.ok(overview.indices.includes(119),'overview reaches the final row and column despite partial steps');
+// Exercise packed production geometry against the original full-grid vertices.
+const terrainSource=fs.readFileSync(path.join(root,'terrain-app.js'),'utf8');
+const sourceGrid=new T.BufferGeometry();
+const sourcePositions=new Float32Array(12*10*3);
+for(let i=0;i<sourcePositions.length;i++)sourcePositions[i]=i;
+sourceGrid.setAttribute('position',new T.BufferAttribute(sourcePositions,3));
+sourceGrid.setAttribute('normal',new T.BufferAttribute(sourcePositions.slice(),3));
+sourceGrid.setAttribute('uv',new T.BufferAttribute(new Float32Array(12*10*2),2));
+const {terrainPatch,fillTerrainPatch}=new Function('THREE','viewportGeometry','geometry','dataset',
+  terrainSource.slice(terrainSource.indexOf('  function terrainPatch('),terrainSource.indexOf('  function buildEmbeddedMeshes('))+
+  '\nreturn {terrainPatch,fillTerrainPatch};')(T,geo,sourceGrid,{width:12});
+const bounds=new T.Box3(new T.Vector3(0,0,0),new T.Vector3(1,1,1));
+const left=terrainPatch(bounds,null,{row:0,col:0,lastRow:4,lastCol:4},1);
+const right=terrainPatch(bounds,null,{row:0,col:4,lastRow:4,lastCol:8},1);
+assert.equal(left.geometry.index,null,'unseen patches have no GPU buffers');
+fillTerrainPatch(left);fillTerrainPatch(right);
+assert.equal(left.geometry.attributes.position.count,25);
+assert.ok(left.geometry.index.array instanceof Uint16Array);
+for(let row=0;row<5;row++)for(const name of ['position','normal']){
+  const a=left.geometry.attributes[name].array,b=right.geometry.attributes[name].array;
+  assert.deepEqual(a.slice((row*5+4)*3,(row*5+5)*3),b.slice(row*15,row*15+3),'seam vertices agree');
+}
+const coarse=terrainPatch(bounds,null,{row:0,col:0,lastRow:9,lastCol:11},4);
+fillTerrainPatch(coarse);
+assert.equal(coarse.geometry.attributes.position.getX(15),sourcePositions[119*3]);
+sourceGrid.attributes.position.setY(0,1234);fillTerrainPatch(left);
+assert.equal(left.geometry.attributes.position.getY(0),1234,'height changes reach rendered patches');
 console.log('PASS: Mercator geographic roundtrips, 48 tilt/viewport/pan clamp cases, buffered DEM hash and upstream view bounds; no slab base.');

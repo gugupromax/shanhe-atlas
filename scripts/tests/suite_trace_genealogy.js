@@ -483,6 +483,9 @@ async function runTraceGenealogySuite(ctx) {
   };
   const mockSearchInp = {
     value: "Chang'an",
+    attributes: { 'aria-expanded': 'true', 'aria-activedescendant': 'result-0' },
+    setAttribute(name, value) { this.attributes[name] = value; },
+    removeAttribute(name) { delete this.attributes[name]; },
     blurred: false,
     blur() {
       this.blurred = true;
@@ -567,6 +570,7 @@ async function runTraceGenealogySuite(ctx) {
   }
   ctrl._clearQuickSearchInput();
   assert.strictEqual(mockSearchInp.value, '', '_clearQuickSearchInput() must clear #inp-map-search value');
+  assert.deepStrictEqual(mockSearchInp.attributes, { 'aria-expanded': 'false' });
   ctrl._id = origId23e;
 
   // 23f. Verify Dali (大理, 937–1253 CE), Nanzhao (南诏, 649–936 CE), and unified Tubo (吐蕃, 618–877 CE) vs fragmented Tibetan polities (吐蕃诸部, 880–1246 CE)

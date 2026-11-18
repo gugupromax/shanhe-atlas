@@ -128,6 +128,12 @@ h2 {
   display: none;
 }
 
+.topic-select {
+  field-sizing: content;
+  max-inline-size: 7rem;
+  flex-shrink: 0;
+}
+
 .toolbar-divider {
   width: 1px;
   height: 18px;
@@ -1861,6 +1867,65 @@ html.deeplink-boot #inp-year {
   display: block;
 }
 
+#atlas-svg.is-tang741-overview :is(.prefecture-shape, .prefecture-boundary-mesh),
+#atlas-svg:not(.is-tang741-counties) .settlement-node.is-county {
+  display: none;
+}
+
+.map-area-outline {
+  fill: #a54a34;
+  fill-opacity: .17;
+  stroke: #963d2a;
+  stroke-width: 1.8px;
+  vector-effect: non-scaling-stroke;
+}
+
+.tang741-circuit-guide {
+  fill: none;
+  stroke: #633f77;
+  stroke-width: 2.4px;
+  stroke-dasharray: 5 3;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.map-area-outline.is-boundary-guide { fill: none; stroke-width: 3px; }
+#atlas-svg.is-awaiting-snapshot #grp-tang741-circuit-guides,
+#grp-prefectures.is-hidden ~ #grp-tang741-circuit-guides { display: none; }
+
+#map-area-card {
+  position: absolute;
+  z-index: 21;
+  top: 12px;
+  right: 12px;
+  width: min(285px, calc(100% - 24px));
+  padding: 13px 14px;
+  background: #fffdf7;
+  border: 1px solid #d3c4ae;
+  border-radius: 10px;
+  color: var(--text-main);
+  box-shadow: 0 8px 20px rgba(43, 38, 34, .16);
+}
+
+.map-area-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+#map-area-title { margin: 2px 0 7px; font: 600 21px/1.3 var(--serif-stack); }
+#map-area-card p, #map-area-sources { margin: 0 0 4px; font-size: 12px; line-height: 1.5; }
+#map-area-kicker, #map-area-note { color: var(--text-secondary); }
+#map-area-sources { display: flex; flex-wrap: wrap; gap: 3px 10px; margin-top: 7px; }
+#map-area-sources:empty { display: none; }
+#map-area-sources a { color: var(--vermilion); text-underline-offset: 2px; }
+
+@media (max-width: 900px) {
+  #map-area-card { top: auto; right: 8px; bottom: 8px; width: min(285px, calc(100% - 16px)); }
+  #viewport-frame.has-map-area #map-key { display: none; }
+}
+
 .settlement-node .dot {
   fill: #fffdf8;
   stroke: #2b2622;
@@ -1873,6 +1938,8 @@ html.deeplink-boot #inp-year {
   stroke: #6b5e52;
   stroke-width: 0.85;
 }
+
+.settlement-node.is-county .dot { fill: #765333; }
 
 .settlement-node.is-tier2.is-label-crowded .dot {
   opacity: 0.68;
@@ -1916,6 +1983,8 @@ html.deeplink-boot #inp-year {
   stroke: rgba(249, 244, 234, 0.92);
   stroke-width: 1.9px;
 }
+
+.settlement-node.is-county .name { fill: #674930; }
 
 .settlement-node.is-capital .name {
   font-size: 9.8px;
@@ -2760,6 +2829,13 @@ html.deeplink-boot #inp-year {
   line-height: 1.7;
   color: var(--text-main);
   font-family: var(--serif-stack);
+}
+
+.dynasty-map-references {
+  align-self: flex-start;
+  color: var(--vermilion);
+  font-size: 13px;
+  text-underline-offset: 3px;
 }
 
 .milestone-section h3 {
@@ -4784,6 +4860,7 @@ html[lang="en"] #act-toggle-pane .tp-label {
 
   #workspace-body:not(.is-mobile-chronicle-open) #chronicle-pane .seat-row,
   #workspace-body:not(.is-mobile-chronicle-open) #chronicle-pane #dynasty-summary,
+  #workspace-body:not(.is-mobile-chronicle-open) #chronicle-pane .dynasty-map-references,
   #workspace-body:not(.is-mobile-chronicle-open) #chronicle-pane .milestone-section,
   #workspace-body:not(.is-mobile-chronicle-open) #chronicle-pane .polity-backbar,
   #workspace-body:not(.is-mobile-chronicle-open) #chronicle-pane .polity-extra,
@@ -5390,6 +5467,70 @@ html[lang="en"] .genealogy-list li.person-ev-row {
   font-size: 11.8px;
   line-height: 1.45;
   color: var(--text-secondary);
+}
+
+.person-history-kind {
+  display: inline-block;
+  margin-left: 5px;
+  padding: 1px 4px;
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 400;
+  color: #78452f;
+}
+
+.person-route-note,
+.person-history {
+  font-family: var(--serif-stack);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.person-route-note { margin: 8px 0 0; }
+.person-history { margin-top: 7px; }
+.person-history summary {
+  padding: 5px 0;
+  cursor: pointer;
+  color: #78452f;
+}
+.person-history p { margin: 7px 0; }
+.person-history ul { margin: 8px 0 0; padding-left: 17px; }
+.genealogy-list .person-history li {
+  display: list-item;
+  padding: 3px 0;
+  line-height: 1.6;
+  cursor: text;
+}
+.genealogy-list .person-history li:hover { background: none; }
+.person-history a { color: #78452f; text-underline-offset: 3px; }
+.person-history a:hover { color: var(--text-main); }
+.person-history :is(summary, a):focus-visible {
+  outline: 2px solid #963f2c;
+  outline-offset: 3px;
+}
+
+.journey-route-overview,
+.journey-route-overview-casing {
+  fill: none;
+  stroke-dasharray: 5 4;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+.journey-route-overview-casing {
+  stroke: var(--bg-parchment);
+  stroke-width: 4.8px;
+  stroke-opacity: .9;
+}
+.journey-route-overview {
+  stroke: var(--vermilion);
+  stroke-width: 2.2px;
+  stroke-opacity: .86;
+}
+.is-route-overview :is(.journey-track-focus, .journey-track-halo.is-focus) {
+  stroke-dasharray: 5 3;
 }
 
 .person-ev-quote {

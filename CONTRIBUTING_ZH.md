@@ -60,8 +60,8 @@
 1. **克隆仓库并启动本地预览**：
    本项目采用纯原生 ES6 + SVG 构建，无需安装任何 npm 依赖即可直接运行：
    ```bash
-   git clone https://github.com/DeanChensj/jiangshan-map.git
-   cd jiangshan-map
+   git clone https://github.com/gugupromax/shanhe-atlas.git
+   cd shanhe-atlas
    python3 -m http.server 8000
    ```
    随后在浏览器访问 `http://localhost:8000`（英文界面可访问 `http://localhost:8000/?lang=en`）。

@@ -18,6 +18,18 @@
 
 原有 CHGIS/Hartwell 及 DataV 图层仍保留上游的许可说明与例外，不因新增 3D 而统一改为 GPL 或声明为本 Fork 原创。下方保留上游 README，其在线演示仍指向原作者网站，不代表本 Fork 已部署 3D 网站。
 
+### 中央红军长征专题
+
+打开地图后，从顶部「专题」选择「中央红军长征」或「苏轼行迹」，也可以搜索「专题」「长征」或「苏轼行迹」。日常浏览近现代大事记时，选中「遵义会议」会打开该事件的地图点。旧链接 `?event=changzheng` 仍可直接打开长征专题。
+
+- 40 个节点从 1934 年于都河出发阶段展开，主线止于 1935 年 10 月 19 日吴起镇落脚；10 月 21 日战斗单列为收尾事件。红二、红四方面军及红二十五军的独立路线尚待扩展。
+- 全图总览显示全程虚线；点选节点或卡片底部的上一站／下一站，联动地点、年份与当前段。专题卡片显示月日，底部全局时间轴仍以年为刻度。
+- 战役、会议、渡河与翻山分别标注。展开“史料与地形”可查看经过、结果、地形解读、日期口径、定位说明与原文出处。
+- 资料优先采用正式年表、党史机构研究、军史研究和纪念馆资料，官媒报道作补证。官方承载页面的转载、机构研究与原始档案介绍有不同证据范围，不把它们混称原始作战档案。
+- 虚线为经过地点的走向示意；坐标按古今地名人工概略定位，具体渡口、山口与道路仍需校准。各军团不一定同日同路，现代 DEM 也没有被改造成 1935 年的地表。
+
+编辑源为 `data/longmarch/central.json`。修改后运行 `node scripts/build_longmarch.cjs`，再运行 `node scripts/verify_longmarch.cjs` 和 `node scripts/build_longmarch.cjs --check`。这会只更新长征档案、节点及其来源登记，不重写其他人物内容。
+
 ---
 
 # 上游项目说明：江山时序 · Chronicles of the Realm
@@ -188,7 +200,7 @@
     "mcpServers": {
       "jiangshan-atlas": {
         "command": "node",
-        "args": ["/absolute/path/to/jiangshan-map/scripts/mcp_server.js"]
+        "args": ["/absolute/path/to/shanhe-atlas/scripts/mcp_server.js"]
       }
     }
   }
@@ -239,8 +251,8 @@ python3 skills/jiangshan-atlas/scripts/jiangshan.py --year 1079,1080,1094,1097 -
 项目为纯静态网页，无需安装任何依赖或构建工具，克隆后用任意静态服务器打开即可：
 
 ```bash
-git clone https://github.com/DeanChensj/jiangshan-map.git
-cd jiangshan-map
+git clone https://github.com/gugupromax/shanhe-atlas.git
+cd shanhe-atlas
 python3 -m http.server 8000
 ```
 
@@ -260,7 +272,7 @@ docker compose up -d --build
 
 要换端口：修改 `docker-compose.yml` 的 `ports`（如 `"9000:80"`），再执行 `docker compose up -d`。
 
-拉取上游更新后重新构建：`docker compose up -d --build`。不用 Compose 时：`docker build -t jiangshan-map:latest .`，再 `docker run -d -p 8008:80 --name jiangshan-map jiangshan-map:latest`。
+拉取上游更新后重新构建：`docker compose up -d --build`。不用 Compose 时：`docker build -t shanhe-atlas:latest .`，再 `docker run -d -p 8008:80 --name shanhe-atlas shanhe-atlas:latest`。
 
 说明：镜像在本地构建，未发布到任何镜像仓库。
 
@@ -309,7 +321,19 @@ hit.prefecture;                  // 默认为 null；加 --with-prefectures 导�
 | 地形晕渲 | 由 `scripts/build_terrain_tiles.py` 基于 [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/)（公有领域的 **SRTM**、**GMTED2010**、**ETOPO1**）渲染；仓库只发布最细约 1 km/像素的晕渲图片 | GPL-3.0（图片） |
 | 古琴录音 | Wikimedia Commons（《流水》《平沙落雁》《阳关三叠》《醉渔唱晚》《酒狂》） | 公有领域 |
 
-**参考资料（非数据来源）**：边界依据史籍并参照谭其骧主编《中国历史地图集》核对。本仓库不包含该图集的任何图像或数据。
+**历史地图参考**：从「项目与来源」打开[历代地图参考](historical-map-references.html)，也可在古代各时期的史志中打开对应图组。索引来自[国学导航目录](http://www.guoxue123.com/other/map/zgmap/)，覆盖八册的 17 个网页图组，含原站附图和表。图名可搜索，部分全图年代可跳至本项目时间轴。明前期全图采用[北京大学图幅记录](https://geodata.pku.edu.cn/index.php?a=show&c=content&id=414)的宣德八年（1433 年）。原始图件由来源站点提供，本地索引保存图名、链接及对照年份。现有交互疆域的数据来源见上文。
+
+2026-11-18 从原站 HTTP 目录提取。维护时可运行 `python -X utf8 scripts/import_historical_map_refs.py`，复核输出后更新 `data/historical-map-references.json`。
+
+**唐朝 741 年试版**：进入 [开元二十九年](?year=741)，拉近地图可从道级范围看到州府，再看到已核对的县治。平面与 3D 可单击区域、地名或两畿的紫色道界段，打开详情。州府面沿用项目的跨期示意层，补充的县治显示为约略点位。同城州府和附郭县共用一个治所标记。
+
+名称与隶属依据[唐时期全图（二）](http://www.guoxue123.com/other/map/pic/10/03.jpg)、同期分幅及[《旧唐书》地理志](https://zh.wikisource.org/zh-hans/旧唐书/卷38)核对。县治坐标采用郑伊辰、武廷海公开研究数据的 742 年图幅配准点，经转为经纬度、取至 0.01°，逐项核对 741 年的称谓和隶属，仅用于近似定位。[县治点数据和 CC BY 4.0 许可](https://doi.org/10.6084/m9.figshare.30518417.v2)
+
+两畿紫色虚线根据 741 年[京畿、关内分幅](http://www.guoxue123.com/other/map/pic/10/05.jpg)与[都畿、河南分幅](http://www.guoxue123.com/other/map/pic/10/27.jpg)的经纬网粗读至约 0.1°。京畿核心为京兆府和岐、邠、华、同四州，都畿核心为河南府和陕、郑、汝三州。京畿北西的图幅接缝和都畿怀州附近的异文仍待核，先显示可辨道界段。参见[《通典》卷一百七十二](https://zh.wikisource.org/zh-hans/通典/卷172)和[杨远《唐代的人口》第 412–413 页](https://www.cuhk.edu.hk/ics/journal/articles/v19p389.pdf)。
+
+更新南北两组 741 年核对数据后，运行 `node scripts/build_tang_741.cjs` 汇编到离线图层，再运行 `node scripts/sync_version.js --write-only` 生成资源版本。
+
+741 年 3D 的地名使用独立文字层，随地理位置移动，在斜俯和旋转时保持正向，按缩放显示道、州府和县治。生成本地瓦片后，默认简体图层按视野读取三档预生成地形贴图。支持 4096 像素贴图的大视窗会读取无损高清远景，中近景在设备支持时保留瓦片原始分辨率。少量瓦片可按原分辨率直接贴合地形，可见地形区块按需上传。3D 的关隘图层使用贴地的小城关，从地图缩放 2 倍起显示。关隘的出现、消失和历代称呼以当前年份的地图数据为准。模型随地图缩放，宽度和墙高按周围地形高差作示意估算。地形起伏倍数会带动城关地基随坡面升降，城关本身的尺寸保持固定。县治用固定屏幕大小的圆点显示。点击关隘可查看沿革。点选高亮由三维视图独立绘制，资料卡沿用现有原图、隶属和史料。其他年份、语言或自定义图层使用实时贴图，人物行迹和点地溯源也使用原流程。瓦片包含另有使用条款的图层，按需在本机生成。新检出的仓库使用实时底图。需要生成或更新 741 年本地瓦片时，启动本地地图服务，再运行 `node scripts/build_tang_741_tiles.cjs` 更新 `assets/tang-741-tiles/`。加 `--base-hd` 可在底图源数据未变时单独重建高清远景。瓦片清单记录构建输入、图片尺寸和校验值。提交前可运行 `node scripts/build_tang_741_tiles.cjs --check` 在本地校验，无需启动浏览器。
 
 **郡 / 州 / 府级边界（CHGIS）**：该图层不适用 GPL-3.0，仅用于本站非商业的科普展示。请勿从本仓库转载或再分发；如需郡州府边界，请从 CHGIS 官方渠道（Harvard Dataverse）按其条款获取。`scripts/export_geojson.js` 默认不导出该图层，加 `--with-prefectures` 参数才会导出。引用格式：*CHGIS, Version: 6. © Fairbank Center for Chinese Studies of Harvard University and the Center for Historical Geographical Studies at Fudan University, 2016.* 数据来源细节见 [data/atlas/README.md](data/atlas/README.md)。
 

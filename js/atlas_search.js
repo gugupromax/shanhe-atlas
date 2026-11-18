@@ -31,8 +31,8 @@
 
     _getSearchSampleQueries() {
       return this.locale === 'en'
-        ? ["Chang'an", 'Chibi', 'Cao Cao', 'Li Bai, Du Fu, Gao Shi']
-        : ['长安', '赤壁', '霍去病', '李白 杜甫 高适'].map((s) => this._zh(s));
+        ? ["Chang'an", 'Chibi', 'Long March', 'Cao Cao', 'Li Bai, Du Fu, Gao Shi']
+        : ['长安', '赤壁', '长征', '霍去病', '李白 杜甫 高适'].map((s) => this._zh(s));
     }
 
     _getSearchShowcasePool() {
@@ -177,6 +177,8 @@
             ? p.evCount
             : this._collectPersonEvents(p).length;
         const aliases = this._personSearchAliases(p);
+        const featuredTopic = window.ATLAS_LORE_DATA?.FEATURED_JOURNEYS?.[p.key];
+        if (featuredTopic) aliases.push('专题', 'topics', ...featuredTopic);
         if (p.isStory) {
           const spanStr = Array.isArray(p.span) ? `${p.span[0]}—${p.span[1]}` : '';
           entries.push({
@@ -187,9 +189,9 @@
             year: Array.isArray(p.span) ? p.span[0] : d.focusYear,
             aliases,
             titleZh: p.zh,
-            subZh: `${spanStr ? spanStr + ' · ' : ''}史事始末 · 共 ${evCount} 处关键节点`,
+            subZh: `${spanStr ? spanStr + ' · ' : ''}${featuredTopic ? '专题' : '史事始末'} · 共 ${evCount} 处关键节点`,
             titleEn: p.en,
-            subEn: `${spanStr ? spanStr + ' · ' : ''}Storyline · ${evCount} key scenes`,
+            subEn: `${spanStr ? spanStr + ' · ' : ''}${featuredTopic ? 'Topic' : 'Storyline'} · ${evCount} key scenes`,
             keywords: `${p.zh} ${p.en} ${p.courtesyZh || ''} ${p.courtesyEn || ''} ${aliases.join(' ')} 史事 始末 本末 全脉络 storyline`.toLowerCase(),
           });
           continue;
@@ -221,13 +223,15 @@
           titleZh: p.zh,
           subZh: p.isRelic
             ? `${briefCourtesyZh} · 历 10 朝 ${evCount} 站流转`
-            : `${briefCourtesyZh} · 共 ${evCount} 处史事`,
+            : `${featuredTopic ? '行迹专题' : briefCourtesyZh} · 共 ${evCount} 处史事`,
           titleEn: p.en,
           subEn: p.isRelic
             ? `${briefCourtesyEn || 'Heshi Bi Jade'} · ${evCount} stops across 10 eras`
-            : briefCourtesyEn
-              ? `${briefCourtesyEn} · ${evCount} events`
-              : `${evCount} chronicle events`,
+            : featuredTopic
+              ? `Journey topic · ${evCount} events`
+              : briefCourtesyEn
+                ? `${briefCourtesyEn} · ${evCount} events`
+                : `${evCount} chronicle events`,
           keywords: `${p.zh} ${p.en} ${p.courtesyZh || ''} ${p.courtesyEn || ''} ${aliases.join(' ')} ${eraNames.join(' ')} ${p.isRelic ? '国器 宝物 传国玉玺 传国玺 玉玺 和氏璧 relic seal' : '人物 生平 事迹 行迹'}`.toLowerCase(),
         });
       }
@@ -859,7 +863,8 @@
       const qFold = isAscii ? fold(q) : '';
       // Additional event fallback only; existing query normalization and scores stay intact.
       const pinyinQuery = this._eventPinyinQuery(q);
-      const index = this._ensureSearchIndex();
+      const base = this._ensureSearchIndex();
+      const index = this._tang741SearchIndex?.(base) || base;
       const eraResults = this._matchEraResults(normQ);
       const hasEraMatch = eraResults.length > 0;
       const results = [...eraResults];
@@ -1011,6 +1016,7 @@
             if (resItem.dynasty === this.dynasties[this.dynastyIdx]) score += 10;
             if (resItem.isCapital) score += 2;
           }
+          if (resItem.tangArea && score >= 102) score += 6;
           results.push({ ...resItem, score });
         }
       }
@@ -1133,6 +1139,10 @@
       const deduped = [];
       const seenAdminTitle = new Map();
       for (const item of results) {
+        if (item.tangArea) {
+          deduped.push(item);
+          continue;
+        }
         if (item.kind === 'prefecture' || item.kind === 'region') {
           const ak = item.titleZh;
           if (seenAdminTitle.has(ak)) {
@@ -1277,6 +1287,11 @@
 
       if (item.kind === 'polity') {
         this.openPolityByKey(item.polityKey);
+        return;
+      }
+
+      if (item.tangArea) {
+        if (this.year === item.year) this._selectTang741Area?.(item.tangArea);
         return;
       }
 

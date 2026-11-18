@@ -9,9 +9,98 @@
 })(typeof window !== 'undefined' ? window : globalThis, function () {
   'use strict';
   const NS = 'http://www.w3.org/2000/svg';
+  const passCaption = '#grp-settlements .settlement-node.is-pass > text.name';
+  const passArtwork = '#grp-settlements .pass-gate-icon';
+  const tangCaptionGroups = [
+    ['polity', '#grp-polity-labels text'],
+    ['circuit', '#grp-region-labels text'],
+    ['city', '#grp-settlements .settlement-node:not(.is-pass) > text.name'],
+    ['route', '#grp-corridors text.corridor-caption'],
+    ['water', '#grp-rivers text.hydro-label'],
+    ['reference', '#grp-neighbors text, #grp-prov-names text'],
+  ];
+
+  function collectScreenLabels(app, getStyle, groups, revealPasses = false) {
+    const captions = [];
+    const layerOpacity = new Map();
+    for (const [type, selector] of groups) {
+      for (const node of app.svg.querySelectorAll(selector)) {
+        const layer = node.closest('#camera-rig > g');
+        if (!layerOpacity.has(layer)) {
+          const style = getStyle(layer);
+          layerOpacity.set(layer, style.display === 'none' ? 0 : Number(style.opacity));
+        }
+        const opacity = layerOpacity.get(layer);
+        const name = node.textContent.trim();
+        if (!opacity || !name) continue;
+
+        if (type === 'city') {
+          const seat = node.parentElement;
+          const pass = seat.classList.contains('is-pass');
+          if (!(pass && revealPasses) && getStyle(seat).display === 'none') continue;
+          const kind = seat.classList.contains('is-county') ? 'county' :
+            seat.classList.contains('is-capital') ? 'capital' :
+            pass ? 'pass' : 'prefecture';
+          const coord = seat.dataset.lng && seat.dataset.lat
+            ? [Number(seat.dataset.lng), Number(seat.dataset.lat)]
+            : app.projector.toGeo(Number(seat.dataset.x), Number(seat.dataset.y));
+          const pickName = seat.dataset.ancient;
+          if (coord.every(Number.isFinite)) captions.push({ kind, name, coord, pickName, opacity });
+          continue;
+        }
+
+        const style = getStyle(node);
+        if (style.display === 'none' || Number(style.opacity) <= 0.05) continue;
+        const x = node.dataset.x ?? node.dataset.baseX ?? node.getAttribute('x');
+        const y = node.dataset.y ?? node.dataset.baseY ?? node.getAttribute('y');
+        if (x === null || y === null || ![Number(x), Number(y)].every(Number.isFinite)) continue;
+        const coord = app.projector.toGeo(Number(x), Number(y));
+        captions.push({ kind: type, name, coord, opacity: opacity * Number(style.opacity) });
+      }
+    }
+    return captions;
+  }
+
+  function tangScreenLabels(app, getStyle) {
+    return collectScreenLabels(app, getStyle, tangCaptionGroups);
+  }
+
+  function passScreenLabels(app, getStyle, revealPasses) {
+    return collectScreenLabels(app, getStyle, [['city', passCaption]], revealPasses);
+  }
+
   const XLINK = 'http://www.w3.org/1999/xlink';
   const MAX_SIZE = 4096;
   const TRANSIENT = ['is-hovered', 'is-panning', 'is-camera-moving', 'is-scrubbing', 'is-crosshair'];
+
+  // CSSOM selectorText may contain commas inside functions or attributes. Only
+  // top-level commas separate selectors; retain each member's original syntax.
+  function splitSelectorList(text) {
+    const selectors = [];
+    let start = 0, parens = 0, brackets = 0, quote = '', escaped = false, comment = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i], next = text[i + 1];
+      if (comment) {
+        if (c === '*' && next === '/') { comment = false; i++; }
+        continue;
+      }
+      if (escaped) { escaped = false; continue; }
+      if (c === '\\') { escaped = true; continue; }
+      if (quote) { if (c === quote) quote = ''; continue; }
+      if (c === '"' || c === "'") { quote = c; continue; }
+      if (c === '/' && next === '*') { comment = true; i++; continue; }
+      if (c === '(') parens++;
+      else if (c === ')') parens--;
+      else if (c === '[') brackets++;
+      else if (c === ']') brackets--;
+      else if (c === ',' && !parens && !brackets) {
+        selectors.push(text.slice(start, i).trim());
+        start = i + 1;
+      }
+    }
+    selectors.push(text.slice(start).trim());
+    return selectors.filter(Boolean);
+  }
 
   function projectedBounds(projector, bounds) {
     if (!projector || typeof projector.toScreen !== 'function') throw new Error('原地图投影尚未就绪');
@@ -133,7 +222,7 @@
             // ordinary rules. Handle declarations before generic grouping, or
             // every fill/opacity/font declaration disappears in modern Chrome.
             // No hover/focus feedback should be baked into the terrain.
-            const selectors = rule.selectorText.split(',')
+            const selectors = splitSelectorList(rule.selectorText)
               .filter(s => !/:(?:hover|active|focus(?:-visible|-within)?)(?![\w-])/.test(s))
               // The exported document is an SVG, so there is no HTML ancestor.
               // Keep locale-dependent map typography scoped to its own root.
@@ -207,6 +296,14 @@
       // handled by the caller's generation token rather than mixed into this SVG.
       const clone = svg.cloneNode(true);
       freezeStrokes(svg, clone);
+      if (request.screenLabels === true || request.screenPasses === true) {
+        const overlays = [passCaption, passArtwork];
+        if (request.screenLabels === true) {
+          overlays.push(...tangCaptionGroups.map(([, selector]) => selector),
+            '#grp-settlements .is-county .dot');
+        }
+        clone.querySelectorAll(overlays.join(',')).forEach(node => node.remove());
+      }
       // These three layers are faded by #viewport-frame.has-active-person /
       // .has-active-journey selectors outside the SVG. Freeze only properties
       // actually controlled there; inherited visibility is hidden in 3D mode.
@@ -298,5 +395,5 @@
     return { render };
   }
 
-  return { create, projectedBounds, textureSize, localAssetUrl };
+  return { create, projectedBounds, textureSize, localAssetUrl, splitSelectorList, tangScreenLabels, passScreenLabels };
 });

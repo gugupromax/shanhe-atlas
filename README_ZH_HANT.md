@@ -168,7 +168,7 @@
     "mcpServers": {
       "jiangshan-atlas": {
         "command": "node",
-        "args": ["/absolute/path/to/jiangshan-map/scripts/mcp_server.js"]
+        "args": ["/absolute/path/to/shanhe-atlas/scripts/mcp_server.js"]
       }
     }
   }
@@ -219,8 +219,8 @@ python3 skills/jiangshan-atlas/scripts/jiangshan.py --year 1079,1080,1094,1097 -
 專案為純靜態網頁，無需安裝任何相依套件或建置工具，`git clone` 下載後用任意靜態伺服器開啟即可：
 
 ```bash
-git clone https://github.com/DeanChensj/jiangshan-map.git
-cd jiangshan-map
+git clone https://github.com/gugupromax/shanhe-atlas.git
+cd shanhe-atlas
 python3 -m http.server 8000
 ```
 
@@ -240,7 +240,7 @@ docker compose up -d --build
 
 要換連接埠：修改 `docker-compose.yml` 的 `ports`（如 `"9000:80"`），再執行 `docker compose up -d`。
 
-拉取上游更新後重新建置：`docker compose up -d --build`。不用 Compose 時：`docker build -t jiangshan-map:latest .`，再 `docker run -d -p 8008:80 --name jiangshan-map jiangshan-map:latest`。
+拉取上游更新後重新建置：`docker compose up -d --build`。不用 Compose 時：`docker build -t shanhe-atlas:latest .`，再 `docker run -d -p 8008:80 --name shanhe-atlas shanhe-atlas:latest`。
 
 說明：映像在本機建置，未發布到任何映像倉庫。
 

@@ -37,6 +37,17 @@ for (const url of ['https://example.com/a.png', '//evil.test/a.png', 'http://127
 }
 assert.throws(() => surface.localAssetUrl('a.png', 'https://example.com/index.html'));
 
+for (const [input, expected] of [
+  ['.one, .two:hover, .three', ['.one', '.two:hover', '.three']],
+  ['.history :is(summary, a):focus-visible, .route', ['.history :is(summary, a):focus-visible', '.route']],
+  [':is(.a, :where(.b, :not(.c, .d))), [data-label="a,b"]', [':is(.a, :where(.b, :not(.c, .d)))', '[data-label="a,b"]']],
+  [String.raw`[data-label="a,\"b,c"], [data-label='a,\'b,c']`, [String.raw`[data-label="a,\"b,c"]`, String.raw`[data-label='a,\'b,c']`]],
+  [String.raw`.escaped\,comma, .escaped\(paren, .last`, [String.raw`.escaped\,comma`, String.raw`.escaped\(paren`, '.last']],
+  [String.raw`[data-label=one\,two], .last`, [String.raw`[data-label=one\,two]`, '.last']],
+  ['.a/* (, [ */,.b', ['.a/* (, [ */', '.b']],
+  ['', []],
+]) assert.deepEqual(surface.splitSelectorList(input), expected, 'top-level selector split: ' + input);
+
 // A small DOM/canvas fixture verifies the export pipeline and cleanup without
 // installing a browser. Pixel appearance is checked by the parent in Chromium.
 class Style {
@@ -71,7 +82,20 @@ class Node {
   querySelectorAll(selector) {
     const tags = selector.split(',').map(s => s.trim());
     const nodes = this.children.flatMap(n => [n, ...n.querySelectorAll('*')]);
-    return nodes.filter(n => tags.some(t => t === '*' || (t[0] === '#' ? n.attrs.id === t.slice(1) : n.tagName === t)));
+    const hasClass = (node, name) => (node?.attrs.class || '').split(/\s+/).includes(name);
+    return nodes.filter(n => tags.some(t => {
+      if (t === '#grp-settlements .pass-gate-icon') return hasClass(n, 'pass-gate-icon');
+      if (t === '#grp-settlements .settlement-node.is-pass > text.name') {
+        return n.tagName === 'text' && hasClass(n, 'name') && hasClass(n.parentNode, 'is-pass');
+      }
+      if (t === '#grp-settlements .settlement-node:not(.is-pass) > text.name') {
+        return n.tagName === 'text' && hasClass(n, 'name') && hasClass(n.parentNode, 'settlement-node') && !hasClass(n.parentNode, 'is-pass');
+      }
+      if (t === '#grp-settlements .is-county .dot') {
+        return hasClass(n, 'dot') && hasClass(n.parentNode, 'is-county');
+      }
+      return t === '*' || (t[0] === '#' ? n.attrs.id === t.slice(1) : n.tagName === t);
+    }));
   }
   querySelector(selector) { return this.querySelectorAll(selector)[0] || null; }
   getScreenCTM() { return { a: 2, b: 0, c: 0, d: 2 }; }
@@ -89,6 +113,12 @@ function fixture() {
     styleSheets: [{ href: 'http://127.0.0.1:8123/css/style.css', cssRules: [
       rule('.polity-shape', 'fill:#c49562;stroke-width:2;vector-effect:non-scaling-stroke'),
       rule('.polity-shape:hover', 'fill:red'),
+      rule('.person-history :is(summary, a):focus-visible', 'outline:2px solid #963f2c;'),
+      rule('.journey-route-overview', 'fill:none;stroke:#a85c49;stroke-dasharray:5 4;'),
+      rule('.is-route-overview :is(.journey-track-focus, .journey-track-halo.is-focus)', 'stroke-dasharray:5 3;'),
+      rule('.static-shape, .hover-shape:hover, .focus-shape:focus-within', 'fill:#315544;'),
+      rule(':where(.one, :not(.two, .three)) [data-label="river, mountain"]', 'opacity:0.6;'),
+      rule(String.raw`[data-label="say \"yes, no\""]`, 'fill:#123456;'),
       rule('html[lang="en"] .polity-caption', 'font-size:13px;letter-spacing:0.04em;'),
       rule('html[lang="en"] .region-caption', 'font-size:7.5px;letter-spacing:0.01em;'),
       { type: 4, conditionText: '(max-width:640px)', cssRules: [rule('.polity-shape', 'stroke-width:1.18')] },
@@ -137,7 +167,16 @@ function fixture() {
       new Node('image', { id: 'deferred', 'data-href': 'assets/not-loaded.webp' }),
       new Node('g', { id: 'grp-rivers', class: 'is-hidden' }, [new Node('path', { d: 'M1 2L3 4' })]),
       new Node('g', { id: 'grp-polities' }, [new Node('path', { class: 'polity-shape is-hovered', d: 'M0 0L1 1Z', onclick: 'bad()' })]),
-      new Node('g', { id: 'grp-settlements' }),
+      new Node('g', { id: 'grp-settlements' }, [
+        new Node('g', { class: 'settlement-node is-pass' }, [
+          new Node('path', { id: 'pass-icon', class: 'pass-gate-icon' }),
+          new Node('text', { id: 'pass-label', class: 'name pass-name' }),
+        ]),
+        new Node('g', { class: 'settlement-node is-county' }, [
+          new Node('circle', { id: 'county-dot', class: 'dot' }),
+          new Node('text', { id: 'county-label', class: 'name' }),
+        ]),
+      ]),
       new Node('g', { id: 'grp-corridors' }),
       new Node('g', { id: 'grp-milestones', class: 'is-hidden' }),
       new Node('g', { id: 'grp-journey' }, [new Node('text', {}, [])]),
@@ -186,6 +225,18 @@ function fixture() {
   assert.match(f.clone.querySelector('#terrain-relief-img').getAttribute('href'), /^data:image\/webp/);
   assert.equal(f.clone.querySelector('#deferred').getAttribute('href'), null);
   const css = f.clone.querySelector('style').textContent;
+  assert.ok(!css.includes('.person-history') && !css.includes(':focus-visible'),
+    'render must discard the complete interactive functional selector, without an unclosed fragment');
+  assert.ok(css.includes('.journey-route-overview{fill:none;stroke:#a85c49;stroke-dasharray:5 4;}'),
+    'the route rule after the filtered selector must retain fill:none in exported CSS');
+  assert.ok(css.includes('.is-route-overview :is(.journey-track-focus, .journey-track-halo.is-focus){stroke-dasharray:5 3;}'),
+    'render must keep non-interactive functional selector lists intact');
+  assert.ok(css.includes('.static-shape{fill:#315544;}') && !css.includes('.hover-shape') && !css.includes('.focus-shape'),
+    'only interactive members of a top-level selector list are removed');
+  assert.ok(css.includes(':where(.one, :not(.two, .three)) [data-label="river, mountain"]{opacity:0.6;}'),
+    'render must retain nested functional selectors and quoted attribute commas');
+  assert.ok(css.includes(String.raw`[data-label="say \"yes, no\""]{fill:#123456;}`),
+    'render must retain escaped quotes within selector attributes');
   assert.ok(css.includes('.polity-shape{fill:#c49562;stroke-width:2;vector-effect:non-scaling-stroke}'),
     'ordinary CSSStyleRule declarations must survive an empty cssRules list');
   assert.match(css, /\.nested\{fill:none;& \.label\{fill:#abcdef;\}/);
@@ -207,6 +258,14 @@ function fixture() {
   assert.equal(f.clone.getAttribute('lang'), 'zh-CN');
   assert.equal(f.clone.querySelector('#grp-settlements').style.getPropertyValue('opacity'), '0.22');
   assert.equal(f.clone.querySelector('#grp-milestones').style.getPropertyValue('opacity'), '1');
+  assert.ok(f.clone.querySelector('#pass-icon') && f.clone.querySelector('#pass-label'));
+  await f.exporter.render({ ...request, screenPasses: true });
+  assert.equal(f.clone.querySelector('#pass-icon'), null, 'remove the flat gate when the model is drawn independently');
+  assert.equal(f.clone.querySelector('#pass-label'), null, 'remove the painted pass caption');
+  assert.ok(f.clone.querySelector('#county-dot') && f.clone.querySelector('#county-label'), 'preserve other years’ marker artwork');
+  await f.exporter.render({ ...request, screenLabels: true });
+  for (const id of ['pass-icon','pass-label','county-dot','county-label']) assert.equal(f.clone.querySelector('#' + id), null);
+  assert.ok(f.svg.querySelector('#pass-icon') && f.svg.querySelector('#pass-label'), 'preserve the original 2D gate');
   assert.equal(f.fetchCount, 1, 'local image reads must be cached');
   f.svg.querySelector('#terrain-relief-img').setAttribute('href', 'https://example.com/map.png');
   await assert.rejects(f.exporter.render(request), /拒绝非本机/);

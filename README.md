@@ -18,6 +18,12 @@ Elevation: [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/); da
 
 CHGIS/Hartwell and DataV data-layer exceptions remain as documented upstream; the 3D extension does not relicense those layers or claim original authorship. The upstream README below is retained; its live-demo links lead to the upstream site, not a deployed 3D site for this fork. [中文说明](README_ZH.md)
 
+### Central Red Army Long March
+
+Use **Topics** in the toolbar to open the **Central Red Army Long March** or **Su Shi’s Journey**. Both are also searchable. The Zunyi Conference remains a single map event in the regular timeline, and `?event=changzheng` still opens the Long March directly.
+
+The Long March topic contains 40 dated nodes, with the central itinerary ending at Wuqi on 19 October 1935 and the 21 October closing battle shown separately. A dashed full-route overview and the selected leg work in both 2D and 3D. Each node provides events, outcomes, terrain context, dating and location caveats, and source links. Sources prioritize institutional chronologies, party-history and military-history research, museums, and official media. This is a locality-based schematic, not a surveyed marching track; the other armies' itineraries remain separate future work. Edit `data/longmarch/central.json`, build with `node scripts/build_longmarch.cjs`, and validate with `node scripts/verify_longmarch.cjs`.
+
 ---
 
 # Upstream project: Chronicles of the Realm · 江山时序
@@ -188,7 +194,7 @@ WeChat Official Accounts, Zhihu, and Xiaohongshu do not allow iframes; share the
     "mcpServers": {
       "jiangshan-atlas": {
         "command": "node",
-        "args": ["/absolute/path/to/jiangshan-map/scripts/mcp_server.js"]
+        "args": ["/absolute/path/to/shanhe-atlas/scripts/mcp_server.js"]
       }
     }
   }
@@ -239,8 +245,8 @@ In browser automation environments (Playwright) or WebMCP-enabled AI browsers (`
 No dependencies or build steps required. Clone and serve with any static HTTP server:
 
 ```bash
-git clone https://github.com/DeanChensj/jiangshan-map.git
-cd jiangshan-map
+git clone https://github.com/gugupromax/shanhe-atlas.git
+cd shanhe-atlas
 python3 -m http.server 8000
 ```
 
@@ -260,7 +266,7 @@ The image is a plain `nginx:alpine` that serves this repository as static files:
 
 To use another port, change the `ports` mapping in `docker-compose.yml` (e.g. `"9000:80"`) and run `docker compose up -d` again.
 
-After pulling upstream changes, rebuild with `docker compose up -d --build`. Without Compose: `docker build -t jiangshan-map:latest .` then `docker run -d -p 8008:80 --name jiangshan-map jiangshan-map:latest`.
+After pulling upstream changes, rebuild with `docker compose up -d --build`. Without Compose: `docker build -t shanhe-atlas:latest .` then `docker run -d -p 8008:80 --name shanhe-atlas shanhe-atlas:latest`.
 
 Note: the image is built locally; it is not published to any registry.
 
@@ -309,7 +315,7 @@ Code and the data created by this project are released under **GPL-3.0**. One la
 | Terrain hillshade | Rendered by `scripts/build_terrain_tiles.py` from [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (public-domain **SRTM**, **GMTED2010**, **ETOPO1**); only shaded images at no finer than about 1 km per pixel are published | GPL-3.0 (images) |
 | Guqin audio | Wikimedia Commons (*Liu Shui*, *Pingsha Luoyan*, *Yangguan Sandie*, *Zuiyu Changwan*, *Jiu Kuang*) | Public domain |
 
-**Scholarly references (not data sources).** Boundaries are checked against historical texts and Tan Qixiang's *The Historical Atlas of China* (谭其骧主编《中国历史地图集》). No map images or data from that atlas are included in this repository.
+**Historical map references.** Open the [Chinese map catalog](historical-map-references.html) from Project and sources or an ancient era’s chronicle. It indexes maps and supplementary items across 17 pages of the [Guoxue Navigation catalog](http://www.guoxue123.com/other/map/zgmap/) for Tan Qixiang’s *Historical Atlas of China*. Selected reference years open the matching timeline year in Shanhe Atlas. The catalog stores titles and links, with the original images hosted by the source site. See the preceding section for the interactive map’s data sources.
 
 **Prefecture-level boundaries (CHGIS).** This layer is not covered by GPL-3.0 and is shown here for non-commercial, educational use. Do not republish it from this repository; if you need prefecture boundaries, download CHGIS from its official distribution (Harvard Dataverse) under its terms. `scripts/export_geojson.js` leaves this layer out unless run with `--with-prefectures`. Cite it as: *CHGIS, Version: 6. © Fairbank Center for Chinese Studies of Harvard University and the Center for Historical Geographical Studies at Fudan University, 2016.* Provenance details: [data/atlas/README.md](data/atlas/README.md).
 

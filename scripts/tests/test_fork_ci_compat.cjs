@@ -78,10 +78,11 @@ test('sync covers local integration assets without requiring an analytics tag', 
 function adapterFixture(readyState, appExists) {
   const listeners = new Map();
   const nodes = new Map();
-  let iframeCount = 0;
+  let iframeCount = 0, frame;
   const element = () => ({
-    setAttribute() {}, addEventListener() {}, appendChild() {},
-    insertBefore(node) { if (node.id === 'fusion-terrain') iframeCount++; },
+    setAttribute() {}, getAttribute(name) { return this[name]; }, addEventListener() {}, appendChild() {},
+    classList: { toggle() {}, add() {}, remove() {} },
+    insertBefore(node) { if (node.id === 'fusion-terrain') { iframeCount++; frame = node; } },
     querySelectorAll: () => [],
   });
   const doc = {
@@ -102,10 +103,13 @@ function adapterFixture(readyState, appExists) {
   // js/app.js registers this controller creation before either deferred adapter.
   win.addEventListener('DOMContentLoaded', () => { win.atlasApp = app; });
   if (appExists) win.atlasApp = app;
-  vm.runInNewContext(fs.readFileSync(path.join(ROOT, 'integration.js'), 'utf8'), { window: win });
+  vm.runInNewContext(fs.readFileSync(path.join(ROOT, 'integration.js'), 'utf8'), {
+    window: win, setTimeout() {}, clearTimeout() {},
+  });
   return {
     win,
     get iframeCount() { return iframeCount; },
+    get iframeSrc() { return frame?.src; },
     domContentLoaded() {
       doc.readyState = 'interactive';
       for (const handler of listeners.get('DOMContentLoaded') || []) handler();
@@ -126,6 +130,14 @@ test('full adapter waits for controller creation during parser and deferred load
   }
   const late = adapterFixture('complete', true);
   assert.equal(late.iframeCount, 1, 'late loading installs against an existing controller');
+});
+
+test('3D resources load only when the user enables the 3D view', () => {
+  const f = adapterFixture('complete', true);
+  assert.equal(f.iframeSrc, undefined);
+  f.win.atlasFusion.setMode(true);
+  assert.match(f.iframeSrc, /^terrain\.html\?embedded=1/);
+  assert.equal(f.win.atlasFusion.ready, false);
 });
 
 test('HTML keeps both integration scripts deferred and in dependency order', () => {

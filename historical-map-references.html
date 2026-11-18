@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="查阅《中国历史地图集》图目、图示年份与国学导航原图链接。">
+  <title>历代地图参考 · 山河地图</title>
+  <style>
+    :root {
+      color-scheme: light;
+      color: #2b2622;
+      background: #f3eee4;
+      font: 16px/1.6 "Microsoft YaHei", "PingFang SC", sans-serif;
+      accent-color: #943c2a;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    main { max-width: 960px; padding: 28px 24px 56px; margin: 0 auto; }
+    h1, h2 { font-family: "Songti SC", SimSun, serif; line-height: 1.25; }
+    h1 { margin: 14px 0 8px; font-size: 2.15rem; }
+    h2 { margin: 0; font-size: 1.45rem; }
+    p { margin: 0 0 8px; }
+    a { color: #923a29; text-underline-offset: 3px; }
+    a:hover { color: #6e2a1d; }
+    :focus-visible { outline: 2px solid #923a29; outline-offset: 3px; }
+    .intro { max-width: 44rem; }
+    .sources, .notice, #result-count { color: #62564c; font-size: .875rem; }
+    .sources { margin-top: 12px; }
+    .sources a { display: inline-block; margin-right: 18px; }
+    .filters {
+      display: grid;
+      grid-template-columns: minmax(10rem, .8fr) minmax(0, 1.2fr);
+      gap: 12px;
+      max-width: 42rem;
+      margin: 26px 0 10px;
+    }
+    .filters label { display: grid; gap: 4px; font-size: .875rem; }
+    :is(select, input) {
+      min-width: 0;
+      width: 100%;
+      min-height: 42px;
+      padding: 7px 10px;
+      border: 1px solid #9c8d7c;
+      border-radius: 5px;
+      background: #fffdf7;
+      color: inherit;
+      font: inherit;
+    }
+    input::placeholder { color: #6c5f55; }
+    section { margin-top: 24px; padding-top: 18px; border-top: 1px solid #cbbfad; }
+    .group-heading, .compare-years { display: flex; align-items: baseline; gap: 6px 15px; flex-wrap: wrap; }
+    .group-heading a, .compare-years, .map-entry a { font-size: .875rem; }
+    .compare-years { margin: 9px 0 4px; }
+    ol { list-style: none; padding: 0; margin: 12px 0 0; }
+    .map-entry {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: baseline;
+      gap: 14px;
+      padding: 8px 10px;
+      border-bottom: 1px solid #ddd1c1;
+      background: #fffdf7;
+    }
+    .map-entry a { white-space: nowrap; }
+    @media (max-width: 540px) {
+      main { padding: 20px 16px 38px; }
+      h1 { font-size: 1.8rem; }
+      .filters { grid-template-columns: 1fr; }
+    }
+  </style>
+  <script defer src="js/historical_map_references.js"></script>
+</head>
+<body>
+  <main>
+    <header>
+      <a href="./">返回山河地图</a>
+      <h1>历代地图参考</h1>
+      <p class="intro">谭其骧主编《中国历史地图集》，中国地图出版社出版。这里可查国学导航的图名、图示年份和原图链接，目录也收录原站的附图、表及补充资料。</p>
+      <nav class="sources" aria-label="图集来源">
+        <a href="http://www.guoxue123.com/other/map/zgmap/" target="_blank" rel="noopener">国学导航总目录</a>
+        <a href="https://history-map.osgeo.cn/" target="_blank" rel="noopener">左图右史在线浏览</a>
+        <a href="https://jd.fudan.edu.cn/9c/01/c13570a760833/page.htm" target="_blank" rel="noopener">复旦大学图集介绍</a>
+      </nav>
+    </header>
+    <div class="filters">
+      <label for="map-group">图组
+        <select id="map-group" disabled><option value="">全部图组</option></select>
+      </label>
+      <label for="map-query">搜索图名
+        <input id="map-query" type="search" placeholder="如：全图、关内道、郡县" autocomplete="off" disabled>
+      </label>
+    </div>
+    <p id="result-count" role="status">正在读取图目…</p>
+    <div id="map-catalog"></div>
+    <noscript><p>启用 JavaScript 查看本地图目，或打开国学导航总目录。</p></noscript>
+  </main>
+</body>
+</html>

@@ -1,8 +1,8 @@
 window.EN_LOCALE = {
   "strings": {
-    "title": "Chronicles of the Realm · Historical Atlas of China",
-    "brand_seal": "江山时序",
-    "brand_sub": "Atlas of China · 403 BCE → Present",
+    "title": "Shanhe Atlas · Historical Atlas of China",
+    "brand_seal": "Shanhe Atlas",
+    "brand_sub": "China’s history · 2D maps and 3D terrain",
     "btn_layers": "Layers",
     "layer_grp_hist": "Historical Atlas Layers",
     "layer_grp_mod": "Terrain & Modern Reference",

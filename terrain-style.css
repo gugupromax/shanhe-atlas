@@ -21,3 +21,35 @@ html,body{height:100%;overflow:hidden}.topbar{height:54px;padding:0 18px;gap:14p
 .embedded-map #labels .fusion-place:hover,.embedded-map #labels .fusion-place:focus-visible{color:#2b2622;background:#f3eee4;outline:1px solid #b5452f;outline-offset:1px}
 @media(max-width:700px){#map-tools-panel{bottom:156px}.coordinate{bottom:198px}}
 .embedded-map,.embedded-map body{height:100%;background:#8eb5bd}.embedded-map main{height:100dvh}.embedded-map .topbar,.embedded-map .sidebar,.embedded-map .scene-head,.embedded-map #time-panel,.embedded-map #map-tools-panel,.embedded-map .relief-legend,.embedded-map .north,.embedded-map .map-tools,.embedded-map #profile-panel,.embedded-map #history-notice,.embedded-map .route-legend{display:none!important}.embedded-map .coordinate{top:auto;bottom:9px;right:10px;font-size:11px;max-width:calc(100% - 20px);pointer-events:none}.embedded-map #stage{height:100%!important}.embedded-map .fusion-place{pointer-events:auto;font-size:11px;color:#3d4637;background:#fff9e7e8;padding:2px 5px;box-shadow:0 1px 5px #263b3420;cursor:pointer}.embedded-map .fusion-place::before{width:4px;height:4px;background:#52634b}.embedded-map .fusion-place.journey{color:#873b28}.embedded-map .fusion-place.journey::before,.embedded-map .fusion-place.selected::before{background:#9b3e2a}.embedded-map .fusion-place.selected{font-weight:600;background:#fff1cf;color:#873b28;z-index:2}.embedded-map .fusion-place.event{font-size:11px;color:#6f4b23}.embedded-map .fusion-place.event::before{background:#9f6c24}#fusion-unavailable{position:absolute;inset:0;z-index:10;background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:25px;text-align:center;font-size:14px}#fusion-unavailable p{max-width:38em;margin:0}#fusion-unavailable button{font-size:13px}
+
+/* Tang 741 geographic captions are positioned in screen pixels. */
+.embedded-map #labels .tang-label {
+  position:absolute;
+  visibility:hidden;
+  transform:translate(-50%,-50%);
+  white-space:nowrap;
+  padding:0;
+  color:#493a2d;
+  background:transparent;
+  font:600 12px/1.25 "Microsoft YaHei","PingFang SC",sans-serif;
+  paint-order:stroke fill;
+  -webkit-text-stroke:2.5px #f9f4e9;
+}
+.embedded-map #labels .tang-county-dot {
+  position:absolute;
+  visibility:hidden;
+  width:7px;
+  height:7px;
+  border:1px solid #f9f4e9;
+  border-radius:50%;
+  background:#765333;
+  transform:translate(-50%,-50%);
+}
+.embedded-map #labels button.tang-label { min-width:0; min-height:0; padding:0 1px; }
+.embedded-map #labels button.tang-label:is(:hover,:focus-visible) { color:#72190b; background:#f9f4e9; }
+.embedded-map #labels .tang-label[data-kind="polity"] { color:#5e3a28; font-size:20px; font-weight:700; }
+.embedded-map #labels .tang-label[data-kind="circuit"] { color:#593127; font-size:13px; font-weight:700; }
+.embedded-map #labels .tang-label[data-kind="capital"] { color:#792820; font-size:14px; font-weight:700; }
+.embedded-map #labels .tang-label[data-kind="county"] { color:#63462b; font-weight:500; }
+.embedded-map #labels .tang-label[data-kind="water"] { color:#21536f; font-size:11px; }
+.embedded-map #labels .tang-label[data-kind="reference"] { color:#655e51; font-size:11px; }

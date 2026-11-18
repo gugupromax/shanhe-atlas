@@ -8,7 +8,7 @@
  *   3. 9 high-search-intent classical poetry routes & historical battles (`topics/<slug>.html`)
  *   4. Master index directory (`topics/index.html`)
  *
- * Also synchronizes `sitemap.xml` and `#seo-atlas-directory` in `index.html`.
+ * Keeps sitemap.xml as relative source paths for stage_site_metadata.cjs and synchronizes `#seo-atlas-directory` in `index.html`.
  */
 'use strict';
 
@@ -20,7 +20,8 @@ const { CONTROLLER_SCRIPTS } = require('./sync_version');
 const ROOT = path.resolve(__dirname, '..');
 const JS_DIR = path.join(ROOT, 'js');
 const TOPICS_DIR = path.join(ROOT, 'topics');
-const BASE_URL = 'https://deanchen.me/jiangshan-map';
+const BASE_URL = '..';
+const UPSTREAM_SITE = 'https://deanchen.me/jiangshan-map/';
 const LASTMOD = '2026-10-21';
 
 function escHtml(str) {
@@ -64,8 +65,8 @@ function loadAtlasRuntime() {
     clearTimeout,
     location: {
       search: '',
-      origin: 'https://deanchen.me',
-      pathname: '/jiangshan-map/',
+      origin: 'http://localhost',
+      pathname: '/',
     },
   };
   sandbox.window.location = sandbox.location;
@@ -368,19 +369,17 @@ function renderSharedHead({
   <meta name="theme-color" content="#f5efe2" />
   <link rel="canonical" href="${escHtml(canonicalUrl)}" />
   <meta property="og:type" content="article" />
-  <meta property="og:site_name" content="江山时序 · Jiangshan Historical Atlas" />
+  <meta property="og:site_name" content="山河地图 · Shanhe Atlas" />
   <meta property="og:locale" content="zh_CN" />
   <meta property="og:locale:alternate" content="en_US" />
   <meta property="og:title" content="${escHtml(title)}" />
   <meta property="og:description" content="${escHtml(description)}" />
   <meta property="og:url" content="${escHtml(canonicalUrl)}" />
-  <meta property="og:image" content="${BASE_URL}/assets/og_preview.png" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
+  <meta property="og:image" content="${BASE_URL}/assets/terrain_relief.webp" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${escHtml(title)}" />
   <meta name="twitter:description" content="${escHtml(description)}" />
-  <meta name="twitter:image" content="${BASE_URL}/assets/og_preview.png" />
+  <meta name="twitter:image" content="${BASE_URL}/assets/terrain_relief.webp" />
   <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
   <script type="application/ld+json">
 ${JSON.stringify(jsonLdObj, null, 2)}
@@ -673,13 +672,13 @@ ${JSON.stringify(jsonLdObj, null, 2)}
 function renderTopHeader() {
   return `  <header class="top-bar">
     <a class="brand-link" href="${BASE_URL}/">
-      <span class="seal-badge">江山时序</span>
+      <span class="seal-badge">山河地图</span>
       <span>中国历史地图 · 战国 → 今</span>
     </a>
     <nav class="top-nav" aria-label="专题图志导航">
       <a href="${BASE_URL}/">进入交互式主地图</a>
       <a href="${BASE_URL}/topics/index.html">专题图志总目录</a>
-      <a href="https://github.com/DeanChensj/jiangshan-map" target="_blank" rel="noopener noreferrer">GitHub 开源仓库</a>
+      <a href="https://github.com/DeanChensj/jiangshan-map" target="_blank" rel="noopener noreferrer">上游项目 · 江山时序</a>
     </nav>
   </header>`;
 }
@@ -698,8 +697,8 @@ function renderFooter(allDynasties) {
       </div>
     </section>
     <footer class="page-footer">
-      <div>© 江山时序（Jiangshan Historical Atlas）· <a href="${BASE_URL}/">deanchen.me/jiangshan-map</a> · 历史疆域与政区为示意性近似</div>
-      <div><a href="${BASE_URL}/topics/index.html">专题图志总览</a> · <a href="${BASE_URL}/sitemap.xml">Sitemap</a> · <a href="${BASE_URL}/llms.txt">LLMs.txt</a> · <a href="mailto:deancsj@gmail.com">联系与勘误：deancsj@gmail.com</a></div>
+      <div>山河地图 · <a href="https://github.com/DeanChensj/jiangshan-map">原项目江山时序</a> · <a href="../map-sources.html">图层来源与署名</a></div>
+      <div><a href="${BASE_URL}/topics/index.html">专题图志总览</a> · <a href="${BASE_URL}/llms.txt">LLMs.txt</a> · <a href="https://github.com/gugupromax/shanhe-atlas/issues">山河地图勘误</a></div>
     </footer>`;
 }
 
@@ -716,7 +715,7 @@ function buildDynastyPage(d, idx, allDynasties, snapshots, enLocale, ctrl, provi
   const canonicalUrl = `${BASE_URL}/topics/${d.key}.html`;
   const mapUrl = `${BASE_URL}/?year=${focusY}`;
 
-  const pageTitle = `${d.title}历史地图（${spanZh} · ${titleEn}）· 疆域演变、州郡政区、古今地名对照与重大事件 | 江山时序`;
+  const pageTitle = `${d.title}历史地图（${spanZh} · ${titleEn}）· 疆域演变、州郡政区、古今地名对照与重大事件 | 山河地图`;
   const spanFullZh = d.key === 'prc' ? `${fmtYearZh(d.fromYear)}至今` : `${fmtYearZh(d.fromYear)}至${fmtYearZh(d.toYear)}`;
   const pageDesc = `${d.title}历史地图（${spanFullZh}，都城：${d.seat}）：${d.summary} 收录${(d.phases || []).length || 1}幅多阶段版图快照、${(d.settlements || []).length}座城池古今地名对照与${(d.milestones || []).length}项编年重大历史事件。`;
 
@@ -820,7 +819,7 @@ function buildDynastyPage(d, idx, allDynasties, snapshots, enLocale, ctrl, provi
       {
         '@type': 'BreadcrumbList',
         itemListElement: [
-          { '@type': 'ListItem', position: 1, name: '江山时序首页', item: `${BASE_URL}/` },
+          { '@type': 'ListItem', position: 1, name: '山河地图首页', item: `${BASE_URL}/` },
           { '@type': 'ListItem', position: 2, name: '专题图志总览', item: `${BASE_URL}/topics/index.html` },
           { '@type': 'ListItem', position: 3, name: `${d.title}历史地图（${spanZh}）`, item: canonicalUrl },
         ],
@@ -850,7 +849,7 @@ function buildDynastyPage(d, idx, allDynasties, snapshots, enLocale, ctrl, provi
 ${renderTopHeader()}
   <main>
     <nav class="breadcrumb" aria-label="面包屑导航">
-      <a href="${BASE_URL}/">江山时序首页</a> &rsaquo;
+      <a href="${BASE_URL}/">山河地图首页</a> &rsaquo;
       <a href="${BASE_URL}/topics/index.html">专题图志总目录</a> &rsaquo;
       <span>${escHtml(d.title)}历史地图（${escHtml(spanZh)}）</span>
     </nav>
@@ -965,7 +964,7 @@ function buildJourneyPage(j, idx, allJourneys, allDynasties) {
   const cleanSpanZh = j.spanZh.replace(/[（）()]/g, ' · ').replace(/\s*·\s*$/, '');
   const cleanSpanEn = j.spanEn.replace(/[（）()]/g, ' · ').replace(/\s*·\s*$/, '');
 
-  const pageTitle = `${j.titleZh}路线图（${cleanSpanZh}）· ${stops.length}站古今地名对照与诗词纪事 | 江山时序`;
+  const pageTitle = `${j.titleZh}路线图（${cleanSpanZh}）· ${stops.length}站古今地名对照与诗词纪事 | 山河地图`;
   const pageDesc = `${j.titleZh}（${j.titleEn}，${cleanSpanZh}）历史地图时空轨迹，全线共 ${stops.length} 站：${stopsChainZh}。提供逐站帝王年号、古今政区对照、经典史料诗词与交互式路线回放。`;
 
   const stopCardsHtml = stops
@@ -1014,7 +1013,7 @@ function buildJourneyPage(j, idx, allJourneys, allDynasties) {
       {
         '@type': 'BreadcrumbList',
         itemListElement: [
-          { '@type': 'ListItem', position: 1, name: '江山时序首页', item: `${BASE_URL}/` },
+          { '@type': 'ListItem', position: 1, name: '山河地图首页', item: `${BASE_URL}/` },
           { '@type': 'ListItem', position: 2, name: '专题图志总览', item: `${BASE_URL}/topics/index.html` },
           { '@type': 'ListItem', position: 3, name: j.titleZh, item: canonicalUrl },
         ],
@@ -1043,7 +1042,7 @@ function buildJourneyPage(j, idx, allJourneys, allDynasties) {
 ${renderTopHeader()}
   <main>
     <nav class="breadcrumb" aria-label="面包屑导航">
-      <a href="${BASE_URL}/">江山时序首页</a> &rsaquo;
+      <a href="${BASE_URL}/">山河地图首页</a> &rsaquo;
       <a href="${BASE_URL}/topics/index.html">专题图志总目录</a> &rsaquo;
       <span>${escHtml(j.titleZh)}</span>
     </nav>
@@ -1092,7 +1091,7 @@ function buildFeaturedTopicPage(topic, allDynasties, ctrl) {
   const info = ctrl.inspect(topic.inspectQuery);
   const isRoute = Array.isArray(info.route) && info.route.length > 1;
 
-  const pageTitle = `${topic.titleZh} · 古今地名政区沿革 | 江山时序`;
+  const pageTitle = `${topic.titleZh} · 古今地名政区沿革 | 山河地图`;
   const pageDesc = `${topic.titleZh}：${topic.summaryZh.slice(0, 140)}… 交互式历史地图定位、帝王年号与两千四百年古今政区沿革。`;
 
   let detailSectionHtml = '';
@@ -1268,7 +1267,7 @@ ${genRows}
       {
         '@type': 'BreadcrumbList',
         itemListElement: [
-          { '@type': 'ListItem', position: 1, name: '江山时序首页', item: `${BASE_URL}/` },
+          { '@type': 'ListItem', position: 1, name: '山河地图首页', item: `${BASE_URL}/` },
           { '@type': 'ListItem', position: 2, name: '专题图志总览', item: `${BASE_URL}/topics/index.html` },
           { '@type': 'ListItem', position: 3, name: topic.shortZh, item: canonicalUrl },
         ],
@@ -1287,7 +1286,7 @@ ${genRows}
 ${renderTopHeader()}
   <main>
     <nav class="breadcrumb" aria-label="面包屑导航">
-      <a href="${BASE_URL}/">江山时序首页</a> &rsaquo;
+      <a href="${BASE_URL}/">山河地图首页</a> &rsaquo;
       <a href="${BASE_URL}/topics/index.html">专题图志总目录</a> &rsaquo;
       <span>${escHtml(topic.shortZh)}</span>
     </nav>
@@ -1396,7 +1395,7 @@ function buildTopicsIndexPage(dynMeta, journeyMeta, featuredMeta, allDynasties) 
 ${renderTopHeader()}
   <main>
     <nav class="breadcrumb" aria-label="面包屑导航">
-      <a href="${BASE_URL}/">江山时序首页</a> &rsaquo;
+      <a href="${BASE_URL}/">山河地图首页</a> &rsaquo;
       <span>专题图志总目录</span>
     </nav>
 
@@ -1406,7 +1405,7 @@ ${renderTopHeader()}
       <p class="en-sub">Complete Directory of Chinese Historical Territory Maps, Person Chronicles, Classical Poetry Routes &amp; Famous Battles (403 BCE – Present)</p>
       <p>本目录汇总「江山时序」全部静态专题图志，每篇均提供完整古今地名对照表、帝王年号编年、两千四百年政区沿革及一键进入交互式古舆图的直达链接。</p>
       <div class="cta-row">
-        <a class="cta-btn" href="${BASE_URL}/">进入「江山时序」交互式主地图（前403年—现代）&rarr;</a>
+        <a class="cta-btn" href="${BASE_URL}/">进入山河地图（前403年—现代）&rarr;</a>
       </div>
     </article>
 
@@ -1475,11 +1474,12 @@ ${renderFooter(allDynasties)}
 
 function updateSitemapXml(dynMeta, journeyMeta, featuredMeta) {
   const sitemapPath = path.join(ROOT, 'sitemap.xml');
-  const existingXml = fs.readFileSync(sitemapPath, 'utf8');
+  const existingXml = fs.readFileSync(sitemapPath, 'utf8')
+    .replaceAll(UPSTREAM_SITE, './').replace(/\r\n/g, '\n');
 
   // Remove any previously injected /topics/ URLs so this script is idempotent
   const cleanedXml = existingXml.replace(
-    /\s*<url>\s*<loc>https:\/\/deanchen\.me\/jiangshan-map\/topics\/[^<]*<\/loc>[\s\S]*?<\/url>/g,
+    /\s*<url>\s*<loc>\.\/topics\/[^<]*<\/loc>[\s\S]*?<\/url>/g,
     ''
   );
 
@@ -1493,7 +1493,7 @@ function updateSitemapXml(dynMeta, journeyMeta, featuredMeta) {
   const topicBlocks = topicUrls
     .map(
       (u) => `  <url>
-    <loc>${u.loc}</loc>
+    <loc>${u.loc.replace(/^\.\.\//, './')}</loc>
     <lastmod>${LASTMOD}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>${u.priority}</priority>
@@ -1501,36 +1501,16 @@ function updateSitemapXml(dynMeta, journeyMeta, featuredMeta) {
     )
     .join('\n');
 
-  const updatedXml = cleanedXml.replace('</urlset>', `${topicBlocks}\n</urlset>`);
+  const updatedXml = cleanedXml.replace(/\n*<\/urlset>/, `\n${topicBlocks}\n</urlset>`);
   fs.writeFileSync(sitemapPath, updatedXml, 'utf8');
   return topicUrls.length;
 }
 
-function computeCalligraphySubsetText(dynasties, enLocale) {
-  const sources = [
-    '江山时序',
-    ...dynasties.map((d) => d.title || ''),
-    ...dynasties.map((d) => (enLocale.dynasties[d.key] && enLocale.dynasties[d.key].name) || ''),
-  ];
-  return Array.from(new Set(sources.join(''))).sort().join('');
-}
-
 function updateIndexHtmlSeoDirectory(dynMeta, journeyMeta, featuredMeta, dynasties, snapshots, loreData, enLocale) {
   const indexPath = path.join(ROOT, 'index.html');
-  let html = fs.readFileSync(indexPath, 'utf8');
-
-  // 1. Subset Ma Shan Zheng calligraphy webfont to the exact characters rendered in #txt-seal and #dynasty-title
-  //    (a few KB). Both font stylesheets load without blocking rendering; the fallback faces show until they arrive.
-  const calligraphyChars = computeCalligraphySubsetText(dynasties, enLocale);
-  const encodedCalligraphy = encodeURIComponent(calligraphyChars).replace(/'/g, '%27');
-  // media="print" + onload keeps the webfont stylesheets from blocking first paint.
-  const NON_BLOCKING = ` rel="stylesheet" media="print" onload="this.media='all'" />`;
-  const fontLinksBlock = `  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500&display=swap"${NON_BLOCKING}\n  <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&text=${encodedCalligraphy}&display=swap"${NON_BLOCKING}`;
-  const fontRegex = /  <link href="https:\/\/fonts\.googleapis\.com\/css2\?family=Noto\+Serif\+SC[^"]*" rel="stylesheet"[^>]*\/>(?:\r?\n  <link href="https:\/\/fonts\.googleapis\.com\/css2\?family=Ma\+Shan\+Zheng[^"]*" rel="stylesheet"[^>]*\/>)?/;
-  if (!fontRegex.test(html)) {
-    throw new Error('Could not find Google Fonts stylesheet link block in index.html');
-  }
-  html = html.replace(fontRegex, fontLinksBlock);
+  const original = fs.readFileSync(indexPath, 'utf8');
+  const lineEnding = original.includes('\r\n') ? '\r\n' : '\n';
+  let html = original.replace(/\r\n/g, '\n').replaceAll(UPSTREAM_SITE, './');
 
   // 2. Synchronize pre-rendered Warring States opening summary & milestone list in #chronicle-pane
   const openingDyn = dynasties[0];
@@ -1561,7 +1541,7 @@ function updateIndexHtmlSeoDirectory(dynMeta, journeyMeta, featuredMeta, dynasti
   const llmsPath = path.join(ROOT, 'llms.txt');
   if (fs.existsSync(llmsPath)) {
     const llmsSrc = fs.readFileSync(llmsPath, 'utf8');
-    const updatedLlms = llmsSrc.replace(
+    const updatedLlms = llmsSrc.replaceAll(UPSTREAM_SITE, './').replace(
       /共 \d+ 个历史时期、\d+ 幅多阶段疆域与州郡政区快照、\d+ 条编年大事、\d+ 处城池地标/,
       `共 ${dynasties.length} 个历史时期、${histSnapCount} 幅多阶段疆域与州郡政区快照、${totalMilestones} 条编年大事、${totalLandmarks} 处城池地标`
     );
@@ -1579,7 +1559,7 @@ function updateIndexHtmlSeoDirectory(dynMeta, journeyMeta, featuredMeta, dynasti
         .map((m) => `${fmtYearShortZh(m.year)}年${m.headline}`)
         .join('；');
       const focusYr = d.focusYear !== undefined ? d.focusYear : d.fromYear;
-      return `          <li><a href="${BASE_URL}/?year=${focusYr}"><strong>${escHtml(d.title)}历史地图（${escHtml(fmtDynSpanZh(d))} · ${escHtml(enName)}）</strong></a> — 都城：${escHtml(d.seat)}。代表事件：${escHtml(sampleEvs)}。</li>`;
+      return `          <li><a href="./?year=${focusYr}"><strong>${escHtml(d.title)}历史地图（${escHtml(fmtDynSpanZh(d))} · ${escHtml(enName)}）</strong></a> — 都城：${escHtml(d.seat)}。代表事件：${escHtml(sampleEvs)}。</li>`;
     })
     .join('\n');
   html = html.replace(
@@ -1592,7 +1572,7 @@ function updateIndexHtmlSeoDirectory(dynMeta, journeyMeta, featuredMeta, dynasti
       const stopsChain = (j.stops || [])
         .map((s) => `${s.ancientZh}（今${s.modernZh}）`)
         .join(' → ');
-      return `          <li><a href="${BASE_URL}/?person=${escHtml(j.key)}"><strong>${escHtml(j.titleZh)}（${escHtml(j.titleEn)} · ${escHtml(j.spanZh)}）</strong></a> — ${escHtml(stopsChain)}。</li>`;
+      return `          <li><a href="./?person=${escHtml(j.key)}"><strong>${escHtml(j.titleZh)}（${escHtml(j.titleEn)} · ${escHtml(j.spanZh)}）</strong></a> — ${escHtml(stopsChain)}。</li>`;
     })
     .join('\n');
   html = html.replace(
@@ -1607,15 +1587,15 @@ function updateIndexHtmlSeoDirectory(dynMeta, journeyMeta, featuredMeta, dynasti
   );
 
   const allItems = [
-    `          <li><a href="${BASE_URL}/topics/index.html"><strong>江山时序专题图志总览（34篇静态历史地理百科目录）</strong></a></li>`,
+    `          <li><a href="./topics/index.html"><strong>山河地图专题图志总览</strong></a></li>`,
     ...featuredMeta.map(
-      (f) => `          <li><a href="${f.url}"><strong>${escHtml(f.titleZh)}（静态图文考据专题）</strong></a></li>`
+      (f) => `          <li><a href="${f.url.slice(1)}"><strong>${escHtml(f.titleZh)}（静态图文考据专题）</strong></a></li>`
     ),
     ...dynMeta.map(
-      (d) => `          <li><a href="${d.url}"><strong>${escHtml(d.titleZh)}疆域政区与古今地名表（静态专题页）</strong></a></li>`
+      (d) => `          <li><a href="${d.url.slice(1)}"><strong>${escHtml(d.titleZh)}疆域政区与古今地名表（静态专题页）</strong></a></li>`
     ),
     ...journeyMeta.map(
-      (j) => `          <li><a href="${j.url}"><strong>${escHtml(j.titleZh)}生平行迹与诗词路线图志（静态专题页）</strong></a></li>`
+      (j) => `          <li><a href="${j.url.slice(1)}"><strong>${escHtml(j.titleZh)}生平行迹与诗词路线图志（静态专题页）</strong></a></li>`
     ),
   ].join('\n');
 
@@ -1632,7 +1612,7 @@ ${allItems}
     throw new Error('Could not find closing </section>\\n    </nav> in index.html');
   }
   html = html.replace(target, `      </section>\n${sectionFive}`);
-  fs.writeFileSync(indexPath, html, 'utf8');
+  fs.writeFileSync(indexPath, html.replaceAll('\n', lineEnding), 'utf8');
 }
 
 function main() {

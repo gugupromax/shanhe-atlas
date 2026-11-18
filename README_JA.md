@@ -166,7 +166,7 @@ WeChat の公式アカウント、Zhihu、Xiaohongshu では iframe が使えな
     "mcpServers": {
       "jiangshan-atlas": {
         "command": "node",
-        "args": ["/absolute/path/to/jiangshan-map/scripts/mcp_server.js"]
+        "args": ["/absolute/path/to/shanhe-atlas/scripts/mcp_server.js"]
       }
     }
   }
@@ -217,8 +217,8 @@ python3 skills/jiangshan-atlas/scripts/jiangshan.py --year 1079,1080,1094,1097 -
 依存関係もビルドの手順も必要ありません。クローンして、任意の静的な HTTP サーバーで配信します。
 
 ```bash
-git clone https://github.com/DeanChensj/jiangshan-map.git
-cd jiangshan-map
+git clone https://github.com/gugupromax/shanhe-atlas.git
+cd shanhe-atlas
 python3 -m http.server 8000
 ```
 
@@ -238,7 +238,7 @@ docker compose up -d --build
 
 別のポートを使うには、`docker-compose.yml` の `ports` の対応付けを変え（例：`"9000:80"`）、もう一度 `docker compose up -d` を実行します。
 
-上流の変更を取り込んだ後は、`docker compose up -d --build` で再ビルドします。Compose を使わない場合：`docker build -t jiangshan-map:latest .` を実行してから `docker run -d -p 8008:80 --name jiangshan-map jiangshan-map:latest` を実行します。
+上流の変更を取り込んだ後は、`docker compose up -d --build` で再ビルドします。Compose を使わない場合：`docker build -t shanhe-atlas:latest .` を実行してから `docker run -d -p 8008:80 --name shanhe-atlas shanhe-atlas:latest` を実行します。
 
 注意：イメージはローカルでビルドするもので、どのレジストリにも公開していません。
 

@@ -1,11 +1,11 @@
 services:
-  jiangshan-map:
+  shanhe-atlas:
     build:
       context: .
       dockerfile: Dockerfile
     pull_policy: build
-    image: jiangshan-map:latest
-    container_name: jiangshan-map
+    image: shanhe-atlas:latest
+    container_name: shanhe-atlas
     ports:
       - "8008:80"
     restart: unless-stopped

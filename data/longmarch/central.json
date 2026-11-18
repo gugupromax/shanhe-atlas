@@ -1,0 +1,1651 @@
+{
+  "schemaVersion": 1,
+  "reviewedOn": "2026-11-18",
+  "scope": "中央红军主线；以于都渡河阶段起始，1935年10月19日吴起镇落脚，21日战斗另作收尾。其他方面军不混为本路线。",
+  "routeEndDate": "1935-10-19",
+  "coordinateStatus": "所有坐标均为按古今地名人工概略定位，非实测遗址、渡口、道路或战场边界，待逐点校准。",
+  "routeNoteZh": "中央红军主线；虚线为史料节点连线，非实测行军道路或战场界线。各军团并非同日同路。现代高程约9—10千米网格，仅供宏观观察。",
+  "routeNoteEn": "Central Red Army route. Dashed node links are schematic, not surveyed roads or battlefield limits. Units did not all follow one route or date. Modern elevation has a 9–10 km grid and supports broad terrain reading only.",
+  "sources": {
+    "yudu": {
+      "title": "于都夜渡 远征启航",
+      "url": "https://cpc.people.com.cn/n1/2026/0806/c443712-40774882.html",
+      "org": "解放军报／中国共产党新闻网",
+      "published": "2026-08-06",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "yudu-nights": {
+      "title": "伟大的出发 永远的长征⑩ 夜渡于都河",
+      "url": "https://www.ccphistory.org.cn/shds/dsxx/content/fba62144-b103-4ba1-a649-0f168438883c.html",
+      "org": "上海党史网／党史镜报",
+      "published": "2026-11-10",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "chronology": {
+      "title": "纪念中国工农红军长征胜利90周年专题年表",
+      "url": "https://www.dswxyjy.org.cn/GB/427277/462086/",
+      "org": "中央党史和文献研究院",
+      "published": "",
+      "sourceType": "正式年表",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "zunyi": {
+      "title": "遵义会议：中国共产党历史的伟大转折",
+      "url": "https://www.12371.cn/2021/08/12/ARTI1628761880703772.shtml",
+      "org": "共产党员网",
+      "published": "2021-08-12",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "guangxi": {
+      "title": "红军长征过广西",
+      "url": "https://www.dswxyjy.org.cn/n1/2026/0702/c244516-40752274.html",
+      "org": "中共广西壮族自治区委员会党史研究室／中央党史和文献研究院",
+      "published": "2026-07-02",
+      "sourceType": "党史机构研究编述",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "tongdao-site": {
+      "title": "通道会议和通道转兵纪念地（恭城书院）",
+      "url": "https://www.dswxyjy.org.cn/n/2013/0806/c222137-22463315.html",
+      "org": "中央党史和文献研究院",
+      "published": "2013-08-06",
+      "sourceType": "纪念馆或机构遗址资料",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "tongdao-study": {
+      "title": "“万万火急”的通道转兵会议，究竟是在哪里召开的",
+      "url": "https://www.ccphistory.org.cn/shds/dsxx/content/ef0414f9-4f7f-4c1f-85ee-c5ddc43b8f79.html",
+      "org": "上海党史网／党史镜报",
+      "published": "2024-04-24",
+      "sourceType": "官方平台署名考证",
+      "evidenceUse": "仅用于会址争议和日期口径说明，不将某一会址研究意见写成定论。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "guizhou": {
+      "title": "中央红军长征在贵州",
+      "url": "https://www.dswxyjy.org.cn/BIG5/n1/2026/0722/c244516-40765893.html",
+      "org": "中共贵州省委党史研究室／中央党史和文献研究院",
+      "published": "2026-07-22",
+      "alternateUrl": "https://www.ccphistory.org.cn/shds/dsxx/content/6d5388e8-3ad2-4bb1-b8f2-356634fd37aa.html",
+      "sourceType": "党史机构研究编述",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "houchang-name": {
+      "title": "为什么史称“猴场会议”",
+      "url": "https://dangshi.people.com.cn/n/2013/0216/c85037-20493882.html",
+      "org": "解放军报／人民网党史频道",
+      "published": "2013-02-16",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "houchang": {
+      "title": "猴场会议：伟大转折的前夜",
+      "url": "https://cpc.people.com.cn/n1/2025/0111/c443712-40399843.html",
+      "org": "中国共产党新闻网",
+      "published": "2025-01-11",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "chishui-orders": {
+      "title": "四渡赤水行动部署",
+      "url": "https://www.81.mil.cn/yljnt_208627/lsda_208656/16491667.html",
+      "org": "中央档案馆讲述／光明日报／中国军网",
+      "published": "2026-10-04",
+      "sourceType": "档案资料介绍",
+      "evidenceUse": "核对渡河部署和时段；资料为馆方讲述与报道，不是本专题直接核验的1935原电报影印。",
+      "accessBasis": "官方页面的搜索缓存相关正文已由本轮研究核对；直接访问曾超时或重定向。"
+    },
+    "chishui": {
+      "title": "四渡赤水 神来之笔",
+      "url": "https://cpc.people.com.cn/n1/2026/0903/c443712-40791573.html",
+      "org": "解放军报／中国共产党新闻网",
+      "published": "2026-09-03",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "zhaxi": {
+      "title": "解读长征（24）：扎西会议解决了红军哪些重大问题",
+      "url": "https://dangshi.people.com.cn/n1/2016/0914/c85037-28714303.html",
+      "org": "人民网党史频道",
+      "published": "2016-09-14",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "chishui-sichuan": {
+      "title": "1935年红军四渡赤水转战川南",
+      "url": "https://dangshi.people.com.cn/n/2015/0212/c85037-26555356.html",
+      "org": "人民网党史频道",
+      "published": "2015-02-12",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "官方页面的搜索缓存相关正文已由本轮研究核对；直接访问曾超时或重定向。"
+    },
+    "erlang": {
+      "title": "二郎滩：古渡两岸万象新",
+      "url": "https://szb.eyesnews.cn/pad/cont/202606/10/content_181854.html",
+      "org": "贵州日报",
+      "published": "2026-06-10",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "gouba": {
+      "title": "苟坝会议会址：实事求是向前行",
+      "url": "https://szb.eyesnews.cn/pc/cont/202507/10/content_156327.html",
+      "org": "贵州日报",
+      "published": "2025-07-10",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "gouba-study": {
+      "title": "苟坝会议让毛泽东难以忘怀",
+      "url": "https://dangshi.people.com.cn/n1/2016/0719/c85037-28564682.html",
+      "org": "福建党史月刊／人民网党史频道",
+      "published": "2016-07-19",
+      "sourceType": "官方平台署名考证",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "官方页面的搜索缓存相关正文已由本轮研究核对；直接访问曾超时或重定向。"
+    },
+    "maotai": {
+      "title": "赤水河畔，红色精神永传承",
+      "url": "https://www.mct.gov.cn/wlbphone/wlbydd/xxfb/qglb/gz/202610/t20261012_967340.html",
+      "org": "中国文化报／文化和旅游部",
+      "published": "2026-10-12",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "tiziyan": {
+      "title": "梯子岩渡口",
+      "url": "https://www.sdcs1935.com/html/yanjiu/sdcsyz/202009/630fedbde7025c14.shtml",
+      "org": "四渡赤水纪念馆",
+      "published": "2020-09-08",
+      "sourceType": "纪念馆或机构遗址资料",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "jinsha": {
+      "title": "中央红军巧渡金沙江",
+      "url": "https://www.ccphistory.org.cn/shds/shhm/content/455c7ebd-06af-4b6f-b1ba-dc89b90cbbae.html",
+      "org": "中共云南省委党史研究室／上海党史网",
+      "published": "2026-07-24",
+      "sourceType": "党史机构研究编述",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "kunming": {
+      "title": "昆明小哨红军烈士革命遗址保护利用",
+      "url": "https://yn.yunnan.cn/system/2020/01/02/030558842.shtml",
+      "org": "昆明市盘龙区委党史研究室／云南日报",
+      "published": "2020-01-02",
+      "sourceType": "党史机构研究编述",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "jinsha-work": {
+      "title": "不负人民：中央红军渡金沙江的群众工作",
+      "url": "https://www.ynxc.gov.cn/html/2024/qdjsj_0507/12270.html",
+      "org": "学习强国云南学习平台／云南宣传网",
+      "published": "2024-05-07",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "jiaoping-flood": {
+      "title": "消逝的皎平渡口 新生的移民小城",
+      "url": "https://www.cnr.cn/yn/ynkx/20200520/t20200520_525097095.shtml",
+      "org": "央广网",
+      "published": "2020-05-20",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "只用于旧渡口蓄水淹没、现代新镇不能替代旧址的位置说明。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "jiaoping-river-reference": {
+      "title": "夏季金沙江下游水-气界面CO2、CH4通量特征初探",
+      "url": "https://jlakes.alljournals.cn/hpkx/article/abstract/20170423",
+      "org": "湖泊科学",
+      "published": "2017",
+      "locator": "表1皎平渡2015年采样点仅作为现代同河段定位参考，非1935年渡口测绘；DOI:10.18307/2017.0423",
+      "sourceType": "定位学术参考",
+      "evidenceUse": "仅辅助现代同河段人工概略定位；2015采样点不是1935渡口实测点。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "huili": {
+      "title": "历史上的今天——纪念会理会议八十五周年",
+      "url": "https://www.hlhjczjng.cn/productshow.aspx?id=145&mid=361",
+      "org": "会理市红军长征过会理纪念馆",
+      "published": "2020-05-11",
+      "sourceType": "纪念馆或机构遗址资料",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "huili-site": {
+      "title": "会理市城北街道“铁厂红”景区教育基地",
+      "url": "https://www.sctyzx.gov.cn/lsyz/202405/54305746.html",
+      "org": "四川统一战线",
+      "published": "2024-05-16",
+      "sourceType": "纪念馆或机构遗址资料",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "yihai": {
+      "title": "彝海结盟",
+      "url": "https://www.sctyzx.gov.cn/tzsh/201608/54250935.html",
+      "org": "中共四川省委统战部",
+      "published": "2016-08-15",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "anshun": {
+      "title": "长征路上看四川：安顺场里的红色记忆",
+      "url": "https://www.scwmw.cn/mlsc/202505/t20250512_1356490.htm",
+      "org": "四川文明网",
+      "published": "2025-05-12",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "luding": {
+      "title": "泸定桥头忆红军",
+      "url": "https://news.cnr.cn/native/gd/20190729/t20190729_524709874.shtml",
+      "org": "人民网／央广网",
+      "published": "2019-07-29",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "jiajin-sites": {
+      "title": "中央红军、红四方面军翻越夹金山遗址",
+      "url": "https://www.yadsfz.org.cn/news/dsfz_0603/2022118/3334.html",
+      "org": "宝兴县委党史研究室／雅安党史方志网",
+      "published": "2022-01-18",
+      "sourceType": "纪念馆或机构遗址资料",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "jiajin": {
+      "title": "走进四川省宝兴县和小金县——夹金山上吹响胜利号角",
+      "url": "https://www.mod.gov.cn/gfbw/gfjy_index/js_214151/16487941.html",
+      "org": "中国国防报／国防部网",
+      "published": "2026-09-21",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "dawei": {
+      "title": "不忘初心再长征：懋功会师开新局",
+      "url": "https://wcm1.cnr.cn/pub/en_US/js2014/ztch/bwcxzcz/ynsc/gz/20161029/t20161029_523230377.html",
+      "org": "央广军事",
+      "published": "2016-10-30",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "chronology1935": {
+      "title": "中国共产党大事记·1935年",
+      "url": "https://cpc.people.com.cn/GB/64162/64164/4415983.html",
+      "org": "中共中央党史研究室编／人民网",
+      "published": "",
+      "sourceType": "正式年表",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "lianghekou": {
+      "title": "“两河口会议”会址",
+      "url": "https://xiaojin.gov.cn/xjxrmzf/c101898/201909/dafbb36dbd3a4555837af84485bd7db0.shtml",
+      "org": "小金县人民政府",
+      "published": "2026-07-15",
+      "sourceType": "纪念馆或机构遗址资料",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "songpan": {
+      "title": "强军文化专刊·山河血脉：苍茫松潘",
+      "url": "https://www.mod.gov.cn/gfbw/gfjy_index/js_214151/16480515.html",
+      "org": "解放军报／国防部网",
+      "published": "2026-08-21",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "maoergai-site": {
+      "title": "长征精神浸润索花沃土 红色引擎驱动藏乡振兴",
+      "url": "https://www.songpan.gov.cn/spxrmzf/c100050/202608/13bda0f77096421c9786d54e46a7138b.shtml",
+      "org": "松潘县人民政府",
+      "published": "2026-08-04",
+      "sourceType": "纪念馆或机构遗址资料",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "grassland": {
+      "title": "战史今日8月21日：红军长征过草地",
+      "url": "https://www.81.cn/jwzl/2017-08/21/content_7725617.htm",
+      "org": "中国军网／人民网",
+      "published": "2017-08-21",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "官方页面的搜索缓存相关正文已由本轮研究核对；直接访问曾超时或重定向。"
+    },
+    "baozuo": {
+      "title": "包座战役",
+      "url": "https://www.81.mil.cn/yljnt_208627/lsda_208656/16421653.html",
+      "org": "中国国防报／中国军网",
+      "published": "2025-11-13",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "官方页面的搜索缓存相关正文已由本轮研究核对；直接访问曾超时或重定向。"
+    },
+    "ejie": {
+      "title": "高吉村阿巴家的土屋与俄界会议",
+      "url": "https://dangshi.people.com.cn/n1/2019/0816/c85037-31299424.html",
+      "org": "人民网党史频道",
+      "published": "2019-08-16",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "ejie-site": {
+      "title": "记者再走长征路：俄界会议，统一思想挥师北上",
+      "url": "https://www.mod.gov.cn/gfbw/gfjy_index/zyhd/4848361.html?big=fan",
+      "org": "新华社／国防部网",
+      "published": "2019-08-16",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "gansu-meetings": {
+      "title": "长征时期党中央在甘肃召开的重要会议",
+      "url": "https://gansu.gscn.com.cn/system/2021/11/25/012674364.shtml",
+      "org": "中共甘肃省委党史研究室／甘肃日报",
+      "published": "2021-11-25",
+      "sourceType": "党史机构研究编述",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "battles": {
+      "title": "红军长征中有哪些重要战役战斗？",
+      "url": "https://www.81.mil.cn/yw_208727/16343466.html",
+      "org": "中国军网",
+      "published": "",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "ejie-bangluo": {
+      "title": "从俄界村到榜罗镇：长征落脚点大转折",
+      "url": "https://www.hunan.gov.cn/topic/zl7sn/JZZZCZL/201908/t20190819_9686410.html",
+      "org": "新华社／湖南省人民政府",
+      "published": "2019-08-19",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "bangluo": {
+      "title": "甘肃红色印记（20）：榜罗镇会议",
+      "url": "https://gansu.gscn.com.cn/system/2021/06/26/012606224.shtml",
+      "org": "新甘肃／中国甘肃网",
+      "published": "2021-06-26",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "liupan": {
+      "title": "中央红军翻越六盘山",
+      "url": "https://www.12371.cn/2022/01/07/VIDE1641539280317113.shtml",
+      "org": "央视节目／共产党员网",
+      "published": "2022-01-07",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "wuqi-arrival": {
+      "title": "红军抵达陕北吴起镇 红一方面军长征胜利结束",
+      "url": "https://cpc.people.com.cn/GB/33837/2534292.html",
+      "org": "中国共产党新闻网",
+      "published": "",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "meetings": {
+      "title": "长征中的会议",
+      "url": "https://fuwu.12371.cn/2012/06/11/ARTI1339400564382590_all.shtml",
+      "org": "共产党员网",
+      "published": "2012-06-11",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "wuqi-battle": {
+      "title": "吴起镇战斗：中央红军长征的收官之战",
+      "url": "https://cpc.people.com.cn/n1/2026/1102/c443712-40825696.html",
+      "org": "学习时报／中国共产党新闻网",
+      "published": "2026-11-02",
+      "sourceType": "官媒报道或党史机构知识专题",
+      "evidenceUse": "核对节点日期、地名与主要史事；文字为自写概括，不作为逐时作战实录。",
+      "accessBasis": "本轮研究核对的机构页面或授权转载；未将机构二手编述统称原始档案。"
+    },
+    "zunyi-campaign-study": {
+      "title": "遵义战役：在战略转移中打好进攻仗",
+      "url": "https://www.mod.gov.cn/gfbw/gfjy_index/16104098.html",
+      "org": "军事科学院作者／解放军报／国防部网",
+      "published": "2019-08-13",
+      "sourceType": "军史研究／机构作者",
+      "evidenceUse": "仅用于遵义战役全过程计至3月1日的范围口径说明，不采纳战果数字。",
+      "accessBasis": "官方页面搜索相关正文已由本轮研究核对；直接打开曾超时。"
+    },
+    "maoergai-decision": {
+      "title": "党史百年天天读·8月20日",
+      "url": "https://www.qinfeng.gov.cn/info/3437/154857.htm",
+      "org": "秦风网（陕西省纪委监委）",
+      "published": "2021-08-20",
+      "sourceType": "机构党史专题（转载）",
+      "evidenceUse": "核对1935年8月20日毛儿盖会议与补充决定：洮河流域和陕甘发展方向；不作为原档扫描。",
+      "accessBasis": "主会话直接读取官方页面相关正文；未猜测未标原作者。"
+    }
+  },
+  "stops": [
+    {
+      "id": "yudu",
+      "start": "1934-10-17",
+      "end": "1934-10-21",
+      "placeZh": "于都河",
+      "placeEn": "Yudu River",
+      "modernZh": "江西于都渡河地段",
+      "modernEn": "Yudu crossing area, Jiangxi",
+      "coord": [
+        115.41,
+        25.95
+      ],
+      "kindZh": "渡河·出发",
+      "kindEn": "Departure crossing",
+      "titleZh": "夜渡于都河",
+      "titleEn": "Night crossings at Yudu",
+      "summaryZh": "中央红军各部和中央机关分批渡河，离开集结地域西进。",
+      "summaryEn": "Army units and central organs crossed in separate groups and moved west.",
+      "resultZh": "完成出发阶段渡河。",
+      "resultEn": "The departure crossings were completed.",
+      "terrainZh": "于都河亦称贡水，使用浮桥与船渡。",
+      "terrainEn": "The river, also called Gongshui, was crossed by pontoon bridges and boats.",
+      "dateNoteZh": "17日起分批夜渡；20日晚至21日拂晓为结束口径，不是全军同日从一处出发。",
+      "dateNoteEn": "Crossings began on the 17th; the final night ended around dawn on the 21st. Units used different dates and crossings.",
+      "locationNoteZh": "代表于都河沿岸多处渡口，不是单一东门渡口。",
+      "sources": [
+        "yudu",
+        "yudu-nights"
+      ],
+      "actZh": "一 · 于都出发与突破封锁",
+      "actEn": "I · Departure and blockade crossings"
+    },
+    {
+      "id": "blockade1",
+      "start": "1934-10-21",
+      "end": "1934-10-25",
+      "placeZh": "信丰桃江",
+      "placeEn": "Tao River at Xinfeng",
+      "modernZh": "江西信丰南北桃江沿线",
+      "modernEn": "Xinfeng crossing region, Jiangxi",
+      "coord": [
+        114.93,
+        25.38
+      ],
+      "kindZh": "突围",
+      "kindEn": "Breakout",
+      "titleZh": "突破第一道封锁线",
+      "titleEn": "First blockade line",
+      "summaryZh": "各部先后通过信丰南北桃江防线，继续西进。",
+      "summaryEn": "Units passed the Tao River defenses around Xinfeng and continued west.",
+      "resultZh": "突破第一道封锁线。",
+      "resultEn": "The first blockade line was passed.",
+      "terrainZh": "渡河地段分布在信丰南北，非一处桥头。",
+      "terrainEn": "Crossings occupied a region north and south of Xinfeng.",
+      "dateNoteZh": "日期是分批行动区间。",
+      "dateNoteEn": "Dates cover movements by different units.",
+      "sources": [
+        "chronology"
+      ]
+    },
+    {
+      "id": "blockade2",
+      "start": "1934-11-05",
+      "end": "1934-11-08",
+      "placeZh": "汝城—城口",
+      "placeEn": "Rucheng–Chengkou",
+      "modernZh": "湖南汝城与广东仁化城口之间",
+      "modernEn": "Hunan–Guangdong border region",
+      "coord": [
+        113.78,
+        25.45
+      ],
+      "kindZh": "突围",
+      "kindEn": "Breakout",
+      "titleZh": "突破第二道封锁线",
+      "titleEn": "Second blockade line",
+      "summaryZh": "红军从汝城、城口之间通过湘粤边防线。",
+      "summaryEn": "The column passed between Rucheng and Chengkou on the provincial border.",
+      "resultZh": "打开继续西行的通道。",
+      "resultEn": "The westward movement continued.",
+      "terrainZh": "这是跨湘粤边的突破地段。",
+      "terrainEn": "The crossing area straddled the Hunan–Guangdong border.",
+      "locationNoteZh": "区域代表点，不是全军进入汝城县城的记录。",
+      "sources": [
+        "chronology",
+        "zunyi"
+      ]
+    },
+    {
+      "id": "blockade3",
+      "start": "1934-11-13",
+      "end": "1934-11-15",
+      "placeZh": "湘南粤北突破地段",
+      "placeEn": "Southern Hunan breakout region",
+      "modernZh": "郴州、良田、宜章与乐昌之间",
+      "modernEn": "Between Chenzhou, Yizhang and Lechang",
+      "coord": [
+        113.04,
+        25.4
+      ],
+      "kindZh": "突围",
+      "kindEn": "Breakout",
+      "titleZh": "突破第三道封锁线",
+      "titleEn": "Third blockade line",
+      "summaryZh": "中央红军通过湘南、粤北间的防线，向湘江方向行动。",
+      "summaryEn": "The army passed the southern Hunan defenses toward the Xiang River.",
+      "resultZh": "继续向桂北推进。",
+      "resultEn": "The column advanced toward northern Guangxi.",
+      "terrainZh": "涉及多个县镇的区域通道。",
+      "terrainEn": "The movement covered several towns and counties.",
+      "locationNoteZh": "不能理解为所有部队依次进入所列每座城镇。",
+      "sources": [
+        "chronology",
+        "zunyi"
+      ]
+    },
+    {
+      "id": "xiangjiang",
+      "start": "1934-11-27",
+      "end": "1934-12-01",
+      "placeZh": "湘江渡河与阻击地段",
+      "placeEn": "Xiang River crossing region",
+      "modernZh": "广西全州—兴安之间",
+      "modernEn": "Quanzhou–Xing'an, Guangxi",
+      "coord": [
+        111.0,
+        25.8
+      ],
+      "kindZh": "战役",
+      "kindEn": "Battle",
+      "titleZh": "湘江战役",
+      "titleEn": "Battle of the Xiang River",
+      "summaryZh": "各部争夺渡口、实施阻击，掩护主力与军委纵队渡江。",
+      "summaryEn": "Crossing operations and blocking actions protected the main column.",
+      "battleZh": "界首、凤凰嘴等渡点与脚山铺、光华铺、新圩阻击相互配合。",
+      "battleEn": "Crossings at Jieshou and Fenghuangzui relied on blocking actions at several positions.",
+      "resultZh": "突破第四道封锁线，但遭严重减员。",
+      "resultEn": "The fourth blockade was broken at severe cost.",
+      "terrainZh": "渡口与两翼掩护阵地共同制约渡江进程。",
+      "terrainEn": "Crossing points and flanking positions jointly shaped the operation.",
+      "dateNoteZh": "主要战斗为27日至12月1日；25日已有抢渡部署。人数前后差不能等同本战阵亡数。",
+      "dateNoteEn": "Major fighting ran from 27 November to 1 December; crossing orders preceded it on the 25th. Strength reductions are not a battle death count.",
+      "locationNoteZh": "代表全州—兴安渡河区域，不是战役全部阵地边界。",
+      "sources": [
+        "guangxi"
+      ]
+    },
+    {
+      "id": "laoshanjie",
+      "start": "1934-12-04",
+      "end": "1934-12-06",
+      "placeZh": "越城岭老山界地域",
+      "placeEn": "Laoshanjie region, Yuecheng Ridge",
+      "modernZh": "广西越城岭相关山地",
+      "modernEn": "Yuecheng Ridge region, Guangxi",
+      "coord": [
+        110.49,
+        25.9
+      ],
+      "kindZh": "翻山",
+      "kindEn": "Mountain crossing",
+      "titleZh": "翻越老山界地域",
+      "titleEn": "Crossing the Laoshanjie region",
+      "summaryZh": "军委纵队及各部先后翻越越城岭山地，继续向龙胜方向前进。",
+      "summaryEn": "Different columns crossed the Yuecheng mountain region toward Longsheng.",
+      "resultZh": "离开湘江渡河地域，进入山地行军阶段。",
+      "resultEn": "The column continued through mountain terrain.",
+      "terrainZh": "各部翻越路线和通过时间不同。",
+      "terrainEn": "Units used different crossings and schedules.",
+      "dateNoteZh": "4日下午起至6日为不同梯队的通过口径。",
+      "dateNoteEn": "The interval covers separate columns from the afternoon of the 4th through the 6th.",
+      "locationNoteZh": "越城岭地名范围示意，不定位猫儿山最高峰，也不认定一条唯一山路。",
+      "sources": [
+        "guangxi"
+      ]
+    },
+    {
+      "id": "tongdao",
+      "start": "1934-12-12",
+      "end": "1934-12-12",
+      "placeZh": "通道",
+      "placeEn": "Tongdao",
+      "modernZh": "湖南通道县域",
+      "modernEn": "Tongdao County, Hunan",
+      "coord": [
+        109.78,
+        26.16
+      ],
+      "kindZh": "会议·转向",
+      "kindEn": "Strategic decision",
+      "titleZh": "通道转兵",
+      "titleEn": "The Tongdao turn",
+      "summaryZh": "讨论行军方向后，部队转向贵州；放弃湘西原定方案的正式决定见后续黎平会议。",
+      "summaryEn": "The column turned toward Guizhou; the Liping meeting later formalized a new direction.",
+      "resultZh": "行动方向向西调整。",
+      "resultEn": "The movement shifted west.",
+      "terrainZh": "发生在湘桂黔边行动地域。",
+      "terrainEn": "The decision arose in the Hunan–Guangxi–Guizhou border region.",
+      "dateNoteZh": "采用通行的12日说，研究中另有日期讨论。",
+      "dateNoteEn": "The commonly used date is the 12th; scholarly discussion includes alternatives.",
+      "locationNoteZh": "具体会址有县溪、流源等说法；县域定位不等于恭城书院已获证实的精确会址。",
+      "sources": [
+        "tongdao-site",
+        "tongdao-study"
+      ],
+      "actZh": "二 · 转向黔北与遵义会议",
+      "actEn": "II · Toward northern Guizhou"
+    },
+    {
+      "id": "liping",
+      "start": "1934-12-18",
+      "end": "1934-12-18",
+      "placeZh": "黎平",
+      "placeEn": "Liping",
+      "modernZh": "贵州黎平会议会址地域",
+      "modernEn": "Liping, Guizhou",
+      "coord": [
+        109.14,
+        26.23
+      ],
+      "kindZh": "会议",
+      "kindEn": "Conference",
+      "titleZh": "黎平会议",
+      "titleEn": "Liping Conference",
+      "summaryZh": "政治局会议否定继续前往湘西的原定计划，决定向黔北发展。",
+      "summaryEn": "The Politburo chose northern Guizhou instead of the planned western Hunan destination.",
+      "resultZh": "明确遵义及川黔边方向。",
+      "resultEn": "Zunyi and the Sichuan–Guizhou border became the new direction.",
+      "terrainZh": "会议在入黔后的黎平县城召开。",
+      "terrainEn": "The meeting took place after the column entered Guizhou.",
+      "dateNoteZh": "会议日不等于各部进出黎平的同一天。",
+      "dateNoteEn": "The meeting date is not a common arrival date for all units.",
+      "sources": [
+        "guizhou"
+      ]
+    },
+    {
+      "id": "houchang",
+      "start": "1934-12-31",
+      "end": "1935-01-01",
+      "placeZh": "猴场",
+      "placeEn": "Houchang",
+      "modernZh": "贵州瓮安猴场宋家湾一带",
+      "modernEn": "Houchang, Weng'an, Guizhou",
+      "coord": [
+        107.53,
+        27.14
+      ],
+      "kindZh": "会议",
+      "kindEn": "Conference",
+      "titleZh": "猴场会议",
+      "titleEn": "Houchang Conference",
+      "summaryZh": "会议重申向黔北发展的方向，确定渡过乌江后的行动方针。",
+      "summaryEn": "The meeting reaffirmed the northern Guizhou direction and plans beyond the Wu River.",
+      "resultZh": "统一突破乌江后的行动方向。",
+      "resultEn": "The post-crossing direction was clarified.",
+      "terrainZh": "处于北进乌江前的行动地域。",
+      "terrainEn": "Houchang lay in the approach region south of the Wu River.",
+      "dateNoteZh": "跨年夜会议，采用31日晚至元旦凌晨口径。",
+      "dateNoteEn": "The meeting spanned New Year's Eve and the early hours of 1 January.",
+      "locationNoteZh": "今猴场镇；草塘镇已于2010年更名，不能反写为今草塘镇。",
+      "sources": [
+        "houchang-name",
+        "houchang"
+      ]
+    },
+    {
+      "id": "wujiang-north",
+      "start": "1935-01-02",
+      "end": "1935-01-06",
+      "placeZh": "乌江北渡地段",
+      "placeEn": "Northern crossing of the Wu River",
+      "modernZh": "江界河、回龙场、茶山关等渡口群",
+      "modernEn": "Wu River crossing sector, Guizhou",
+      "coord": [
+        107.31,
+        27.28
+      ],
+      "kindZh": "强渡",
+      "kindEn": "River assault",
+      "titleZh": "突破乌江，北进黔北",
+      "titleEn": "Crossing the Wu River northward",
+      "summaryZh": "各部从不同渡点突破乌江，先渡部队向遵义推进。",
+      "summaryEn": "Separate crossings opened the route north toward Zunyi.",
+      "battleZh": "抢渡与架桥分点进行，不是全军只争夺一座桥。",
+      "battleEn": "Assault crossings and bridge building occurred at several points.",
+      "resultZh": "主力通过乌江进入黔北。",
+      "resultEn": "The main force entered northern Guizhou.",
+      "terrainZh": "渡点分布在峡谷河段，现代水库已改变部分渡口面貌。",
+      "terrainEn": "Crossings occupied gorge reaches, some later altered by reservoirs.",
+      "dateNoteZh": "2—4日为部分突破阶段；6日为主力全部过江口径。",
+      "dateNoteEn": "Some accounts date the breakthrough to the 2nd–4th; the 6th marks main-force completion.",
+      "locationNoteZh": "多渡口地段代表点，不是某一渡口的测绘坐标。",
+      "sources": [
+        "zunyi",
+        "guizhou"
+      ]
+    },
+    {
+      "id": "zunyi-conference",
+      "start": "1935-01-15",
+      "end": "1935-01-17",
+      "placeZh": "遵义",
+      "placeEn": "Zunyi",
+      "modernZh": "贵州遵义会议会址附近",
+      "modernEn": "Zunyi, Guizhou",
+      "coord": [
+        106.92,
+        27.7
+      ],
+      "kindZh": "会议",
+      "kindEn": "Conference",
+      "titleZh": "遵义会议",
+      "titleEn": "Zunyi Conference",
+      "summaryZh": "会议总结此前军事失利，调整中央领导及军事指挥安排。",
+      "summaryEn": "The conference reviewed military setbacks and changed leadership and command arrangements.",
+      "resultZh": "增选毛泽东为政治局常委；后续分工继续在行军中完成。",
+      "resultEn": "Mao joined the Politburo Standing Committee; later command arrangements continued to evolve.",
+      "terrainZh": "会议在已被红军控制的遵义城内召开。",
+      "terrainEn": "The conference met in a town already held by the Red Army.",
+      "dateNoteZh": "7日先头占城、9日中央与主力进入，不等于15日会议开始。",
+      "dateNoteEn": "Vanguard entry on the 7th and central/main-force arrival on the 9th preceded the conference.",
+      "sources": [
+        "zunyi"
+      ]
+    },
+    {
+      "id": "tucheng",
+      "start": "1935-01-28",
+      "end": "1935-01-28",
+      "placeZh": "土城青杠坡",
+      "placeEn": "Qinggangpo near Tucheng",
+      "modernZh": "贵州习水土城附近",
+      "modernEn": "Tucheng, Xishui, Guizhou",
+      "coord": [
+        106.0,
+        28.29
+      ],
+      "kindZh": "战斗",
+      "kindEn": "Battle",
+      "titleZh": "土城青杠坡战斗",
+      "titleEn": "Battle near Tucheng",
+      "summaryZh": "红军攻击尾追川军，未能达到预期歼敌目标。",
+      "summaryEn": "An attack on pursuing Sichuan forces did not achieve its intended result.",
+      "battleZh": "结束攻击后，组织向赤水河西岸转移。",
+      "battleEn": "The column disengaged and prepared to cross west of the Chishui.",
+      "resultZh": "转入渡河机动。",
+      "resultEn": "The operation shifted to a river-crossing maneuver.",
+      "terrainZh": "战场位于土城附近赤水河东侧山地。",
+      "terrainEn": "The fighting occupied hills east of the river near Tucheng.",
+      "dateNoteZh": "与29日凌晨起的渡河行动分别列示。",
+      "dateNoteEn": "The battle and the following crossing are separate events.",
+      "sources": [
+        "chishui",
+        "chishui-orders"
+      ],
+      "actZh": "三 · 四渡赤水与黔北机动",
+      "actEn": "III · The Chishui maneuvers"
+    },
+    {
+      "id": "chishui1",
+      "start": "1935-01-29",
+      "end": "1935-01-29",
+      "placeZh": "土城等赤水河渡点",
+      "placeEn": "Chishui crossings near Tucheng",
+      "modernZh": "土城、猿猴场（今元厚）等地段",
+      "modernEn": "Tucheng and Yuanhouchang crossing sectors",
+      "coord": [
+        106.0,
+        28.28
+      ],
+      "kindZh": "渡河",
+      "kindEn": "River crossing",
+      "titleZh": "一渡赤水",
+      "titleEn": "First Chishui crossing",
+      "summaryZh": "各部分路西渡赤水河，向川南机动。",
+      "summaryEn": "Units crossed westward at several points and moved into southern Sichuan.",
+      "resultZh": "脱离土城战场。",
+      "resultEn": "The column left the Tucheng battlefield.",
+      "terrainZh": "从河东向河西，多渡点分批通行。",
+      "terrainEn": "The crossing ran from the eastern to western bank at several sites.",
+      "locationNoteZh": "土城为代表地段；猿猴场今元厚，不是赤水市城区。",
+      "sources": [
+        "chishui-orders",
+        "chishui"
+      ]
+    },
+    {
+      "id": "zhaxi",
+      "start": "1935-02-05",
+      "end": "1935-02-09",
+      "placeZh": "扎西地域",
+      "placeEn": "Zhaxi region",
+      "modernZh": "云南威信水田寨、大河滩、扎西等地",
+      "modernEn": "Weixin County, Yunnan",
+      "coord": [
+        105.05,
+        27.85
+      ],
+      "kindZh": "会议·整编",
+      "kindEn": "Conferences and reorganization",
+      "titleZh": "扎西会议与整编",
+      "titleEn": "Zhaxi conferences",
+      "summaryZh": "转进扎西期间连续开会，讨论领导分工、部队组织和行动方向。",
+      "summaryEn": "Meetings during the maneuver addressed command, organization and the next move.",
+      "resultZh": "形成后续机动与组织调整安排。",
+      "resultEn": "Plans for further movement and reorganization followed.",
+      "terrainZh": "这是川滇黔边的系列会议地域。",
+      "terrainEn": "The meetings occupied several sites in the three-province border region.",
+      "dateNoteZh": "不是全军在同一会场连续休整五日。",
+      "dateNoteEn": "The dates do not imply a five-day halt by every unit at one venue.",
+      "locationNoteZh": "扎西地区代表点；系列会议场所与鸡鸣三省会址考证分开。",
+      "sources": [
+        "zhaxi"
+      ]
+    },
+    {
+      "id": "chishui2",
+      "start": "1935-02-18",
+      "end": "1935-02-21",
+      "placeZh": "太平渡等赤水河渡点",
+      "placeEn": "Taipingdu crossing sector",
+      "modernZh": "太平渡、二郎滩、九溪口等",
+      "modernEn": "Taipingdu, Erlangtan and Jiuxikou sectors",
+      "coord": [
+        105.83,
+        28.14
+      ],
+      "kindZh": "渡河",
+      "kindEn": "River crossing",
+      "titleZh": "二渡赤水",
+      "titleEn": "Second Chishui crossing",
+      "summaryZh": "红军从川南折回，分路东渡赤水河。",
+      "summaryEn": "The column turned back and crossed eastward through several sectors.",
+      "resultZh": "重入黔北，向桐梓和遵义方向推进。",
+      "resultEn": "The army re-entered northern Guizhou toward Tongzi and Zunyi.",
+      "terrainZh": "渡点相互分离，不是全军依次通过三座渡口。",
+      "terrainEn": "The sites were parallel crossings, not three successive stops for the whole army.",
+      "dateNoteZh": "18日晚先头抢渡、19日中央过江、21日拂晓渡毕等口径分别对应不同梯队。",
+      "dateNoteEn": "The 18th, 19th and dawn of the 21st refer to different columns and completion stages.",
+      "sources": [
+        "chishui-sichuan",
+        "erlang"
+      ]
+    },
+    {
+      "id": "zunyi-battle",
+      "start": "1935-02-24",
+      "end": "1935-02-28",
+      "placeZh": "娄山关—遵义战区",
+      "placeEn": "Loushan Pass–Zunyi sector",
+      "modernZh": "桐梓、娄山关、遵义及城南高地",
+      "modernEn": "Tongzi, Loushan Pass and Zunyi",
+      "coord": [
+        106.86,
+        28.14
+      ],
+      "kindZh": "战役",
+      "kindEn": "Battle",
+      "titleZh": "遵义战役与娄山关争夺",
+      "titleEn": "Zunyi campaign and Loushan Pass",
+      "summaryZh": "二渡后连续进攻，经娄山关推进遵义并击退增援。",
+      "summaryEn": "After the second crossing, attacks through Loushan Pass retook Zunyi and defeated reinforcements.",
+      "battleZh": "战役包括关口争夺及遵义城南高地作战。",
+      "battleEn": "The campaign included the pass and high ground south of Zunyi.",
+      "resultZh": "再占遵义，取得重要胜利。",
+      "resultEn": "Zunyi was retaken in an important victory.",
+      "terrainZh": "关隘与城南高地共同影响攻防。",
+      "terrainEn": "The pass and southern heights shaped the campaign.",
+      "dateNoteZh": "采用2月24—28日主要作战阶段；部分军史将全过程计至3月1日，此处按主要作战阶段标注。",
+      "dateNoteEn": "The dates mark the principal fighting phase, 24–28 February. Some military histories extend the full campaign to 1 March.",
+      "locationNoteZh": "用娄山关地段代表多处战场，不是全部战役边界。",
+      "sources": [
+        "guizhou",
+        "battles",
+        "zunyi-campaign-study"
+      ]
+    },
+    {
+      "id": "gouba",
+      "start": "1935-03-10",
+      "end": "1935-03-12",
+      "placeZh": "苟坝",
+      "placeEn": "Gouba",
+      "modernZh": "贵州遵义播州区枫香镇苟坝村",
+      "modernEn": "Gouba, Bozhou, Zunyi",
+      "coord": [
+        106.67,
+        27.59
+      ],
+      "kindZh": "会议",
+      "kindEn": "Conference",
+      "titleZh": "苟坝会议",
+      "titleEn": "Gouba Conference",
+      "summaryZh": "围绕进攻打鼓新场的计划讨论，最终取消该进攻。",
+      "summaryEn": "Discussion of an attack on Daguxinchang led to cancellation of the plan.",
+      "resultZh": "继续调整军事决策和指挥安排。",
+      "resultEn": "Military decision-making arrangements continued to evolve.",
+      "terrainZh": "会址苟坝与目标打鼓新场（今金沙县城）不是同一地点。",
+      "terrainEn": "Gouba and the proposed target at modern Jinsha were different places.",
+      "dateNoteZh": "采用10—12日会议区间，不将新三人指挥小组成立时点锁死在12日。",
+      "dateNoteEn": "The date range does not fix the later three-person command group's formation to the 12th.",
+      "sources": [
+        "gouba",
+        "gouba-study"
+      ]
+    },
+    {
+      "id": "chishui3",
+      "start": "1935-03-16",
+      "end": "1935-03-17",
+      "placeZh": "茅台渡河地段",
+      "placeEn": "Maotai crossing sector",
+      "modernZh": "贵州仁怀茅台上、中、下渡口附近",
+      "modernEn": "Maotai, Renhuai, Guizhou",
+      "coord": [
+        106.37,
+        27.85
+      ],
+      "kindZh": "渡河",
+      "kindEn": "River crossing",
+      "titleZh": "三渡赤水",
+      "titleEn": "Third Chishui crossing",
+      "summaryZh": "鲁班场战斗后转至茅台附近，再次西渡赤水河。",
+      "summaryEn": "After fighting at Lubanchang, the army crossed west near Maotai.",
+      "resultZh": "进入河西继续机动。",
+      "resultEn": "Maneuvers continued west of the river.",
+      "terrainZh": "通过茅台附近多个渡点；今纪念桥不是当年原样保存的浮桥。",
+      "terrainEn": "Several sites were used; today's commemorative bridge is not the original pontoon bridge.",
+      "dateNoteZh": "16日部署至17日渡毕的阶段口径。",
+      "dateNoteEn": "The interval covers deployment on the 16th and crossing completion on the 17th.",
+      "sources": [
+        "maotai",
+        "chishui-orders"
+      ]
+    },
+    {
+      "id": "chishui4",
+      "start": "1935-03-21",
+      "end": "1935-03-22",
+      "placeZh": "赤水河再东渡地段",
+      "placeEn": "Eastward Chishui recrossing sector",
+      "modernZh": "二郎滩、九溪口、太平渡等地段",
+      "modernEn": "Erlangtan–Jiuxikou–Taipingdu sectors",
+      "coord": [
+        105.83,
+        28.14
+      ],
+      "kindZh": "渡河",
+      "kindEn": "River crossing",
+      "titleZh": "四渡赤水",
+      "titleEn": "Fourth Chishui crossing",
+      "summaryZh": "各部突然折回东岸，随后寻找南下机动机会。",
+      "summaryEn": "The army recrossed eastward before seeking a southward opening.",
+      "resultZh": "为后续南渡乌江创造条件。",
+      "resultEn": "The maneuver prepared the following move toward the Wu River.",
+      "terrainZh": "部署覆盖多个渡点，不是一座桥的往返。",
+      "terrainEn": "Deployment covered several crossings rather than one bridge.",
+      "dateNoteZh": "21日夜主要渡河；后卫红五军团部署延续至22日上午。",
+      "dateNoteEn": "Main crossings took place on the night of the 21st; rear-guard orders extended into the 22nd.",
+      "locationNoteZh": "太平渡作代表地段；不能据连线认定各部共同经过每一渡口。",
+      "sources": [
+        "chishui-orders"
+      ]
+    },
+    {
+      "id": "wujiang-south",
+      "start": "1935-03-29",
+      "end": "1935-03-31",
+      "placeZh": "乌江南渡地段",
+      "placeEn": "Southward Wu River crossing sector",
+      "modernZh": "江口、大塘、梯子岩等渡口",
+      "modernEn": "Jiangkou, Datang and Tiziyan sectors",
+      "coord": [
+        106.62,
+        27.12
+      ],
+      "kindZh": "渡河",
+      "kindEn": "River crossing",
+      "titleZh": "南渡乌江",
+      "titleEn": "Crossing the Wu River southward",
+      "summaryZh": "前卫夺取渡口，主力随后南渡，使主要追堵力量留在江北。",
+      "summaryEn": "The vanguard seized crossings and the main force moved south of the river.",
+      "resultZh": "转入贵阳外围机动。",
+      "resultEn": "The next maneuver approached the Guiyang region.",
+      "terrainZh": "梯子岩岸陡江窄，夺渡后架桥。",
+      "terrainEn": "The narrow, steep-sided Tiziyan reach supported bridge construction after seizure.",
+      "dateNoteZh": "29日起前卫夺渡，主力核心渡江日为31日；部分编述延至4月1日。",
+      "dateNoteEn": "Vanguard action began on the 29th; the main crossing centered on the 31st, with some accounts extending to 1 April.",
+      "locationNoteZh": "历史渡口群代表点，现代水库岸线不能直接当作1935年河面。",
+      "sources": [
+        "tiziyan",
+        "guizhou"
+      ],
+      "actZh": "四 · 渡金沙江与大渡河",
+      "actEn": "IV · The Jinsha and Dadu crossings"
+    },
+    {
+      "id": "guiyang",
+      "start": "1935-04-02",
+      "end": "1935-04-05",
+      "placeZh": "息烽—扎佐地域",
+      "placeEn": "Xifeng–Zhazuo region",
+      "modernZh": "贵州贵阳北部及外围",
+      "modernEn": "Northern approaches to Guiyang",
+      "coord": [
+        106.74,
+        26.84
+      ],
+      "kindZh": "战略机动",
+      "kindEn": "Strategic maneuver",
+      "titleZh": "佯逼贵阳，调动追军",
+      "titleEn": "Threatening Guiyang",
+      "summaryZh": "以一部兵力佯攻息烽，前锋威胁贵阳并示形清水江方向。",
+      "summaryEn": "A feint at Xifeng and threats toward Guiyang drew opposing movements.",
+      "resultZh": "促使追堵部队增援、东调；没有攻克贵阳。",
+      "resultEn": "Opposing troops redeployed; Guiyang was not captured.",
+      "terrainZh": "主线采用实际经过的外围地域，不进入贵阳城内。",
+      "terrainEn": "The route uses the approach region rather than the city center.",
+      "locationNoteZh": "扎佐附近区域代表点，不是“红军攻占贵阳”的位置。",
+      "sources": [
+        "guizhou",
+        "jinsha"
+      ]
+    },
+    {
+      "id": "kunming",
+      "start": "1935-04-28",
+      "end": "1935-04-30",
+      "placeZh": "寻甸—嵩明地域",
+      "placeEn": "Xundian–Songming region",
+      "modernZh": "云南昆明东北外围",
+      "modernEn": "Northeastern approaches to Kunming",
+      "coord": [
+        103.26,
+        25.56
+      ],
+      "kindZh": "战略机动",
+      "kindEn": "Strategic maneuver",
+      "titleZh": "威逼昆明，转向金沙江",
+      "titleEn": "Threatening Kunming, then turning north",
+      "summaryZh": "前锋向昆明外围示形，主力转向西北寻求渡江。",
+      "summaryEn": "Vanguard feints toward Kunming accompanied the main force's northwestern turn.",
+      "resultZh": "为渡金沙江争取条件；没有攻克昆明。",
+      "resultEn": "The maneuver supported the Jinsha crossing; Kunming was not captured.",
+      "terrainZh": "寻甸、嵩明与大板桥前锋行动有别于进入昆明旧城。",
+      "terrainEn": "The approach operations were distinct from entry into Kunming's old city.",
+      "dateNoteZh": "行动窗口，不是全军同日抵达同一点。",
+      "dateNoteEn": "Dates cover a maneuver rather than a single shared arrival.",
+      "locationNoteZh": "寻甸—嵩明地域概略点，不把威胁目标画为已到达城镇。",
+      "sources": [
+        "kunming"
+      ]
+    },
+    {
+      "id": "jinsha",
+      "start": "1935-05-03",
+      "end": "1935-05-09",
+      "placeZh": "皎平渡历史河段",
+      "placeEn": "Historical Jiaopingdu river sector",
+      "modernZh": "云南禄劝—四川会理间金沙江",
+      "modernEn": "Jinsha River between Luquan and Huili",
+      "coord": [
+        102.38,
+        26.29
+      ],
+      "kindZh": "渡河",
+      "kindEn": "River crossing",
+      "titleZh": "巧渡金沙江",
+      "titleEn": "Crossing the Jinsha River",
+      "summaryZh": "中央红军主力集中皎平渡，依靠船工摆渡进入四川。",
+      "summaryEn": "The main force crossed at Jiaopingdu with local boatmen's support.",
+      "resultZh": "摆脱主要追堵力量，继续北上。",
+      "resultEn": "The main pursuit was evaded and the northward march continued.",
+      "terrainZh": "深切河谷、急流与渡运条件共同影响通行。",
+      "terrainEn": "The deep valley, current and ferry capacity shaped the crossing.",
+      "dateNoteZh": "此处为皎平渡主渡3—9日口径；红九军团另由树桔渡通过。",
+      "dateNoteEn": "These dates concern the main Jiaopingdu crossing; the Ninth Corps used Shujiedu separately.",
+      "locationNoteZh": "据地名与现代河段资料人工概略定位，非1935渡口测绘点。原渡口已因乌东德蓄水淹没，不能当作今日新镇或纪念馆坐标。",
+      "sources": [
+        "jinsha-work",
+        "jinsha",
+        "jiaoping-flood",
+        "jiaoping-river-reference"
+      ]
+    },
+    {
+      "id": "huili",
+      "start": "1935-05-12",
+      "end": "1935-05-12",
+      "placeZh": "会理铁厂地域",
+      "placeEn": "Tiechang near Huili",
+      "modernZh": "四川会理城北铁厂村附近",
+      "modernEn": "Tiechang, north of Huili, Sichuan",
+      "coord": [
+        102.22,
+        26.71
+      ],
+      "kindZh": "会议",
+      "kindEn": "Conference",
+      "titleZh": "会理会议",
+      "titleEn": "Huili Conference",
+      "summaryZh": "总结此前军事行动，统一认识并决定继续北上。",
+      "summaryEn": "The meeting reviewed recent maneuvers and reaffirmed the northward direction.",
+      "resultZh": "继续向大渡河及红四方面军方向行动。",
+      "resultEn": "The army continued toward the Dadu and the Fourth Front Army.",
+      "terrainZh": "会址在会理城东北郊一带，不在县城内。",
+      "terrainEn": "The venue lay northeast of the town rather than within it.",
+      "locationNoteZh": "纪念地附近范围锚点；会议场所曾转移，不等于某间房屋的实测位置。",
+      "sources": [
+        "huili",
+        "huili-site"
+      ]
+    },
+    {
+      "id": "yihai",
+      "start": "1935-05-22",
+      "end": "1935-05-22",
+      "placeZh": "彝海",
+      "placeEn": "Yihai Lake",
+      "modernZh": "四川冕宁彝海湖畔",
+      "modernEn": "Yihai, Mianning, Sichuan",
+      "coord": [
+        102.16,
+        28.65
+      ],
+      "kindZh": "结盟·借道",
+      "kindEn": "Alliance and passage",
+      "titleZh": "彝海结盟",
+      "titleEn": "The Yihai alliance",
+      "summaryZh": "刘伯承与果基小叶丹结盟，促进先遣部队通过彝区。",
+      "summaryEn": "Liu Bocheng and Guoji Xiaoyedan formed an alliance supporting passage through the Yi region.",
+      "resultZh": "为继续前往大渡河创造条件。",
+      "resultEn": "The agreement supported the advance toward the Dadu.",
+      "terrainZh": "湖畔结盟地与此前经过的垭口不是同一地点。",
+      "terrainEn": "The lakeside alliance site and preceding mountain passes were distinct places.",
+      "locationNoteZh": "彝海湖畔附近概略点，不采用故事化对话作现场实录。",
+      "sources": [
+        "yihai"
+      ]
+    },
+    {
+      "id": "anshun",
+      "start": "1935-05-24",
+      "end": "1935-05-25",
+      "placeZh": "安顺场",
+      "placeEn": "Anshunchang",
+      "modernZh": "四川石棉安顺场渡河地段",
+      "modernEn": "Anshunchang, Shimian, Sichuan",
+      "coord": [
+        102.28,
+        29.37
+      ],
+      "kindZh": "战斗·强渡",
+      "kindEn": "Assault crossing",
+      "titleZh": "安顺场强渡大渡河",
+      "titleEn": "Assault crossing at Anshunchang",
+      "summaryZh": "先遣部队夺取渡口后，突击队乘船建立对岸立足点。",
+      "summaryEn": "After the crossing was seized, an assault party established a bridgehead by boat.",
+      "battleZh": "24日晚夺渡口；25日17勇士乘船突击。",
+      "battleEn": "The crossing was seized on the 24th; seventeen men made the boat assault on the 25th.",
+      "resultZh": "取得渡河立足点，但全军渡运仍受限制。",
+      "resultEn": "A bridgehead was gained, but ferrying the whole army remained difficult.",
+      "terrainZh": "水急船少，随后两岸分兵北上赶夺泸定桥。",
+      "terrainEn": "Fast water and limited boats led to movement along both banks toward Luding Bridge.",
+      "locationNoteZh": "历史渡口及对岸桃子湾区域示意，非渡船航迹。",
+      "sources": [
+        "anshun"
+      ]
+    },
+    {
+      "id": "luding",
+      "start": "1935-05-29",
+      "end": "1935-05-29",
+      "placeZh": "泸定桥",
+      "placeEn": "Luding Bridge",
+      "modernZh": "四川泸定大渡河桥址附近",
+      "modernEn": "Luding, Sichuan",
+      "coord": [
+        102.23,
+        29.91
+      ],
+      "kindZh": "战斗·夺桥",
+      "kindEn": "Bridge assault",
+      "titleZh": "飞夺泸定桥",
+      "titleEn": "Seizing Luding Bridge",
+      "summaryZh": "红四团自西岸组织夺桥，后续铺板、跟进，控制桥梁。",
+      "summaryEn": "The Fourth Regiment attacked from the western bank and secured the bridge.",
+      "battleZh": "22名突击队员在火力掩护下前进，与安顺场17勇士是不同战斗。",
+      "battleEn": "Twenty-two assault troops advanced under covering fire, a separate action from Anshunchang.",
+      "resultZh": "打开主力通过大渡河的重要通道。",
+      "resultEn": "A key passage over the Dadu was secured.",
+      "terrainZh": "西岸接近与西向东夺桥，河流和桥头影响攻防。",
+      "terrainEn": "Western approaches and the bridgeheads shaped the west-to-east assault.",
+      "locationNoteZh": "桥址附近概略点；未复原逐时阵地或攻击路线。",
+      "sources": [
+        "luding"
+      ]
+    },
+    {
+      "id": "jiajin",
+      "start": "1935-06-12",
+      "end": "1935-06-18",
+      "placeZh": "夹金山地域",
+      "placeEn": "Jiajin Mountain region",
+      "modernZh": "四川宝兴—小金间山地",
+      "modernEn": "Between Baoxing and Xiaojin, Sichuan",
+      "coord": [
+        102.72,
+        30.85
+      ],
+      "kindZh": "翻山",
+      "kindEn": "Mountain crossing",
+      "titleZh": "翻越夹金山",
+      "titleEn": "Crossing Jiajin Mountain",
+      "summaryZh": "先头部队与中央纵队、主力先后分批翻越雪山。",
+      "summaryEn": "Vanguard units, central organs and the main force crossed in separate groups.",
+      "resultZh": "进入达维、懋功会合地域。",
+      "resultEn": "The column reached the Dawei–Maogong meeting region.",
+      "terrainZh": "高寒、缺氧和补给困难；不同部队有不同山口线路。",
+      "terrainEn": "Cold, altitude and supply shortages affected different pass routes.",
+      "dateNoteZh": "12日前锋翻越、中央与主力随后通过；与12日达维前锋会师时间重叠，不是全军一次通过。",
+      "dateNoteEn": "Vanguard crossings on the 12th overlap the Dawei meeting; later columns crossed afterward.",
+      "locationNoteZh": "王母寨垭口相关山地示意，不把所有部队归为同一垭口。",
+      "sources": [
+        "jiajin-sites",
+        "jiajin"
+      ],
+      "actZh": "五 · 雪山、会师与草地",
+      "actEn": "V · Mountains, meetings and marshes"
+    },
+    {
+      "id": "dawei",
+      "start": "1935-06-12",
+      "end": "1935-06-12",
+      "placeZh": "达维",
+      "placeEn": "Dawei",
+      "modernZh": "四川小金达维木城沟一带",
+      "modernEn": "Dawei, Xiaojin, Sichuan",
+      "coord": [
+        102.83,
+        30.97
+      ],
+      "kindZh": "前锋会师",
+      "kindEn": "Vanguard meeting",
+      "titleZh": "达维前锋会师",
+      "titleEn": "Vanguard meeting at Dawei",
+      "summaryZh": "红一军团二师四团与红四方面军一部首先会合。",
+      "summaryEn": "A Central Red Army vanguard met part of the Fourth Front Army.",
+      "resultZh": "两军建立接触，主力会合随后展开。",
+      "resultEn": "Initial contact preceded the later main-force meeting.",
+      "terrainZh": "下夹金山后的达维地区是接触地域。",
+      "terrainEn": "Dawei lay beyond the Jiajin crossings.",
+      "dateNoteZh": "不是两军全部主力12日同时到齐。",
+      "dateNoteEn": "The date does not mean both whole armies arrived together.",
+      "locationNoteZh": "达维会师地域概略定位；历史桥位与今纪念设施的差异待核。",
+      "sources": [
+        "dawei"
+      ]
+    },
+    {
+      "id": "maogong",
+      "start": "1935-06-18",
+      "end": "1935-06-18",
+      "placeZh": "懋功",
+      "placeEn": "Maogong",
+      "modernZh": "四川小金会师地域",
+      "modernEn": "Xiaojin, Sichuan",
+      "coord": [
+        102.36,
+        31.0
+      ],
+      "kindZh": "主力会合",
+      "kindEn": "Main-force meeting",
+      "titleZh": "懋功主力会合",
+      "titleEn": "Main-force meeting near Maogong",
+      "summaryZh": "中央及中央红军主力到达懋功地区，与红四方面军形成主力会合。",
+      "summaryEn": "Central organs and the main force reached the Maogong meeting region.",
+      "resultZh": "共同北上问题进入讨论。",
+      "resultEn": "Planning for a joint northward movement followed.",
+      "terrainZh": "属于区域会合，不是单一桥头集结。",
+      "terrainEn": "This was a regional meeting rather than a single bridgehead assembly.",
+      "dateNoteZh": "18日主力抵达；21日另有庆祝大会。",
+      "dateNoteEn": "Main-force arrival on the 18th preceded a celebration on the 21st.",
+      "sources": [
+        "chronology1935",
+        "dawei"
+      ]
+    },
+    {
+      "id": "lianghekou",
+      "start": "1935-06-26",
+      "end": "1935-06-28",
+      "placeZh": "两河口",
+      "placeEn": "Lianghekou",
+      "modernZh": "四川小金两河口会议旧址地域",
+      "modernEn": "Lianghekou, Xiaojin, Sichuan",
+      "coord": [
+        102.44,
+        31.23
+      ],
+      "kindZh": "会议",
+      "kindEn": "Conference",
+      "titleZh": "两河口会议",
+      "titleEn": "Lianghekou Conference",
+      "summaryZh": "讨论会师后的战略方向，确定继续北上争取甘南。",
+      "summaryEn": "The conference chose continued northward movement toward southern Gansu.",
+      "resultZh": "28日形成北上战略相关决定。",
+      "resultEn": "A strategic decision followed on the 28th.",
+      "terrainZh": "两河口会址与小金县城不是同一点。",
+      "terrainEn": "The conference site was distinct from Xiaojin town.",
+      "dateNoteZh": "26—27日讨论、28日决定，保留阶段日期。",
+      "dateNoteEn": "Discussion on the 26th–27th preceded the decision on the 28th.",
+      "locationNoteZh": "会议旧址地域概略点，非建筑测绘坐标。",
+      "sources": [
+        "lianghekou"
+      ]
+    },
+    {
+      "id": "maoergai",
+      "start": "1935-08-20",
+      "end": "1935-08-20",
+      "placeZh": "毛儿盖",
+      "placeEn": "Mao'ergai",
+      "modernZh": "四川松潘毛儿盖索花村一带",
+      "modernEn": "Mao'ergai, Songpan, Sichuan",
+      "coord": [
+        103.03,
+        32.65
+      ],
+      "kindZh": "会议",
+      "kindEn": "Conference",
+      "titleZh": "毛儿盖会议",
+      "titleEn": "Mao'ergai Conference",
+      "summaryZh": "讨论北上后的发展方向，主张向洮河流域及陕甘发展。",
+      "summaryEn": "The meeting addressed development toward the Tao River basin and Shaanxi–Gansu.",
+      "resultZh": "右路军随后从毛儿盖出发过草地。",
+      "resultEn": "The right column subsequently entered the grasslands.",
+      "terrainZh": "原取松潘计划未实现，不能把路线画成攻克或经过松潘城。",
+      "terrainEn": "The plan to capture Songpan was not realized; the schematic route bypasses the town.",
+      "locationNoteZh": "索花寺会址相关地域，不是松潘县城。",
+      "sources": [
+        "maoergai-site",
+        "songpan",
+        "maoergai-decision"
+      ]
+    },
+    {
+      "id": "grassland",
+      "start": "1935-08-21",
+      "end": "1935-08-27",
+      "placeZh": "毛儿盖—班佑、巴西地域",
+      "placeEn": "Mao'ergai–Banyou–Baxi region",
+      "modernZh": "四川松潘、若尔盖草地",
+      "modernEn": "Songpan and Zoige grasslands, Sichuan",
+      "coord": [
+        103.12,
+        33.47
+      ],
+      "kindZh": "草地行军",
+      "kindEn": "Marshland march",
+      "titleZh": "右路军过草地",
+      "titleEn": "The right column crosses the grasslands",
+      "summaryZh": "中共中央随右路军北行，经过草地抵达班佑、巴西地域。",
+      "summaryEn": "Central organs accompanied the right column through the grasslands to the Banyou–Baxi region.",
+      "resultZh": "继续寻找进入甘南的通道。",
+      "resultEn": "The column sought a passage into southern Gansu.",
+      "battleZh": "随后包座战斗主要由红四方面军第30军、第4军一部担任，不记成中央红军独自取胜。",
+      "battleEn": "The later Baozuo fighting was chiefly conducted by Fourth Front Army units, not solely by the Central Red Army.",
+      "terrainZh": "沼泽、河沟、低温和缺粮共同制约行军。",
+      "terrainEn": "Marshes, channels, cold and food shortages constrained movement.",
+      "dateNoteZh": "27日终点有班佑、巴西地域口径；左右路军不能合成同一路。",
+      "dateNoteEn": "The endpoint is described regionally as Banyou or Baxi; left and right columns followed separate routes.",
+      "locationNoteZh": "草地通过区域示意；连续精确路径未证实。",
+      "sources": [
+        "grassland",
+        "baozuo"
+      ]
+    },
+    {
+      "id": "ejie",
+      "start": "1935-09-12",
+      "end": "1935-09-12",
+      "placeZh": "俄界",
+      "placeEn": "Ejie",
+      "modernZh": "甘肃迭部达拉乡高吉村一带",
+      "modernEn": "Gaoji, Dala, Diebu, Gansu",
+      "coord": [
+        103.44,
+        33.81
+      ],
+      "kindZh": "会议·整编决策",
+      "kindEn": "Conference and reorganization decision",
+      "titleZh": "俄界会议",
+      "titleEn": "Ejie Conference",
+      "summaryZh": "会议决定继续北上并缩编为陕甘支队，具体整编随后在哈达铺落实。",
+      "summaryEn": "The meeting decided to continue north and reorganize; implementation followed at Hadapu.",
+      "resultZh": "明确下一阶段行动与编制方向。",
+      "resultEn": "The next movement and organizational direction were set.",
+      "terrainZh": "高吉村旧址在达拉河谷北岸斜坡。",
+      "terrainEn": "The Gaoji site occupies a slope on the northern side of the Dala valley.",
+      "locationNoteZh": "村落附近范围点，未复原屋址及河谷中的精确行军线。",
+      "sources": [
+        "ejie",
+        "ejie-site"
+      ],
+      "actZh": "六 · 打开甘南通道与陕北落脚",
+      "actEn": "VI · Through southern Gansu to northern Shaanxi"
+    },
+    {
+      "id": "lazikou",
+      "start": "1935-09-16",
+      "end": "1935-09-17",
+      "placeZh": "腊子口",
+      "placeEn": "Lazikou Pass",
+      "modernZh": "甘肃迭部腊子口隘口附近",
+      "modernEn": "Lazikou, Diebu, Gansu",
+      "coord": [
+        103.88,
+        34.12
+      ],
+      "kindZh": "战斗·隘口",
+      "kindEn": "Pass battle",
+      "titleZh": "突破腊子口",
+      "titleEn": "Breaking through Lazikou",
+      "summaryZh": "红四团结合正面攻击与攀崖迂回，突破隘口防线。",
+      "summaryEn": "Frontal attacks and a cliff-side maneuver broke the pass defenses.",
+      "battleZh": "16日抵近和夜战，与17日清晨突破的表述属于同一连续作战阶段。",
+      "battleEn": "The approach, night fighting and early-morning breakthrough formed one operation.",
+      "resultZh": "打开继续北上的通道。",
+      "resultEn": "The northward passage was opened.",
+      "terrainZh": "狭窄峡口、桥梁和两侧陡壁影响攻防。",
+      "terrainEn": "The narrow gorge, bridge and cliffs shaped the fighting.",
+      "dateNoteZh": "资料有16日夜与17日清晨两种口径，采用16—17日。",
+      "dateNoteEn": "Accounts differ between the night of the 16th and dawn of the 17th.",
+      "locationNoteZh": "隘口附近概略点，不能据图线推算攻击道路或阵地边界。",
+      "sources": [
+        "gansu-meetings",
+        "battles"
+      ]
+    },
+    {
+      "id": "hadapu",
+      "start": "1935-09-18",
+      "end": "1935-09-23",
+      "placeZh": "哈达铺",
+      "placeEn": "Hadapu",
+      "modernZh": "甘肃宕昌哈达铺旧址群",
+      "modernEn": "Hadapu, Tanchang, Gansu",
+      "coord": [
+        104.23,
+        34.16
+      ],
+      "kindZh": "休整·整编",
+      "kindEn": "Rest and reorganization",
+      "titleZh": "哈达铺休整与整编",
+      "titleEn": "Rest and reorganization at Hadapu",
+      "summaryZh": "部队补充给养、了解陕甘根据地信息，落实陕甘支队整编并继续北上。",
+      "summaryEn": "The column resupplied, obtained information about the base area and implemented reorganization.",
+      "resultZh": "22日干部会宣布向陕甘根据地进发。",
+      "resultEn": "A cadre meeting announced the move toward the Shaanxi–Gansu base.",
+      "terrainZh": "商贸集镇有利于补给及获取报纸信息。",
+      "terrainEn": "The market town offered supplies and access to newspapers.",
+      "dateNoteZh": "18日先遣、19日部分主力、20日中央及后续到达；22日干部会、23日离开。不是全军同日抵达。",
+      "dateNoteEn": "Vanguard arrival on the 18th preceded later columns and central organs; meetings followed before departure on the 23rd.",
+      "locationNoteZh": "义和昌药店、关帝庙等旧址群范围，不是一个统一会议室。",
+      "sources": [
+        "gansu-meetings",
+        "ejie-bangluo"
+      ]
+    },
+    {
+      "id": "bangluo",
+      "start": "1935-09-27",
+      "end": "1935-09-27",
+      "placeZh": "榜罗镇",
+      "placeEn": "Bangluozhen",
+      "modernZh": "甘肃通渭榜罗镇原小学一带",
+      "modernEn": "Bangluozhen, Tongwei, Gansu",
+      "coord": [
+        105.18,
+        35.05
+      ],
+      "kindZh": "会议",
+      "kindEn": "Conference",
+      "titleZh": "榜罗镇会议",
+      "titleEn": "Bangluozhen Conference",
+      "summaryZh": "中央政治局常委会正式确定把长征落脚点放在陕甘根据地。",
+      "summaryEn": "The leadership formally chose the Shaanxi–Gansu base as the march's destination.",
+      "resultZh": "明确落脚陕甘的方向。",
+      "resultEn": "The destination was confirmed.",
+      "terrainZh": "决策也依据情报与根据地存续情况，不能仅以地形解释。",
+      "terrainEn": "Intelligence and the base area's survival mattered alongside geography.",
+      "dateNoteZh": "27日晚会议，28日另有干部传达会。",
+      "dateNoteEn": "The evening meeting on the 27th preceded a cadre briefing on the 28th.",
+      "sources": [
+        "bangluo",
+        "ejie-bangluo"
+      ]
+    },
+    {
+      "id": "liupan",
+      "start": "1935-10-07",
+      "end": "1935-10-07",
+      "placeZh": "六盘山地域",
+      "placeEn": "Liupan Mountain region",
+      "modernZh": "宁夏隆德—泾源相关山地",
+      "modernEn": "Liupan region, Ningxia",
+      "coord": [
+        106.23,
+        35.66
+      ],
+      "kindZh": "翻山",
+      "kindEn": "Mountain crossing",
+      "titleZh": "翻越六盘山",
+      "titleEn": "Crossing the Liupan Mountains",
+      "summaryZh": "中央红军翻越六盘山，继续向陕北行动。",
+      "summaryEn": "The column crossed the Liupan Mountains and continued toward northern Shaanxi.",
+      "resultZh": "向吴起镇落脚地域推进。",
+      "resultEn": "The army advanced toward the Wuqi region.",
+      "terrainZh": "处于隆德、泾源之间的山地通行地域。",
+      "terrainEn": "The crossing occupied mountain terrain between Longde and Jingyuan.",
+      "locationNoteZh": "山地范围示意，不采用今日纪念园位置冒充当年行军点。",
+      "sources": [
+        "liupan"
+      ]
+    },
+    {
+      "id": "wuqi",
+      "start": "1935-10-19",
+      "end": "1935-10-19",
+      "placeZh": "吴起镇",
+      "placeEn": "Wuqizhen",
+      "modernZh": "陕西吴起县城历史镇区附近",
+      "modernEn": "Wuqi, Shaanxi",
+      "coord": [
+        108.18,
+        36.93
+      ],
+      "kindZh": "抵达·主线终点",
+      "kindEn": "Arrival and route endpoint",
+      "titleZh": "抵达吴起镇",
+      "titleEn": "Arrival at Wuqizhen",
+      "summaryZh": "中共中央率陕甘支队到达陕甘根据地，中央红军主力长征至此落脚。",
+      "summaryEn": "Central organs and the Shaanxi–Gansu Detachment reached the base area.",
+      "resultZh": "本专题路线终点为19日，不延伸到1936年会师。",
+      "resultEn": "This route ends on the 19th, not at the separate 1936 convergence.",
+      "terrainZh": "此前经铁边城一带进入陕北。",
+      "terrainEn": "The column approached through the Tiebiancheng region.",
+      "dateNoteZh": "不是此日与红十五军团主力正式会师；部分先头出现日期与主力抵达须分开。",
+      "dateNoteEn": "Arrival should not be confused with a formal meeting with the Fifteenth Corps.",
+      "sources": [
+        "wuqi-arrival",
+        "meetings"
+      ]
+    },
+    {
+      "id": "wuqi-battle",
+      "start": "1935-10-21",
+      "end": "1935-10-21",
+      "placeZh": "吴起镇西侧战区",
+      "placeEn": "Battle sector west of Wuqizhen",
+      "modernZh": "头道川、二道川、平台山等区域",
+      "modernEn": "Valleys and heights west of Wuqi",
+      "coord": [
+        108.16,
+        36.94
+      ],
+      "kindZh": "收尾战斗",
+      "kindEn": "Epilogue battle",
+      "titleZh": "吴起镇战斗",
+      "titleEn": "Battle near Wuqizhen",
+      "summaryZh": "陕甘支队反击尾追骑兵，解除落脚根据地的直接威胁。",
+      "summaryEn": "The detachment counterattacked pursuing cavalry near the base area.",
+      "battleZh": "依托沟谷和高地组织反击，与19日抵达事件分开。",
+      "battleEn": "The action used valleys and heights and is distinct from the arrival two days earlier.",
+      "resultZh": "收尾事件，不改变19日的主线终点。",
+      "resultEn": "An epilogue event, not a later route endpoint.",
+      "terrainZh": "沟谷与山梁限制骑兵展开。",
+      "terrainEn": "Valleys and ridges constrained cavalry deployment.",
+      "locationNoteZh": "多沟谷战区范围示意，不等于胜利山纪念设施的精确点位。",
+      "routeStop": false,
+      "sources": [
+        "wuqi-battle"
+      ]
+    }
+  ]
+}

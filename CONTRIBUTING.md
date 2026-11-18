@@ -60,8 +60,8 @@ We welcome contributions of all kinds, including:
 1. **Clone and Serve Locally**:
    Built with vanilla ES6 and SVG with zero runtime dependencies—simply serve the repository root with any static HTTP server. No npm install is needed to serve the checked-in site:
    ```bash
-   git clone https://github.com/DeanChensj/jiangshan-map.git
-   cd jiangshan-map
+   git clone https://github.com/gugupromax/shanhe-atlas.git
+   cd shanhe-atlas
    python3 -m http.server 8000
    ```
    Then open `http://localhost:8000` in your browser (or `http://localhost:8000/?lang=en` for English UI).

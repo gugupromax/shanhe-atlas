@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const {buildIndex, loadSources, renderBundle} = require('./build.cjs');
+const {readNormalizedAsset} = require('../sync_version');
 const ROOT = path.resolve(__dirname, '../..');
 const context = vm.createContext({window: {addEventListener() {}}, clearTimeout, URLSearchParams});
 context.location = {search: '', origin: 'https://deanchen.me', pathname: '/jiangshan-map/'};
@@ -32,7 +33,7 @@ const identity = hit => [hit.kind, hit.titleZh, hit.rawYear ?? hit.year, hit.sco
 test('the checked-in index is reproducible and covers every event title and location', () => {
   const {dynasties, landmarks} = loadSources();
   const index = buildIndex(dynasties, landmarks);
-  assert.equal(fs.readFileSync(path.join(ROOT, 'js/event_pinyin.js'), 'utf8'), renderBundle(index));
+  assert.equal(readNormalizedAsset(path.join(ROOT, 'js/event_pinyin.js')).toString('utf8'), renderBundle(index));
   for (const dynasty of dynasties) assert.equal(index.milestones[dynasty.key].length, (dynasty.milestones || []).length);
   assert.equal(index.landmarks.length, landmarks.length);
   for (const keys of [...Object.values(index.milestones).flat(), ...index.landmarks]) {

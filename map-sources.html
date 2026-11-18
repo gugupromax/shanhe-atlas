@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>图层来源与署名 · 山河地图</title>
+  <link rel="canonical" href="./map-sources.html" />
+  <style>
+    :root { color-scheme: light; background: #f5f1e7; color: #263b34; font: 16px/1.75 system-ui, sans-serif; }
+    body { max-width: 52rem; margin: auto; padding: 2rem 1.25rem; }
+    a { color: #335c49; }
+    h1, h2 { font-family: "STSong", "SimSun", serif; line-height: 1.45; }
+    h2 { margin-top: 2rem; font-size: 1.4rem; }
+    li + li { margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <nav aria-label="站内导航"><a href="./index.html">返回山河地图</a> · <a href="./topics/index.html">专题图志</a></nav>
+  <main>
+    <h1>图层来源与署名</h1>
+    <p>山河地图基于 <a href="https://github.com/DeanChensj/jiangshan-map">江山时序 Jiangshan Atlas</a>，并加入三维地形与分年资料。历史疆域和政区为示意性复原，近似线条和点位的依据见地图资料卡。</p>
+    <h2>疆域与政区</h2>
+    <ul>
+      <li>政权轮廓来自 <a href="https://github.com/aourednik/historical-basemaps">historical-basemaps</a>，上游标明 GPL-3.0。</li>
+      <li>道、路、省等一级政区来自江山时序。上游依据历史文献绘制和校对，早期版本未保留逐要素记录。</li>
+      <li>郡、州、府边界使用 CHGIS V6 与 Robert M. Hartwell China Historical GIS 派生数据。上游将此图层列为原条款适用范围。仓库说明要求仅用于学术、非商业用途，且不得从仓库再分发。相关说明同样适用于含此图层的截图。需要该数据时请查阅官方渠道和原始条款。</li>
+    </ul>
+    <p lang="en">CHGIS, Version: 6. © Fairbank Center for Chinese Studies of Harvard University and the Center for Historical Geographical Studies at Fudan University, 2016.</p>
+    <h2>分年资料与地形</h2>
+    <ul>
+      <li>741 年补录点位与两畿可辨界段参照《中国历史地图集》及史籍。资料卡列出相应出处和定位说明。本地生成的中近景瓦片含州府图层，瓦片文件存放在本机。</li>
+      <li>三维高程采用 AWS Terrain Tiles 提供的 Mapzen Terrarium 数据。三维视图用现代高程呈现地貌。地形数据范围和精度见 <a href="./terrain.html">独立三维地图</a>的数据说明。</li>
+    </ul>
+    <p><a href="./historical-map-references.html">历代地图图目索引</a> · <a href="https://github.com/gugupromax/shanhe-atlas#readme">山河地图项目说明</a></p>
+  </main>
+</body>
+</html>

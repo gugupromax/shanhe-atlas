@@ -493,17 +493,13 @@ async function runCoreDataSuite(ctx) {
   assert(fs.existsSync(path.join(ROOT, 'sitemap.xml')), 'Missing sitemap.xml at repository root');
   assert(fs.existsSync(path.join(ROOT, 'robots.txt')), 'Missing robots.txt at repository root');
   assert(
-    indexHtml.includes('href="https://deanchen.me/jiangshan-map/"') &&
+    indexHtml.includes('id="lnk-canonical" href="./"') &&
       indexHtml.includes('"@type": "FAQPage"') &&
-      sitemapXml.includes('<loc>https://deanchen.me/jiangshan-map/</loc>') &&
+      sitemapXml.includes('<loc>./</loc>') &&
       robotsTxt.includes('User-agent: Baiduspider') &&
       robotsTxt.includes('User-agent: Bytespider') &&
-      robotsTxt.includes('Sitemap: https://deanchen.me/jiangshan-map/sitemap.xml') &&
-      !indexHtml.toLowerCase().includes('deanchensj.github.io') &&
-      !sitemapXml.toLowerCase().includes('deanchensj.github.io') &&
-      !robotsTxt.toLowerCase().includes('deanchensj.github.io') &&
-      !appCode.toLowerCase().includes('deanchensj.github.io'),
-    'SEO/GEO files (index.html, sitemap.xml, robots.txt, app.js) must canonicalize to https://deanchen.me/jiangshan-map/ and allow Baiduspider/Bytespider'
+      [indexHtml, sitemapXml, robotsTxt, appCode].every((source) => !/deanchen\.me|deanchensj\.github\.io/i.test(source)),
+    'Local metadata must use paths relative to this site and allow Baiduspider/Bytespider'
   );
   const topicsDir = path.join(ROOT, 'topics');
   assert(
@@ -528,7 +524,8 @@ async function runCoreDataSuite(ctx) {
     const tfPath = path.join(topicsDir, tf);
     assert(fs.existsSync(tfPath), `Missing static SEO topic page: topics/${tf}`);
     const tfHtml = fs.readFileSync(tfPath, 'utf8');
-    const expectedCanon = `https://deanchen.me/jiangshan-map/topics/${tf}`;
+    const expectedPath = `./topics/${tf}`;
+    const expectedCanon = `.${expectedPath}`;
     assert(
       tfHtml.includes(`rel="canonical" href="${expectedCanon}"`) &&
         tfHtml.includes('application/ld+json') &&
@@ -536,8 +533,8 @@ async function runCoreDataSuite(ctx) {
         !tfHtml.includes('undefined') &&
         !tfHtml.includes('NaN') &&
         !/\b(zhanguo|xihan|donghan|sanguo|xijin|dongjin|nanbei|wudai|beisong|nansong|roc|prc)\s+Historical/i.test(tfHtml) &&
-        sitemapXml.includes(`<loc>${expectedCanon}</loc>`) &&
-        indexHtml.includes(expectedCanon),
+        sitemapXml.includes(`<loc>${expectedPath}</loc>`) &&
+        indexHtml.includes(expectedPath),
       `Static topic page topics/${tf} must have canonical ${expectedCanon}, JSON-LD, zero undefined/NaN, clean English naming, and be linked in sitemap.xml and index.html`
     );
   }

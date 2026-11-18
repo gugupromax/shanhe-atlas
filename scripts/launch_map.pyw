@@ -90,5 +90,5 @@ if __name__=='__main__':
         RUNTIME.mkdir(exist_ok=True);(RUNTIME/'启动错误.txt').write_text(str(error),encoding='utf-8')
         if os.name=='nt' and '--no-browser' not in sys.argv:
             import ctypes
-            ctypes.windll.user32.MessageBoxW(0,str(error),'江山地图启动失败',0x10)
+            ctypes.windll.user32.MessageBoxW(0,str(error),'山河地图启动失败',0x10)
         raise

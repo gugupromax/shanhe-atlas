@@ -10,6 +10,25 @@ for(const lon of [100,111,125])for(const lat of [20,35,50]){
   eps(fromBase[1],(geometry.mercatorY(lat)-geometry.mercatorY(detail[1]))/(geometry.mercatorY(detail[3])-geometry.mercatorY(detail[1])));
 }
 assert.ok(Math.abs(rect[1]-30/80)>.05,'Mercator registration must not use linear latitude');
+const THREE=require('../vendor/three.min.js');
+const textureSurface=surface.create(THREE);
+const shader={uniforms:{},fragmentShader:'#include <map_fragment>'};
+textureSurface.material.onBeforeCompile(shader);
+const imageA={},imageB={},imageC={};
+const tiles=[{image:imageA,bounds:[100,20,110,30]},{image:imageB,bounds:[110,20,120,30]}];
+textureSurface.detailTiles(tiles,coverage);
+const maps=shader.uniforms.atlasTileMaps.value;
+assert.equal(shader.uniforms.atlasTileCount.value,2);
+assert.deepEqual(shader.uniforms.atlasTileRects.value[1].toArray(),surface.uvRect(tiles[1].bounds,coverage));
+const retained=maps[1];
+let disposed=0;
+maps[0].addEventListener('dispose',()=>disposed++);
+textureSurface.detailTiles([tiles[1],{image:imageC,bounds:[120,20,130,30]}],coverage);
+assert.equal(maps[0],retained,'overlapping tiles keep the uploaded texture');
+assert.equal(disposed,1,'tiles leaving the view release their texture');
+textureSurface.clearDetail();
+assert.equal(shader.uniforms.atlasTileCount.value,0);
+assert.ok(maps.every(t=>t===null));
 let listener,received=0;const parent={postMessage(){}};
 protocol.createChild({parent,addEventListener:(name,fn)=>listener=fn},{onState(){},onConfig(){},onSurface(){received++;}});
 const good={channel:protocol.CHANNEL,type:'surface',sceneKey:'1080',renderId:1,quality:'base',url:'data:image/png;base64,AA==',bounds:coverage};

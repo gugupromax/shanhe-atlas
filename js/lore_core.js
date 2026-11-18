@@ -1,4 +1,8 @@
 window.ATLAS_LORE_DATA = Object.assign(window.ATLAS_LORE_DATA || {}, {
+  FEATURED_JOURNEYS: {
+    changzheng: ['中央红军长征', 'Central Red Army Long March'],
+    sushi: ['苏轼行迹', 'Su Shi’s Journey', 'su shi journey'],
+  },
   "CHINESE_ERA_SPANS": [
     [-403,"周威烈王",23,"周威烈王","King Weilie"],
     [-401,"周安王",1,"周安王","King An"],
@@ -938,7 +942,7 @@ window.ATLAS_LORE_DATA = Object.assign(window.ATLAS_LORE_DATA || {}, {
     {"key":"jingkang","zh":"靖康之变","en":"Jingkang Catastrophe & Southern Crossing","courtesyZh":"宣和七年（1125）— 绍兴十二年（1142） · 汴京陆沉、建炎南渡与岳飞北伐","courtesyEn":"1125–1142 CE · Fall of Bianjing, Southern Crossing & Yue Fei's Expeditions","isStory":true,"dynastyKey":"beisong","span":[1125,1142],"aliases":["靖康","靖康之变","靖康之耻","靖康之难","建炎南渡","岳飞北伐","宋金之战","jingkang","jingkangzhibian","Jingkang Incident","Song-Jin Wars"],"evCount":10},
     {"key":"qintongyi","zh":"秦灭六国","en":"Qin's Conquest of the Six States","courtesyZh":"秦王政九年（前238）— 二十六年（前221） · 六王毕，四海一","courtesyEn":"238–221 BCE · The Wars That Unified China","isStory":true,"dynastyKey":"zhanguo","span":[-238,-221],"aliases":["秦灭","秦灭六国","灭六国","扫六合","秦扫六合","秦王扫六合","六王毕","秦统一六国","qinmieliuguo","qintongyi","Qin unification","Qin's Wars of Unification"],"evCount":10},
     {"key":"chuhan","zh":"楚汉之争","en":"Chu-Han Contention","courtesyZh":"秦二世三年（前207）— 汉五年（前202） · 破秦分封、暗度陈仓与垓下决战","courtesyEn":"207–202 BCE · Fall of Qin, Feast at Hongmen & Battle of Gaixia","isStory":true,"dynastyKey":"qin","span":[-207,-202],"aliases":["楚汉","楚汉之争","楚汉相争","楚汉争霸","鸿门宴","霸王别姬","十面埋伏","chuhan","chuhanzhizheng","Chu-Han Contention","Chu-Han War"],"evCount":10},
-    {"key":"changzheng","zh":"红军长征","en":"The Long March","courtesyZh":"1934年10月 — 1936年10月 · 自赣南至陕甘的万里战略转移","courtesyEn":"Oct 1934 – Oct 1936 · Strategic March from Jiangxi to Shaanxi-Gansu","isStory":true,"dynastyKey":"roc","span":[1934,1936],"aliases":["长征","红军长征","二万五千里长征","万里长征","四渡赤水","遵义会议","飞夺泸定桥","巧渡金沙江","血战湘江","三军会师","会宁会师","changzheng","hongjunchangzheng","Long March","Red Army Long March"],"evCount":10}
+    {"key":"changzheng","zh":"中央红军长征","en":"Central Red Army Long March","courtesyZh":"1934年10月—1935年10月 · 中央红军主线","courtesyEn":"Oct 1934–Oct 1935 · Central Red Army route","isStory":true,"dynastyKey":"roc","span":[1934,1935],"aliases":["长征","长征专题","红军长征","中央红军","中央红军长征","红一方面军长征","二万五千里长征","万里长征","四渡赤水","飞夺泸定桥","巧渡金沙江","血战湘江","changzheng","hongjunchangzheng","Long March","Central Red Army Long March","Red Army Long March"],"evCount":40}
   ],
   "POLITY_PROFILES": [
     {"key":"shu_state","zh":"古蜀国","en":"Ancient Kingdom of Shu","titles":["蜀"],"from":-403,"to":-316,"seatZh":"成都","seatEn":"Chengdu","aliases":["开明蜀","蜀国"]},

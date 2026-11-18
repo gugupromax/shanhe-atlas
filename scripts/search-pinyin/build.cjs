@@ -7,6 +7,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const {pinyin, customPinyin} = require('pinyin-pro');
 const {version} = require('pinyin-pro/package.json');
+const {readNormalizedAsset, syncIndexHtmlAssetHashes} = require('../sync_version');
 
 const ROOT = path.resolve(__dirname, '../..');
 const OUTPUT = 'js/event_pinyin.js';
@@ -390,13 +391,13 @@ if (require.main === module) {
   const {dynasties, landmarks} = loadSources();
   const index = buildIndex(dynasties, landmarks), output = renderBundle(index);
   if (process.argv.includes('--check')) {
-    if (!fs.existsSync(path.join(ROOT, OUTPUT)) || fs.readFileSync(path.join(ROOT, OUTPUT), 'utf8') !== output) {
+    if (!fs.existsSync(path.join(ROOT, OUTPUT)) || readNormalizedAsset(path.join(ROOT, OUTPUT)).toString('utf8') !== output) {
       console.error(OUTPUT + ' is stale. Run: npm run build --prefix scripts/search-pinyin');
       process.exitCode = 1;
     } else console.log('✓ Event title/location pinyin index verified');
   } else {
     fs.writeFileSync(path.join(ROOT, OUTPUT), output);
-    require('../sync_version').syncIndexHtmlAssetHashes(ROOT);
+    syncIndexHtmlAssetHashes(ROOT);
     console.log('✓ Built ' + OUTPUT + ': ' +
       (Object.values(index.milestones).reduce((n, rows) => n + rows.length, 0) + index.landmarks.length) + ' events');
   }

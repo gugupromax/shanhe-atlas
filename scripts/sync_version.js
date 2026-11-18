@@ -22,6 +22,7 @@ const ROOT = path.resolve(__dirname, '..');
 
 const CONTROLLER_SCRIPTS = [
   'js/app.js',
+  'js/atlas_area.js',
   'js/atlas_trace.js',
   'js/atlas_search.js',
   'js/atlas_api.js',
@@ -44,11 +45,13 @@ const STATIC_TAG_ASSETS = [
   'js/map_data.js',
   'js/lore_core.js',
   ...SYNC_CONTROLLER_SCRIPTS,
+  'js/atlas_area.js',
   'map-surface.js',
   'integration.js',
 ];
 
 const LAZY_ATTR_ASSETS = [
+  { attr: 'data-v-tang741', datasetKey: 'vTang741', relPath: 'js/tang_741.js' },
   { attr: 'data-v-snapshots', datasetKey: 'vSnapshots', relPath: 'js/atlas_snapshots.js' },
   { attr: 'data-v-i18n', datasetKey: 'vI18n', relPath: 'js/i18n_dict.js' },
   { attr: 'data-v-lore', datasetKey: 'vLore', relPath: 'js/lore_detail.js' },

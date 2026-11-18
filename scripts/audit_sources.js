@@ -132,7 +132,7 @@ function loadSources() {
   const files = {};
   const names = fs.readdirSync(SRC).filter((f) => f.endsWith('.json') && f !== 'works.json' && f !== 'baseline.json');
   for (const f of names.sort()) {
-    const text = fs.readFileSync(path.join(SRC, f), 'utf8');
+    const text = fs.readFileSync(path.join(SRC, f), 'utf8').replace(/\r\n/g, '\n');
     const obj = readJson(path.join(SRC, f));
     files[f] = { text, obj };
     for (const [k, v] of Object.entries(obj)) {
@@ -229,7 +229,7 @@ if (!flag('--fix')) {
 const msJsPath = path.join(ROOT, MILESTONE_SOURCES_JS);
 const msJsText = milestoneSourcesText(milestoneSources(refs, works));
 if (!flag('--fix')) {
-  const cur = fs.existsSync(msJsPath) ? fs.readFileSync(msJsPath, 'utf8') : '';
+  const cur = fs.existsSync(msJsPath) ? fs.readFileSync(msJsPath, 'utf8').replace(/\r\n/g, '\n') : '';
   if (cur !== msJsText) errors.push(`${MILESTONE_SOURCES_JS} is out of date (run: node scripts/audit_sources.js --fix)`);
 }
 const cited = new Set([...refs.values()].flatMap(({ list }) => (Array.isArray(list) ? list.map((r) => r.w) : [])));

@@ -392,11 +392,15 @@ function buildOutputs(rootDir = ROOT) {
   return outputs;
 }
 
+function readCanonicalText(file) {
+  return fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
+}
+
 /** Returns a list of human-readable problems; empty when sources are formatted and bundles are up to date. */
 function checkOutputs(rootDir = ROOT) {
   const problems = [];
   for (const [rel, want] of Object.entries(buildOutputs(rootDir))) {
-    if (fs.readFileSync(path.join(rootDir, rel), 'utf8') !== want) {
+    if (readCanonicalText(path.join(rootDir, rel)) !== want) {
       problems.push(rel.startsWith(DATA_DIR) ? `${rel} is not canonically formatted` : `${rel} is out of date with ${DATA_DIR}/`);
     }
   }
@@ -433,7 +437,7 @@ function writeOutputs(rootDir = ROOT, log = console.log) {
   let written = 0;
   for (const [rel, text] of Object.entries(buildOutputs(rootDir))) {
     const full = path.join(rootDir, rel);
-    if (fs.readFileSync(full, 'utf8') !== text) {
+    if (readCanonicalText(full) !== text) {
       fs.writeFileSync(full, text);
       log(`✓ Wrote ${rel}`);
       written++;

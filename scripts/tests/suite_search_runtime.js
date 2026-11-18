@@ -1185,7 +1185,8 @@ async function runSearchRuntimeSuite(ctx) {
           );
         }
         const zhChips = Array.from(ctrl._getSearchSampleQueries());
-        assert.deepStrictEqual(zhChips, ['长安', '赤壁', '霍去病', '李白 杜甫 高适']);
+        assert.deepStrictEqual(zhChips, ['长安', '赤壁', '长征', '霍去病', '李白 杜甫 高适']);
+        assert.strictEqual(ctrl._queryQuickSearch('长征')[0].storyKey, 'changzheng');
         assert.strictEqual(ctrl._queryQuickSearch('霍去病')[0].kind, 'person');
         assert.strictEqual(ctrl._queryQuickSearch('李白 杜甫 高适')[0].kind, 'multi_person');
         assert(
@@ -1196,7 +1197,8 @@ async function runSearchRuntimeSuite(ctx) {
 
         ctrl.locale = 'en';
         const enChips = Array.from(ctrl._getSearchSampleQueries());
-        assert.deepStrictEqual(enChips, ["Chang'an", 'Chibi', 'Cao Cao', 'Li Bai, Du Fu, Gao Shi']);
+        assert.deepStrictEqual(enChips, ["Chang'an", 'Chibi', 'Long March', 'Cao Cao', 'Li Bai, Du Fu, Gao Shi']);
+        assert.strictEqual(ctrl._queryQuickSearch('Long March')[0].storyKey, 'changzheng');
         assert.strictEqual(ctrl._queryQuickSearch('Cao Cao')[0].kind, 'person');
         const enPairHit = ctrl._queryQuickSearch('Li Bai, Du Fu, Gao Shi')[0];
         assert(
@@ -2825,9 +2827,14 @@ async function runSearchRuntimeSuite(ctx) {
 
       const changzhengProf = ctrl._resolvePersonProfile('changzheng');
       assert(
-        changzhengProf && changzhengProf.isStory === true && Array.isArray(changzhengProf.stops) && changzhengProf.stops.length === 10,
-        'changzheng must resolve as an Event Storyline (isStory: true) with 10 chronological stops'
+        changzhengProf && changzhengProf.isStory === true && Array.isArray(changzhengProf.stops) && changzhengProf.stops.length >= 30,
+        'changzheng must resolve as a detailed Central Red Army storyline with at least 30 chronological stops'
       );
+      assert.strictEqual(changzhengProf.routeOverview, true, 'The Central Red Army story must support a full-route overview');
+      assert(changzhengProf.stops.every((s) => s.year >= 1934 && s.year <= 1935), 'The central route must not fold the 1936 other-army junction into its itinerary');
+      assert(changzhengProf.stops.every((s) => Array.isArray(s.historyDetail?.sources) && s.historyDetail.sources.length > 0), 'Every Long March node must expose its historical sources');
+      const centralItinerary = changzhengProf.stops.filter((s) => s.historyDetail?.routeStop !== false);
+      assert.strictEqual(centralItinerary.at(-1).historyDetail.dateStart, '1935-10-19', 'The central itinerary ends with the October 19 arrival, separately from the closing battle');
       for (const sq of ['红军长征', '长征', '四渡赤水', '飞夺泸定桥', 'changzheng', 'Long March']) {
         const sqHits = ctrl._queryQuickSearch(sq);
         assert(
@@ -2836,15 +2843,39 @@ async function runSearchRuntimeSuite(ctx) {
         );
       }
       const rocDyn = dynasties.find((d) => d.key === 'roc');
+      const zunyi = rocDyn.milestones.find((m) => m.year === 1935);
       assert.strictEqual(
-        ctrl._findStoryForMilestone(rocDyn, rocDyn.milestones.find((m) => m.year === 1935))?.key,
-        'changzheng',
-        'The 1935 Zunyi Conference milestone must carry the [始末] entry for the Long March storyline'
+        ctrl._findStoryForMilestone(rocDyn, zunyi),
+        null,
+        'The Zunyi Conference milestone is a single event independent of the Long March topic'
       );
+      assert.strictEqual(ctrl._getMilestoneAnchors(rocDyn, zunyi).length, 1);
+      const zunyiHit = ctrl._queryQuickSearch('遵义会议')[0];
+      assert.strictEqual(zunyiHit.kind, 'event', 'Zunyi Conference search must rank the milestone first');
+      assert.strictEqual(zunyiHit.rawYear, 1935);
+      const topics = ctrl._queryQuickSearch('专题');
+      assert(topics.some((hit) => hit.storyKey === 'changzheng'));
+      assert(topics.some((hit) => hit.personKey === 'sushi'));
+      assert.strictEqual(ctrl._queryQuickSearch('苏轼行迹')[0].personKey, 'sushi');
+      ctrl.openPersonChronicle('changzheng');
+      assert.strictEqual(ctrl.activePerson?.profile.key, 'changzheng');
+      ctrl.selectPersonEvent(2, false);
+      assert.strictEqual(ctrl.activePerson?.profile.key, 'changzheng', 'Topic stop navigation must stay in the topic');
+      ctrl.closeGenealogyCard();
+      const openMilestoneBalloon = ctrl.openMilestoneBalloon;
+      try {
+        let openedEvent;
+        ctrl.openMilestoneBalloon = (dynasty, milestone) => { openedEvent = [dynasty.key, milestone.year]; };
+        ctrl._selectSearchResult(zunyiHit);
+        assert.strictEqual(ctrl.activePerson?.profile.key, undefined);
+        assert.deepStrictEqual(openedEvent, ['roc', 1935]);
+      } finally {
+        ctrl.openMilestoneBalloon = openMilestoneBalloon;
+      }
 
       // Universal Event Storyline (`isStory: true`) invariants:
       // 1) Must declare `dynastyKey` and a 2-char Chinese stem alias searchable as `kind: "story"`.
-      // 2) Must map to EXACTLY ONE `[始末]` milestone across all dynasties in `_findStoryForMilestone`.
+      // 2) Legacy storylines have one [始末] link. The Long March is its own topic.
       const allStoryProfiles = (loreData.PERSON_PROFILES || []).filter((p) => p && p.isStory);
       assert(allStoryProfiles.length >= 5, 'Expected at least 5 Event Storylines (anshi, jingkang, qintongyi, chuhan, changzheng)');
       for (const sp of allStoryProfiles) {
@@ -2870,8 +2901,8 @@ async function runSearchRuntimeSuite(ctx) {
         }
         assert.strictEqual(
           badgeCount,
-          1,
-          `Storyline "${sp.key}" (${sp.zh}) must have EXACTLY 1 [始末] milestone badge in _findStoryForMilestone (found ${badgeCount})`
+          sp.key === 'changzheng' ? 0 : 1,
+          `Unexpected [始末] milestone badge count for "${sp.key}" (${sp.zh})`
         );
       }
 

@@ -30,5 +30,3 @@ Allow: /
 
 User-agent: *
 Allow: /
-
-Sitemap: https://deanchen.me/jiangshan-map/sitemap.xml

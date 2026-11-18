@@ -4,6 +4,7 @@ _snap_skill_tmp_*.html
 .DS_Store
 .runtime/
 data/tiles/
+/assets/tang-741-tiles/
 .impeccable/
 /scripts/search-pinyin/node_modules/
 

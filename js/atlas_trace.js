@@ -463,6 +463,7 @@
             coord: st.coord,
             fromCoord: st.fromCoord || null,
             via: st.via || null,
+            historyDetail: st.historyDetail,
             prevStopCoord: sIdx > 0 ? profile.stops[sIdx - 1].coord : null,
             quoteZh: st.quoteZh || '',
             quoteEn: st.quoteEn || '',
@@ -1028,6 +1029,7 @@
         return false;
       }
       const { events } = state;
+      this.closeMapArea?.();
       const stateKey = state.profiles.map((p) => p.key).join(',');
 
       if (!this._fullSnapshotsLoaded) {
@@ -1732,6 +1734,7 @@
 
       const { events, tracks, isMulti, profile } = this.activePerson;
       const isStory = Boolean(profile && profile.isStory);
+      this.grpJourney.classList?.toggle?.('is-route-overview', Boolean(isStory && profile.routeOverview));
       const curIdx = this.activePersonEventIdx;
       const curEv = curIdx >= 0 ? events[curIdx] : null;
       const soloOriginCoord = this._getSoloStepOriginCoord(
@@ -1969,8 +1972,22 @@
         );
       };
       if (!isMulti) {
+        if (isStory && profile.routeOverview) {
+          let d = '', prev = null;
+          for (const ev of events) {
+            if (ev.historyDetail?.routeStop === false) continue;
+            const origin = ev.fromCoord || events[ev.fromStopIdx]?.coord || prev;
+            const seg = this._buildJourneySegmentInfo(origin, ev.coord, ev.via);
+            if (seg) d += seg.d;
+            prev = ev.coord;
+          }
+          if (d) {
+            this._svgNode('path', { d, class: 'journey-route-overview-casing' }, this.grpJourney);
+            this._svgNode('path', { d, class: 'journey-route-overview' }, this.grpJourney);
+          }
+        }
         if (curIdx >= 0 && curEv) {
-          if (soloOriginCoord) {
+          if (soloOriginCoord && (!profile.routeOverview || curEv.historyDetail?.routeStop !== false)) {
             const prevEv = !isStory && curIdx > 0 ? events[curIdx - 1] : null;
             const keepsCuratedVia =
               Boolean(curEv.via) &&
@@ -2327,6 +2344,28 @@
       });
     }
 
+    _personHistoryHtml(detail, isEn, current) {
+      if (!detail) return '';
+      const lang = isEn ? 'En' : 'Zh';
+      const fields = [['battle', '经过', 'Events'], ['result', '结果', 'Outcome'],
+        ['terrain', '地形', 'Terrain'], ['dateNote', '日期说明', 'Dating'],
+        ['locationNote', '定位说明', 'Location']];
+      const rows = fields.map(([key, zh, en]) => {
+        const value = detail[key + lang];
+        const basis = key === 'terrain' && detail.terrainBasis === 'interpretation'
+          ? (isEn ? ' (interpretation)' : '（地形解读）') : '';
+        return value ? `<p><strong>${isEn ? en : zh}${basis}</strong> ${escHtml(value)}</p>` : '';
+      }).join('');
+      const sources = (detail.sources || []).map((s) => {
+        const label = escHtml([s.title, s.org, s.sourceType, s.published, s.locator].filter(Boolean).join(' · '));
+        const note = [s.evidenceUse, s.accessBasis].filter(Boolean).join(' ');
+        const link = /^https?:\/\/[^\s"'<>]+$/i.test(s.url || '')
+          ? `<a href="${escHtml(s.url)}" target="_blank" rel="noopener noreferrer">${label}</a>` : label;
+        return `<li>${link}${note ? `<br><small>${escHtml(note)}</small>` : ''}</li>`;
+      }).join('');
+      return `<details class="person-history"${current ? ' open' : ''}><summary>${isEn ? 'Evidence & terrain' : '史料与地形'}</summary>${rows}${sources ? `<ul aria-label="${isEn ? 'Sources' : '原文出处'}">${sources}</ul>` : ''}</details>`;
+    }
+
     _renderPersonChronicleCard(preserveScroll = false) {
       if (!this.activePerson) return;
       const {
@@ -2364,6 +2403,8 @@
           const rowIdx = Number(li.dataset.evIdx);
           const isCur = rowIdx === curIdx;
           li.classList.toggle('is-current', isCur);
+          const detail = li.querySelector('.person-history');
+          if (detail) detail.open = isCur;
           if (isCur) activeLi = li;
         });
         if (activeLi && typeof activeLi.scrollIntoView === 'function') {
@@ -2560,7 +2601,8 @@
               ? (isEn ? profile.descEn : profile.descZh) || ''
               : '';
 
-          if (subTitle || descText) {
+          const routeNote = profile.routeOverview ? profile[isEn ? 'routeNoteEn' : 'routeNoteZh'] : '';
+          if (subTitle || descText || routeNote) {
             let campLegendHtml = '';
             if (profile.isStory && Array.isArray(profile.camps) && profile.camps.length >= 2) {
               const cItems = profile.camps
@@ -2576,6 +2618,7 @@
             loreEl.innerHTML =
               `<div class="pass-lore-head"><span class="pass-lore-badge">${badgeLabel}</span><span class="pass-lore-range">${subTitle}</span></div>` +
               (descText ? `<div class="pass-lore-desc">${descText}</div>` : '') +
+              (routeNote ? `<p class="person-route-note">${escHtml(routeNote)}</p>` : '') +
               campLegendHtml;
             loreEl.classList.remove('is-hidden');
           } else {
@@ -2596,6 +2639,9 @@
           summaryTxt = isEn
             ? `${events.length} key scenes · ${spanYears} yrs`
             : `精选 ${events.length} 处关键节点 · 历 ${spanYears} 年`;
+          if (profile.routeOverview) summaryTxt = isEn
+            ? `${events.length} dated scenes · sources linked`
+            : `${events.length} 个关键节点 · 月日与出处`;
         } else {
           summaryTxt = isEn
             ? `${events.length} key events · ${dynCount} era${dynCount > 1 ? 's' : ''}`
@@ -2701,6 +2747,7 @@
               isEn ? 'Territory shift at this year' : '此节点触发版图演变'
             }">${SVG_ICONS.mapChange}</span>`
           : '';
+        const kind = ev.historyDetail?.[isEn ? 'kindEn' : 'kindZh'];
         const traceBtn = `<button type="button" class="ev-journey-btn person-place-btn" data-idx="${idx}">${
           isEn ? 'Place ›' : '沿革 ›'
         }</button>`;
@@ -2773,13 +2820,15 @@
                 .join('')
             : `<span class="t-sub person-ev-copy">${storyLinkedCopy}</span>`;
 
+        const valTag = ev.historyDetail ? 'div' : 'span';
         li.innerHTML =
           `<span class="t-era person-era-col">${leftBadgeHtml}</span>` +
-          `<span class="t-val">` +
-          `<span class="person-site-line"><span>${siteLabel}${mapBadge}</span>${traceBtn}</span>` +
+          `<${valTag} class="t-val">` +
+          `<span class="person-site-line"><span>${siteLabel}${mapBadge}${kind ? `<span class="person-history-kind">${escHtml(kind)}</span>` : ''}</span>${traceBtn}</span>` +
           `${copyHtml}` +
           `${quoteHtml}` +
-          `</span>`;
+          this._personHistoryHtml(ev.historyDetail, isEn, idx === curIdx) +
+          `</${valTag}>`;
 
         li.querySelectorAll('.story-inline-person').forEach((btn) => {
           btn.addEventListener('click', (e) => {
@@ -2803,8 +2852,12 @@
         li.addEventListener('pointerleave', (e) => {
           if (e.pointerType !== 'touch') this._setHoveredPersonPin(-1);
         });
-        li.addEventListener('click', () => {
+        li.addEventListener('click', (e) => {
+          if (e.target.closest('.person-history')) return;
           this.selectPersonEvent(idx, true);
+        });
+        li.addEventListener('keydown', (e) => {
+          if ((e.key === ' ' || e.key === 'Enter') && e.target.closest('.person-history')) e.stopPropagation();
         });
         const traceBtnEl = li.querySelector('.person-place-btn');
         if (traceBtnEl) {
@@ -3796,6 +3849,7 @@
     }
 
     openGenealogyAt(lng, lat, customLabel = null, opts = {}) {
+      this.closeMapArea?.();
       const fromYearSync = Boolean(opts && opts.fromYearSync);
       const preserveScroll = Boolean(opts && opts.preserveScroll);
       const isSamePlace =
