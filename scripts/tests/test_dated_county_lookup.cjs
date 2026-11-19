@@ -19,7 +19,11 @@ test('741 county deep links match all the distinct named pins, including after l
     assert.deepEqual(Array.from(resolved.coord), Array.from(seat.coord), seat.ancient);
   }
   const county = ctrl.resolvePlace('蓝田县', 741);
-  assert.notDeepEqual(before && Array.from(before.coord), Array.from(county.coord));
+  // Lantian County is now a static 741 seat (map_data settlements) as well as a
+  // lazy-loaded layer entry, so the deep link resolves to the same distinct pin
+  // before and after js/tang_741.js loads.
+  assert.ok(before, '蓝田县 resolves before the 741 layer loads');
+  assert.deepEqual(Array.from(before.coord), Array.from(county.coord), '蓝田县');
   county.coord[0] = 0;
   assert.deepEqual(Array.from(ctrl.resolvePlace('蓝田县', 741).coord), [109.32, 34.17]);
   assert.equal(ctrl.resolvePlace('蓝关', 819).name, '蓝田关');

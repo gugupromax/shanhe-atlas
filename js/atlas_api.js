@@ -570,6 +570,7 @@
                 (c) =>
                   normApos(c) === qApos ||
                   (allowStrip &&
+                    !isPassSuffix &&
                     !hasQueryParens &&
                     qStrippedApos.length >= 2 &&
                     normApos(c) === qStrippedApos)
@@ -582,6 +583,7 @@
                     normSpace(c) === qNorm ||
                     foldAscii(c) === qFold ||
                     (allowStrip &&
+                      !isPassSuffix &&
                       !hasQueryParens &&
                       qStrippedFold.length >= 2 &&
                       (normSpace(c) === qStrippedNorm || foldAscii(c) === qStrippedFold))
@@ -590,7 +592,7 @@
               hit = candidates.some(
                 (c) =>
                   c.includes(q) ||
-                  (!hasQueryParens && qStripped.length >= 3 && c.includes(qStripped)) ||
+                  (!hasQueryParens && !isPassSuffix && qStripped.length >= 3 && c.includes(qStripped)) ||
                   (qFold.length >= 4 && foldAscii(c).includes(qFold))
               );
             }
@@ -924,7 +926,7 @@
 
     _inspectCoord(cLng, cLat, d, snap, year = this.year, placeName = '') {
       const isEn = this.locale === 'en';
-      const eraHit = this._resolveEraPlaceAt(cLng, cLat, d, snap);
+      const eraHit = this._resolveEraPlaceAt(cLng, cLat, d, snap, year);
       const index = this._datedCountyIndex(year);
       const named = typeof placeName === 'string' && placeName && index?.names.get(this._toHans(placeName.trim()).toLowerCase());
       const exactName = named && named.coord[0] === cLng && named.coord[1] === cLat;
