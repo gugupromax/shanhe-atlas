@@ -2360,6 +2360,7 @@ function updateIndexHtmlSeoDirectory(dynMeta, storyMeta, journeyMeta, featuredMe
   );
 
   const totalCount = dynMeta.length + storyMeta.length + journeyMeta.length + featuredMeta.length;
+  html = html.replace(/data-catalog-count="\d+"/, `data-catalog-count="${totalCount}"`);
   const allItems = [
     `          <li><a href="./topics/index.html"><strong>山河图集专题图志总览（${totalCount}篇静态历史地理百科目录）</strong></a></li>`,
     ...storyMeta.map(

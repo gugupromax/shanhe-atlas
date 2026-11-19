@@ -177,8 +177,9 @@
             ? p.evCount
             : this._collectPersonEvents(p).length;
         const aliases = this._personSearchAliases(p);
-        const featuredTopic = window.ATLAS_LORE_DATA?.FEATURED_JOURNEYS?.[p.key];
-        if (featuredTopic) aliases.push('专题', 'topics', ...featuredTopic);
+        const journeyNames = window.ATLAS_LORE_DATA?.FEATURED_JOURNEYS?.[p.key];
+        const featuredTopic = p.isStory || Boolean(journeyNames);
+        if (featuredTopic) aliases.push('专题', 'topics', ...(journeyNames || []));
         if (p.isStory) {
           const spanStr = Array.isArray(p.span) ? `${p.span[0]}—${p.span[1]}` : '';
           entries.push({

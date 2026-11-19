@@ -1899,13 +1899,26 @@
       this._id('txt-subtitle').textContent = this.uiStr('brand_sub', '中国历史地图 · 平面与 3D 地形');
       const topics = this._id('act-topic-select');
       if (topics) {
-        const label = this.locale === 'en' ? 'Topics' : this._zh('专题');
+        const localize = (zh, en) => this.locale === 'en' ? en : this._zh(zh);
+        const label = localize('专题', 'Topics');
         topics.setAttribute('aria-label', label);
-        topics.options[0].text = label;
-        topics.length = 1;
+        const placeholder = topics.options[0];
+        placeholder.text = label;
+        const journeys = document.createElement('optgroup');
         for (const [key, [zh, en]] of Object.entries(window.ATLAS_LORE_DATA.FEATURED_JOURNEYS)) {
-          topics.add(new Option(this.locale === 'en' ? en : this._zh(zh), key));
+          journeys.append(new Option(localize(zh, en), key));
         }
+        const journeyCount = journeys.childElementCount;
+        journeys.label = localize(`人物行迹（${journeyCount}）`, `Historical journeys (${journeyCount})`);
+        const stories = document.createElement('optgroup');
+        const events = HistoricalAtlasController.PERSON_PROFILES.filter(p => p.isStory)
+          .sort((a, b) => a.span[0] - b.span[0]);
+        stories.label = localize(`历史事件（${events.length}）`, `Historical events (${events.length})`);
+        for (const story of events) stories.append(new Option(localize(story.zh, story.en), story.key));
+        const count = topics.dataset.catalogCount;
+        const catalog = new Option(localize(`浏览全部 ${count} 篇图志`, `Browse all ${count} atlas guides`), 'catalog');
+        topics.replaceChildren(placeholder, journeys, stories, catalog);
+        topics.value = '';
       }
       const lblLayersBtn = this._id('lbl-layers-btn');
       if (lblLayersBtn) {
@@ -9720,8 +9733,19 @@
       const topics = this._id('act-topic-select');
       if (topics) {
         topics.addEventListener('change', () => {
-          this.openPersonChronicle(topics.value, -1);
+          const choice = topics.value;
           topics.value = '';
+          if (choice === 'catalog') {
+            // Preserve the current view for Back even if the debounced URL update is pending.
+            if (this._urlSyncTimer && !this.challenge) {
+              clearTimeout(this._urlSyncTimer);
+              this._urlSyncTimer = null;
+              this._writeUrlState();
+            }
+            window.location.assign('./topics/index.html');
+          } else if (choice) {
+            this.openPersonChronicle(choice, -1);
+          }
         });
       }
 

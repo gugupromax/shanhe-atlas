@@ -2871,7 +2871,9 @@ async function runSearchRuntimeSuite(ctx) {
       assert.strictEqual(zunyiHit.kind, 'event', 'Zunyi Conference search must rank the milestone first');
       assert.strictEqual(zunyiHit.rawYear, 1935);
       const topics = ctrl._queryQuickSearch('专题');
-      assert(topics.some((hit) => hit.storyKey === 'changzheng'));
+      for (const story of loreData.PERSON_PROFILES.filter(profile => profile.isStory)) {
+        assert(topics.some(hit => hit.storyKey === story.key), 'Topic search must expose ' + story.key);
+      }
       for (const journey of loreData.HISTORICAL_JOURNEYS) {
         assert(topics.some(hit => hit.personKey === journey.key), 'Topic search must expose ' + journey.key);
         const [name] = loreData.FEATURED_JOURNEYS[journey.key];
