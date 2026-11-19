@@ -1,5 +1,5 @@
 /* Rasterize the live original atlas, without rebuilding its cartography.
- * Local assets only. The owner of the 3D view supplies Mercator texture UVs.
+ * Bundled atlas assets only. The owner of the 3D view supplies Mercator texture UVs.
  */
 (function (root, factory) {
   'use strict';
@@ -143,8 +143,11 @@
       height: Math.max(1, Math.round(projected.height * scale)) };
   }
 
-  // Reading a file through the local launcher is allowed; internet origins and
-  // redirects are deliberately rejected before fetch, even if called same-origin.
+  function isPublishedAsset(url) {
+    return url.origin === 'https://gugupromax.github.io' && url.pathname.startsWith('/shanhe-atlas/') &&
+      !/%(?:2f|5c|25)/i.test(url.pathname);
+  }
+
   function localAssetUrl(value, base) {
     const url = new URL(value, base);
     if (url.protocol === 'data:') {
@@ -158,8 +161,9 @@
     const isLocalHttp = ['http:', 'https:'].includes(url.protocol) && loopback.includes(url.hostname) &&
       url.origin === origin.origin;
     const isLocalFile = url.protocol === 'file:' && origin.protocol === 'file:' && !url.hostname;
-    if ((!isLocalHttp && !isLocalFile) || url.username || url.password) {
-      throw new Error('原地图纹理拒绝非本机资源: ' + url.origin);
+    const isPublished = isPublishedAsset(origin) && isPublishedAsset(url);
+    if ((!isLocalHttp && !isLocalFile && !isPublished) || url.username || url.password || origin.username || origin.password) {
+      throw new Error('原地图纹理拒绝项目范围外的资源: ' + url.origin);
     }
     return url.href;
   }
@@ -180,7 +184,7 @@
           const controller = new win.AbortController();
           const timer = win.setTimeout(() => controller.abort(), 20000);
           try {
-            const response = await win.fetch(url, { credentials: 'same-origin', mode: 'same-origin',
+            const response = await win.fetch(url, { credentials: 'omit', mode: 'same-origin',
               redirect: 'error', cache: 'force-cache', signal: controller.signal });
             if (!response.ok) throw new Error('图片读取失败: HTTP ' + response.status);
             const blob = await response.blob();
@@ -217,8 +221,8 @@
           // Do not reintroduce web-font or import requests into an SVG image.
           if (rule.type === 5 || rule.type === 7) continue;
           if (rule.type === 3) {
-            localAssetUrl(rule.href, base);
-            if (rule.styleSheet) await visit(rule.styleSheet.cssRules, rule.href);
+            const importUrl = localAssetUrl(rule.href, base);
+            if (rule.styleSheet) await visit(rule.styleSheet.cssRules, importUrl);
           } else if (rule.type === 4) {
             // Evaluate against the map's current device, not the 4096px image.
             if (win.matchMedia(rule.conditionText).matches) await visit(rule.cssRules, base);

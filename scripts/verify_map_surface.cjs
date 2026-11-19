@@ -36,6 +36,17 @@ for (const url of ['https://example.com/a.png', '//evil.test/a.png', 'http://127
   assert.throws(() => surface.localAssetUrl(url, base));
 }
 assert.throws(() => surface.localAssetUrl('a.png', 'https://example.com/index.html'));
+const projectPage = 'https://gugupromax.github.io/shanhe-atlas/';
+assert.equal(surface.localAssetUrl('css/style.css?v=1', projectPage), projectPage + 'css/style.css?v=1');
+assert.equal(surface.localAssetUrl('../assets/map.webp', projectPage + 'css/style.css'), projectPage + 'assets/map.webp');
+for (const value of ['../other/map.webp', '/shanhe-atlas2/map.webp', '%2e%2e/other/map.webp',
+  'assets/%2e%2e%2f%2e%2e%2fother/map.webp', 'assets/%5cmap.webp', 'assets/%252e%252e%252fmap.webp',
+  'https://guest@gugupromax.github.io/shanhe-atlas/assets/map.webp', 'https://cdn.example.com/map.webp',
+  'http://gugupromax.github.io/shanhe-atlas/assets/map.webp', 'https://gugupromax.github.io:9000/shanhe-atlas/assets/map.webp']) {
+  assert.throws(() => surface.localAssetUrl(value, projectPage), value);
+}
+assert.throws(() => surface.localAssetUrl(projectPage + 'map.webp', 'https://gugupromax.github.io/other/'));
+assert.throws(() => surface.localAssetUrl(projectPage + 'map.webp', base));
 
 for (const [input, expected] of [
   ['.one, .two:hover, .three', ['.one', '.two:hover', '.three']],
@@ -105,7 +116,7 @@ class Node {
   getScreenCTM() { return { a: 2, b: 0, c: 0, d: 2 }; }
 }
 
-function fixture() {
+function fixture(page = base) {
   let fetchCount = 0, revoked = 0, serialized = null, imageFails = false, canvasFails = false, contextMode = 'person';
   const rootCss = Object.assign(new Style({ '--water-fill': '#d6e0de', '--serif-stack': 'SimSun, serif' }),
     { 0: '--water-fill', 1: '--serif-stack', length: 2, fontFamily: 'SimSun, serif' });
@@ -113,8 +124,8 @@ function fixture() {
   const rule = (selectorText, cssText, cssRules = []) => ({ type: 1, selectorText,
     style: { cssText }, cssRules, cssText: selectorText + '{' + cssText + '}' });
   const doc = {
-    baseURI: base, documentElement: new Node('html', { lang: 'en' }), fonts: { ready: Promise.resolve() },
-    styleSheets: [{ href: 'http://127.0.0.1:8123/css/style.css', cssRules: [
+    baseURI: page, documentElement: new Node('html', { lang: 'en' }), fonts: { ready: Promise.resolve() },
+    styleSheets: [{ href: new URL('css/style.css', page).href, cssRules: [
       rule('.polity-shape', 'fill:#c49562;stroke-width:2;vector-effect:non-scaling-stroke'),
       rule('.polity-shape:hover', 'fill:red'),
       rule('.person-history :is(summary, a):focus-visible', 'outline:2px solid #963f2c;'),
@@ -157,7 +168,14 @@ function fixture() {
     },
     matchMedia: query => ({ matches: query === '(max-width:640px)' }),
     CSS: { supports: () => true },
-    fetch: async () => { fetchCount++; return { ok: true, blob: async () => ({ type: 'image/webp' }) }; },
+    fetch: async (url, options) => {
+      assert.equal(url, new URL('assets/terrain_relief.webp', page).href);
+      assert.equal(options.mode, 'same-origin');
+      assert.equal(options.credentials, 'omit');
+      assert.equal(options.redirect, 'error');
+      fetchCount++;
+      return { ok: true, blob: async () => ({ type: 'image/webp' }) };
+    },
     FileReader: class { readAsDataURL() { this.result = 'data:image/webp;base64,AA=='; this.onload(); } },
     Blob: class {},
     URL: { createObjectURL: () => 'blob:fixture', revokeObjectURL: () => { revoked++; } },
@@ -205,6 +223,9 @@ function fixture() {
 (async function () {
   const f = fixture(), before = JSON.stringify(f.svg.attrs);
   const request = { bounds: [66, 14, 142, 55], width: 1024 };
+  const published = fixture(projectPage);
+  assert.match((await published.exporter.render(request)).url, /^data:image\/png;base64,/);
+  assert.equal(published.fetchCount, 1, 'published atlas reads its own relief image');
   const output = await f.exporter.render(request);
   assert.match(output.url, /^data:image\/png;base64,/);
   assert.deepEqual(output.bounds, request.bounds);
@@ -286,7 +307,7 @@ function fixture() {
   assert.ok(f.svg.querySelector('#pass-icon') && f.svg.querySelector('#pass-label'), 'preserve the original 2D gate');
   assert.equal(f.fetchCount, 1, 'local image reads must be cached');
   f.svg.querySelector('#terrain-relief-img').setAttribute('href', 'https://example.com/map.png');
-  await assert.rejects(f.exporter.render(request), /拒绝非本机/);
+  await assert.rejects(f.exporter.render(request), /拒绝/);
   assert.equal(f.fetchCount, 1, 'remote URLs must never reach fetch');
   const decode = fixture(); decode.failImage();
   await assert.rejects(decode.exporter.render(request), /解析失败/);
@@ -294,5 +315,5 @@ function fixture() {
   const canvas = fixture(); canvas.failCanvas();
   await assert.rejects(canvas.exporter.render(request), /tainted fixture/);
   assert.equal(canvas.revoked, 1);
-  console.log('PASS: original Mercator bounds/aspect, 4096 cap, local-only assets/cache, SVG clone/state/fonts/CSS/strokes, export errors and blob cleanup. Pixel rendering requires browser validation.');
+  console.log('PASS: original Mercator bounds/aspect, 4096 cap, local and published project assets/cache, SVG clone/state/fonts/CSS/strokes, export errors and blob cleanup. Pixel rendering requires browser validation.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
