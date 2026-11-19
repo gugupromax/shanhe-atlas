@@ -64,75 +64,114 @@ function rasterShape(shape) {
   return { i0, j0, w: grid.w, h: grid.h, mask: rasterize(grid, polygonsOf(shape)) };
 }
 
+// Each layer uses a local window on the global RES lattice. Zero denotes an
+// uncovered cell; other values store the first feature index plus one.
+function prefectureCoverage(prefs, rasterOf, features) {
+  const rasters = prefs.map(rasterOf);
+  const i0 = Math.min(...rasters.map(r => r.i0));
+  const j0 = Math.min(...rasters.map(r => r.j0));
+  const w = Math.max(...rasters.map(r => r.i0 + r.w)) - i0;
+  const h = Math.max(...rasters.map(r => r.j0 + r.h)) - j0;
+  const owner = new Int32Array(w * h);
+  const cells = [];
+  const shared = new Map();
+  for (const idx of prefs) {
+    const r = rasterOf(idx);
+    for (let j = 0; j < r.h; j++) {
+      const offset = (r.j0 - j0 + j) * w + r.i0 - i0;
+      for (let i = 0; i < r.w; i++) {
+        if (!r.mask[j * r.w + i]) continue;
+        const cell = offset + i;
+        if (!owner[cell]) {
+          owner[cell] = idx + 1;
+          cells.push(cell);
+        } else {
+          if (!shared.has(cell)) shared.set(cell, [owner[cell] - 1]);
+          shared.get(cell).push(idx);
+        }
+      }
+    }
+  }
+  const pairs = new Map();
+  // Preserve the order of detail output, including ties, by first cell visit.
+  for (const cell of cells) {
+    const list = shared.get(cell);
+    if (!list) continue;
+    for (let a = 0; a < list.length; a++) {
+      for (let b = a + 1; b < list.length; b++) {
+        const names = [features[list[a]].title, features[list[b]].title].sort().join(' / ');
+        pairs.set(names, (pairs.get(names) || 0) + 1);
+      }
+    }
+  }
+  return { i0, j0, w, h, owner, cells, shared, pairs };
+}
+
+// Only core cells inside this prefecture window can affect the outside count.
+function addCore(core, layer, r) {
+  const x = r.i0 - layer.i0, y = r.j0 - layer.j0;
+  const left = Math.max(0, -x), right = Math.min(r.w, layer.w - x);
+  const top = Math.max(0, -y), bottom = Math.min(r.h, layer.h - y);
+  if (right <= left) return;
+  for (let j = top; j < bottom; j++) {
+    const offset = (y + j) * layer.w + x;
+    for (let i = left; i < right; i++) core[offset + i] |= r.mask[j * r.w + i];
+  }
+}
+
 /** Audits every snapshot. Returns [{ key, overlap, outside, pairs, outsideBy }] in index order. */
 function auditPrefectures(rootDir = ROOT) {
   const { index, doc } = loadSources(rootDir);
+  return auditDoc(doc, index.order);
+}
+
+function auditDoc(doc, order) {
   const rasters = new Map();
   const rasterOf = (idx) => {
     if (!rasters.has(idx)) rasters.set(idx, rasterShape(doc.features[idx].shape));
     return rasters.get(idx);
   };
-  const layerCache = new Map();
-  const report = [];
-  for (const key of index.order) {
+  const layers = new Map();
+  for (const key of order) {
     const snap = doc.snapshots[key];
     if (!snap || Array.isArray(snap)) continue;
     let prefs = Array.isArray(snap.prefectures) && snap.prefectures.length ? snap.prefectures : null;
     if (!prefs && snap.prefRef && doc.snapshots[snap.prefRef]) prefs = doc.snapshots[snap.prefRef].prefectures || null;
     prefs = (prefs || []).filter((idx) => doc.features[idx].shape);
     if (!prefs.length) continue;
-
-    // Prefecture coverage: cell → list of prefecture indices (shared by snapshots with the same layer).
     const layerKey = prefs.join(',');
-    if (!layerCache.has(layerKey)) {
-      const cover = new Map();
-      for (const idx of prefs) {
-        const r = rasterOf(idx);
-        for (let j = 0; j < r.h; j++) {
-          for (let i = 0; i < r.w; i++) {
-            if (!r.mask[j * r.w + i]) continue;
-            const cell = (r.j0 + j) * 7200 + (r.i0 + i);
-            const list = cover.get(cell);
-            if (list) list.push(idx);
-            else cover.set(cell, [idx]);
-          }
-        }
-      }
-      const pairs = new Map();
-      let overlap = 0;
-      for (const list of cover.values()) {
-        if (list.length < 2) continue;
-        overlap++;
-        for (let a = 0; a < list.length; a++) {
-          for (let b = a + 1; b < list.length; b++) {
-            const names = [doc.features[list[a]].title, doc.features[list[b]].title].sort().join(' / ');
-            pairs.set(names, (pairs.get(names) || 0) + 1);
-          }
-        }
-      }
-      layerCache.set(layerKey, { cover, overlap, pairs });
-    }
-    const { cover, overlap, pairs } = layerCache.get(layerKey);
-
-    const core = new Set();
-    const polities = Array.isArray(snap.polities) ? snap.polities : [];
-    for (const idx of polities) {
-      if (!CORE_ROLES.has(doc.features[idx].role) || !doc.features[idx].shape) continue;
-      const r = rasterOf(idx);
-      for (let j = 0; j < r.h; j++) {
-        for (let i = 0; i < r.w; i++) if (r.mask[j * r.w + i]) core.add((r.j0 + j) * 7200 + (r.i0 + i));
-      }
-    }
-    let outside = 0;
-    const outsideBy = new Map();
-    for (const [cell, list] of cover) {
-      if (core.has(cell)) continue;
-      outside++;
-      for (const idx of list) outsideBy.set(doc.features[idx].title, (outsideBy.get(doc.features[idx].title) || 0) + 1);
-    }
-    report.push({ key, overlap, outside, pairs, outsideBy });
+    if (!layers.has(layerKey)) layers.set(layerKey, { prefs, keys: [] });
+    layers.get(layerKey).keys.push(key);
   }
-  return report;
+
+  // Finish all snapshots sharing a layer before allocating the next coverage map.
+  const report = new Map();
+  for (const { prefs, keys } of layers.values()) {
+    const layer = prefectureCoverage(prefs, rasterOf, doc.features);
+    const core = new Uint8Array(layer.w * layer.h);
+    for (const key of keys) {
+      const polities = doc.snapshots[key].polities;
+      core.fill(0);
+      for (const idx of Array.isArray(polities) ? polities : []) {
+        if (CORE_ROLES.has(doc.features[idx].role) && doc.features[idx].shape) addCore(core, layer, rasterOf(idx));
+      }
+      let outside = 0;
+      const outsideBy = new Map();
+      const count = idx => {
+        const name = doc.features[idx].title;
+        outsideBy.set(name, (outsideBy.get(name) || 0) + 1);
+      };
+      for (const cell of layer.cells) {
+        if (core[cell]) continue;
+        outside++;
+        const shared = layer.shared.get(cell);
+        if (shared) shared.forEach(count);
+        else count(layer.owner[cell] - 1);
+      }
+      report.set(key, { key, overlap: layer.shared.size, outside, pairs: layer.pairs, outsideBy });
+    }
+  }
+  return order.filter(key => report.has(key)).map(key => report.get(key));
 }
 
 function toBaseline(report) {
@@ -178,7 +217,7 @@ const top = (map, n) => [...map].sort((a, b) => b[1] - a[1]).slice(0, n);
 function main(argv) {
   const args = argv.slice(2);
   if (args.includes('--help') || args.includes('-h')) {
-    console.log(fs.readFileSync(__filename, 'utf8').match(/Usage:\n([\s\S]*?)\n \*\//)[1].replace(/^ \* ?/gm, ''));
+    console.log(fs.readFileSync(__filename, 'utf8').match(/Usage:\r?\n([\s\S]*?)\r?\n \*\//)[1].replace(/^ \* ?/gm, ''));
     return 0;
   }
   const report = auditPrefectures();
@@ -233,4 +272,4 @@ function main(argv) {
 
 if (require.main === module) process.exit(main(process.argv));
 
-module.exports = { auditPrefectures, compareWithBaseline, readBaseline };
+module.exports = { auditPrefectures, auditDoc, compareWithBaseline, readBaseline };

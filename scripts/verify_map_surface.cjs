@@ -277,10 +277,10 @@ function fixture() {
   assert.equal(f.clone.querySelector('#pass-label'), null, 'remove the painted pass caption');
   assert.ok(f.clone.querySelector('#county-dot') && f.clone.querySelector('#county-label'), 'preserve other years’ marker artwork');
   await f.exporter.render({ ...request, screenPasses: true, screenAdmin: true });
-  for (const id of ['pass-icon','pass-label','county-dot','county-label','prefecture-label','region-label']) {
+  for (const id of ['pass-icon','pass-label','county-dot','county-label','prefecture-label','city-label','region-label']) {
     assert.equal(f.clone.querySelector('#' + id), null, id + ' is drawn as part of the screen overlay');
   }
-  for (const id of ['prefecture-dot','city-label']) assert.ok(f.clone.querySelector('#' + id));
+  assert.ok(f.clone.querySelector('#prefecture-dot'), 'the texture retains the seat symbol');
   await f.exporter.render({ ...request, screenLabels: true });
   for (const id of ['pass-icon','pass-label','county-dot','county-label']) assert.equal(f.clone.querySelector('#' + id), null);
   assert.ok(f.svg.querySelector('#pass-icon') && f.svg.querySelector('#pass-label'), 'preserve the original 2D gate');

@@ -256,16 +256,38 @@
       if (this.year === tangYear) return this._tang741VisiblePlaces(settlements);
       const additions = this._periodAdminAreas(dynasty);
       if (!additions.length) return settlements;
-      const existing = new Map();
+      const settlementsByName = new Map();
       for (const item of settlements) {
         if ((item.appear != null && item.appear > this.year) ||
             (item.vanish != null && this.year >= item.vanish)) continue;
         const name = this._settlementAncient(item, this.year);
-        if (!existing.has(name)) existing.set(name, []);
-        existing.get(name).push(item.coord);
+        if (!settlementsByName.has(name)) settlementsByName.set(name, []);
+        settlementsByName.get(name).push(item);
       }
-      return settlements.concat(additions.filter((item) => !item.schematic ||
-        !existing.get(item.ancient)?.some((coord) => projector.pointInShape(...coord, item.shape))));
+
+      // The two sources often locate the same town a few kilometres apart.
+      // Merge only one-to-one, same-year matches. Ambiguous seats stay individually selectable.
+      const seatBySettlement = new Map();
+      for (const seat of additions) {
+        if (seat.schematic || !settlementsByName.has(seat.ancient)) continue;
+        const nearby = settlementsByName.get(seat.ancient).filter(town =>
+          this.projector.greatCircleKm(town.coord, seat.coord) <= 5);
+        for (const town of nearby) {
+          seatBySettlement.set(town, nearby.length === 1 && !seatBySettlement.has(town) ? seat : null);
+        }
+      }
+      const mergedSeats = new Set();
+      const markers = settlements.map(town => {
+        const seat = seatBySettlement.get(town);
+        if (!seat) return town;
+        mergedSeats.add(seat);
+        // Keep the town's original zoom/layer class, capital dates, and label priority.
+        return {...town, coord:seat.coord, areaKey:seat.areaKey, parent:seat.parent,
+          modern:town.modern || seat.modern};
+      });
+      return markers.concat(additions.filter(seat => !mergedSeats.has(seat) &&
+        (!seat.schematic || !settlementsByName.get(seat.ancient)?.some(town =>
+          projector.pointInShape(...town.coord, seat.shape)))));
     }
 
     _adminSearchIndex(baseIndex) {

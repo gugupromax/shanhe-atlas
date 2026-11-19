@@ -35,10 +35,10 @@ const adminApp={year:1080,projector:{toGeo:(x,y)=>[x,y]},svg:{querySelectorAll(s
   return [];
 }}};
 const adminStyles=node=>({display:node.display,opacity:node.opacity});
-assert.deepEqual(mapSurface.adminScreenLabels(adminApp,adminStyles).map(label=>label.name),['京畿路','开封府']);
+assert.deepEqual(mapSurface.adminScreenLabels(adminApp,adminStyles).map(label=>label.name),['京畿路','开封府','汴京']);
 demoCounty.parentElement.display='inline';
 assert.deepEqual(mapSurface.adminScreenLabels(adminApp,adminStyles).map(label=>[label.kind,label.areaKey]),
-  [['circuit',undefined],['prefecture','prefecture/kaifeng'],['county','county/xiangfu']]);
+  [['circuit',undefined],['prefecture','prefecture/kaifeng'],['county','county/xiangfu'],['prefecture',undefined]]);
 assert.ok(mapSurface.adminScreenLabels({...adminApp,year:741},adminStyles).some(label=>label.name==='汴京'),
   '741 retains the complete original screen overlay');
 const defaultLayers={polities:true,settlements:true,prefectures:true,corridors:true,hydro:true,modernProvinces:true,milestones:true,modernProvinceNames:false};

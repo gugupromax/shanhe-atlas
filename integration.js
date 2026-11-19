@@ -254,14 +254,8 @@
     }
     function locations() {
       const dynasty = app.dynasties[app.dynastyIdx] || {};
-      // The parent SVG also defines which supplemental Tang labels are visible.
-      // Only read display: 3D intentionally hides visibility of the whole SVG.
-      const city = app.year === 741 && app.grpSettlements
-        ? renderedSettlementLocations(app.grpSettlements, node => root.getComputedStyle(node))
-        : (dynasty.settlements || [])
-          .filter(s => validCoord(s.coord) && (s.appear === undefined || app.year >= s.appear) &&
-            (s.vanish === undefined || app.year < s.vanish))
-          .map(s => ({ name: app._settlementAncient(s, app.year), coord: s.coord, kind: 'city' }));
+      // Reuse the displayed seats so 3D picks share the map's historical names and coordinates.
+      const city = renderedSettlementLocations(app.grpSettlements, node => root.getComputedStyle(node));
       const events = app.activePerson ? app.activePerson.events || [] : app.activeCustomRoute || [];
       const stops = events.map((s, index) => ({ name: s.siteZh || s.query || s.name || '',
         coord: s.coord || [s.lng, s.lat], kind: 'journey', year: s.year, index,
@@ -273,7 +267,7 @@
           name: app.milestoneHeadline(dynasty, m), coord: a.coord, year: m.year,
           kind: 'event', index,
         }))) : [];
-      return city.concat(stops, milestones);
+      return stops.concat(milestones, city);
     }
     function snapshot() {
       const snap = app.svg.classList.contains('is-awaiting-snapshot') ? {} : app.lastRenderedSnap || {};
@@ -393,7 +387,7 @@
         presentTerrain(false);
       }
       // Keep the flat map responsive until the user actually requests WebGL.
-      if (starting && !frame.getAttribute('src')) frame.src = 'terrain.html?embedded=1&v=atlas-20261119-12';
+      if (starting && !frame.getAttribute('src')) frame.src = 'terrain.html?embedded=1&v=atlas-20261119-13';
       doc.getElementById('fusion-flat').setAttribute('aria-pressed', String(!active));
       doc.getElementById('fusion-3d').setAttribute('aria-pressed', String(active));
       if (explanation) announce(explanation);

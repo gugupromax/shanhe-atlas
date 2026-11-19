@@ -231,3 +231,49 @@ test('two clicks in a single prefecture keep its hierarchy and separate point-sp
   assert.equal(nodes.get('map-area-hierarchy').textContent, '史料所载之州');
   assert(!nodes.get('map-area-hierarchy').hidden);
 });
+
+test('overlapping town and dated seat have one clickable marker without hiding the original town at other levels', () => {
+  const ctrl = setup(960);
+  ctrl.projector.greatCircleKm = context.HistoricalAtlasController._projectorClass.prototype.greatCircleKm;
+  const town = {ancient:'古城', eraNames:[{from:950,until:965,zh:'某州'}], coord:[110,34],
+    isCapital:true, capitalPeriods:[[950,970]], remark:'城镇沿革'};
+  const homonym = {ancient:'某州',coord:[112,34]};
+  const vanished = {ancient:'某州',coord:[110,34],vanish:960};
+  const seat = {ancient:'某州',coord:[110.02,34],areaKey:'prefecture/test',level:'prefecture',
+    modern:'今址',parent:'某路'};
+  ctrl._periodAdminAreas = () => [seat];
+  const visible = ctrl._adminVisiblePlaces([town, homonym, vanished], ctrl.dynasties[0]);
+  assert.equal(visible.length, 3);
+  const merged = visible[0];
+  assert.equal(merged.areaKey, seat.areaKey);
+  assert.equal(merged.coord, seat.coord);
+  assert.equal(merged.capitalPeriods, town.capitalPeriods);
+  assert.equal(merged.isCapital, true);
+  assert.equal(merged.level, undefined, 'town keeps its original layer and zoom rules');
+  assert.equal(merged.parent, seat.parent);
+  assert.equal(merged.remark, town.remark);
+  assert.equal(visible[1], homonym);
+  assert.equal(visible[2], vanished);
+  assert.equal(town.areaKey, undefined, 'a match for one year must not modify the source object');
+  ctrl.openMapSettlementAt(...merged.coord, '某州', merged.areaKey);
+  assert.equal(ctrl.card[3], seat);
+  ctrl.year = 965;
+  assert.equal(ctrl._adminVisiblePlaces([town, homonym], ctrl.dynasties[0]).length, 3,
+    'a historical name that has expired does not claim the seat');
+});
+
+test('nearby names with ambiguous identities and different names at the same site stay separate', () => {
+  const ctrl = setup();
+  ctrl.projector.greatCircleKm = context.HistoricalAtlasController._projectorClass.prototype.greatCircleKm;
+  const town = {ancient:'甲府',coord:[110,34]};
+  const otherTown = {...town,coord:[110.03,34]};
+  const seat = {ancient:'甲府',coord:[110.01,34],areaKey:'prefecture/one',level:'prefecture'};
+  const otherSeat = {...seat,coord:[110.02,34],areaKey:'prefecture/two'};
+  const county = {...seat,ancient:'乙县',areaKey:'county/three',level:'county'};
+  ctrl._periodAdminAreas = () => [seat, otherSeat, county];
+  assert.deepEqual(Array.from(ctrl._adminVisiblePlaces([town], ctrl.dynasties[0])),
+    [town, seat, otherSeat, county]);
+  ctrl._periodAdminAreas = () => [seat];
+  assert.deepEqual(Array.from(ctrl._adminVisiblePlaces([town,otherTown], ctrl.dynasties[0])),
+    [town, otherTown, seat]);
+});

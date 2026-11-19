@@ -201,20 +201,31 @@ def render(rows, inputs, atlas_index):
   const atlasDoi = 'https://doi.org/10.7910/DVN/3KAHBT';
   const cache = new Map();
   const yearText = year => year < 0 ? '公元前' + -year + '年' : year + '年';
+  // The original row order determines which source wins at a shared seat.
+  const rowsByPeriod = new Map();
+  const supersededByYear = new Map();
+  const periodOf = year => Math.floor(year / 64);
+  for (const row of rows) {
+    const from = row[4], through = row[7] < 2 ? Math.min(row[5], 1911) : row[5];
+    if (row[10]) {
+      if (!supersededByYear.has(from)) supersededByYear.set(from, new Set());
+      supersededByYear.get(from).add(row[10]);
+    }
+    for (let period = periodOf(Math.max(from, -403)); period <= periodOf(through); period++) {
+      if (!rowsByPeriod.has(period)) rowsByPeriod.set(period, []);
+      rowsByPeriod.get(period).push(row);
+    }
+  }
 
   function placesForYear(year) {
     if (!Number.isInteger(year) || !year || year < -403) return [];
     if (cache.has(year)) return cache.get(year);
     const found = new Map();
-    const superseded = new Set();
-    for (const row of rows) {
-      if (row[4] > year) break;
-      if (row[4] === year && row[10]) superseded.add(row[10]);
-    }
-    for (const row of rows) {
+    const superseded = supersededByYear.get(year);
+    for (const row of rowsByPeriod.get(periodOf(year)) || []) {
       const [id, ancient, lon, lat, from, through, rank, source, parent, modern] = row;
       if (from > year) break;
-      if (through < year || (source < 2 && year > 1911) || superseded.has(id)) continue;
+      if (through < year || (source < 2 && year > 1911) || superseded?.has(id)) continue;
       const level = rank === 1 ? 'county' : 'prefecture';
       const key = [level, ancient, lon, lat].join('|');
       const first = found.get(key);

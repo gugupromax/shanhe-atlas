@@ -225,7 +225,7 @@ const formatEntry = (e) => `${e.key}: overlap=${e.overlap} gap=${e.gap} (${e.pai
 function main(argv) {
   const args = argv.slice(2);
   if (args.includes('--help') || args.includes('-h')) {
-    console.log(fs.readFileSync(__filename, 'utf8').match(/Usage:\n([\s\S]*?)\n \*\//)[1].replace(/^ \* ?/gm, ''));
+    console.log(fs.readFileSync(__filename, 'utf8').match(/Usage:\r?\n([\s\S]*?)\r?\n \*\//)[1].replace(/^ \* ?/gm, ''));
     return 0;
   }
   const report = auditTopology();

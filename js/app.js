@@ -3715,7 +3715,7 @@
         node.dataset.ancient = ancientZh;
         node.dataset.modern = item.modern || '';
         node.dataset.remark = item.remark || '';
-        if (item.level && item.parent) node.dataset.areaParent = item.parent;
+        if ((item.level || item.areaKey) && item.parent) node.dataset.areaParent = item.parent;
         if (item.areaKey) node.dataset.areaKey = item.areaKey;
         if (item.schematic) node.dataset.schematic = '1';
         node.dataset.lng = String(item.coord[0]);

@@ -12,14 +12,13 @@
   const passCaption = '#grp-settlements .settlement-node.is-pass > text.name';
   const passArtwork = '#grp-settlements .pass-gate-icon';
   const regionCaption = '#grp-region-labels text';
-  const prefectureCaption = '#grp-settlements .is-admin-prefecture > text.name';
-  const countyCaption = '#grp-settlements .is-county > text.name';
+  const settlementCaption = '#grp-settlements .settlement-node:not(.is-pass) > text.name';
   const countyDot = '#grp-settlements .is-county .dot';
-  const adminCaptionGroups = [['circuit', regionCaption], ['city', prefectureCaption], ['city', countyCaption]];
+  const adminCaptionGroups = [['circuit', regionCaption], ['city', settlementCaption]];
   const tangCaptionGroups = [
     ['polity', '#grp-polity-labels text'],
     ['circuit', regionCaption],
-    ['city', '#grp-settlements .settlement-node:not(.is-pass) > text.name'],
+    ['city', settlementCaption],
     ['route', '#grp-corridors text.corridor-caption'],
     ['water', '#grp-rivers text.hydro-label'],
     ['reference', '#grp-neighbors text, #grp-prov-names text'],

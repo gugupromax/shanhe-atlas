@@ -19,6 +19,31 @@ function playwright() {
   }
 }
 
+async function verifyViewportReadBudget(frame) {
+  // Measure one redraw on a stationary, populated scene. An extra read per marker
+  // can force synchronous layout after every label position write.
+  const reads = await frame.evaluate(() => new Promise(resolve => {
+    requestAnimationFrame(() => {
+      const stage = document.getElementById('stage');
+      let count = 0;
+      for (const name of ['clientWidth', 'clientHeight']) {
+        const getter = Object.getOwnPropertyDescriptor(Element.prototype, name).get;
+        Object.defineProperty(stage, name, {
+          configurable: true,
+          get() { count++; return getter.call(this); },
+        });
+      }
+      document.getElementById('route-toggle').dispatchEvent(new Event('change'));
+      requestAnimationFrame(() => {
+        delete stage.clientWidth;
+        delete stage.clientHeight;
+        resolve(count);
+      });
+    });
+  }));
+  assert.ok(reads > 0 && reads <= 20, `Expected bounded viewport reads in a terrain redraw, got ${reads}`);
+}
+
 async function main() {
   const { chromium } = playwright();
   const url = new URL(process.env.TERRAIN_TEST_URL || 'http://127.0.0.1:8773/');
@@ -94,6 +119,7 @@ async function main() {
         performance.getEntriesByName('atlas-3d:draw-' + phase, 'measure').length), phases, {polling:100, timeout:30000});
       const phase = await sampledPhase.jsonValue();
       assert.ok(await frame.locator('.tang-label[data-kind="county"]').count() > 0);
+      await verifyViewportReadBudget(childFrame);
       const parentTiming = await page.evaluate(() => Object.fromEntries(performance.getEntriesByType('mark')
         .filter(e => e.name.startsWith('atlas-3d:')).map(e => [e.name, Math.round(e.startTime)])));
       const frameTiming = await frame.locator('body').evaluate(() =>

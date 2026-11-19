@@ -956,32 +956,34 @@
     renderer.render(scene,camera);
     const drawEnd=sample?performance.now():0;
     areaOverlay?.render(camera);
-    const s=$('stage');const occupied=[];
-    $('route-overlay').setAttribute('viewBox',`0 0 ${s.clientWidth} ${s.clientHeight}`);
+    // Read the viewport before placing labels. Measuring after each label write forces layout.
+    const stage=$('stage'),stageWidth=stage.clientWidth,stageHeight=stage.clientHeight;
+    const occupied=[];
+    $('route-overlay').setAttribute('viewBox',`0 0 ${stageWidth} ${stageHeight}`);
     if($('route-toggle').checked)for(const segment of routeWorld){
-      if(segment.dot){const p=segment.point.clone().project(camera);segment.dot.setAttribute('cx',(p.x*.5+.5)*s.clientWidth);segment.dot.setAttribute('cy',(-p.y*.5+.5)*s.clientHeight);segment.dot.style.display=p.z>-1&&p.z<1?'':'none';continue;}
+      if(segment.dot){const p=segment.point.clone().project(camera);segment.dot.setAttribute('cx',(p.x*.5+.5)*stageWidth);segment.dot.setAttribute('cy',(-p.y*.5+.5)*stageHeight);segment.dot.style.display=p.z>-1&&p.z<1?'':'none';continue;}
       let path='',pen=false;
-      for(const point of segment.points){const p=point.clone().project(camera);if(p.z<=-1||p.z>=1){pen=false;continue;}path+=`${pen?'L':'M'}${((p.x*.5+.5)*s.clientWidth).toFixed(1)},${((-p.y*.5+.5)*s.clientHeight).toFixed(1)} `;pen=true;}
+      for(const point of segment.points){const p=point.clone().project(camera);if(p.z<=-1||p.z>=1){pen=false;continue;}path+=`${pen?'L':'M'}${((p.x*.5+.5)*stageWidth).toFixed(1)},${((-p.y*.5+.5)*stageHeight).toFixed(1)} `;pen=true;}
       segment.halo.setAttribute('d',path);segment.line.setAttribute('d',path);
     }
     labels.forEach(label=>{
-      const offset=label.fusionPoint?2*distance*Math.tan(camera.fov*Math.PI/360)/s.clientHeight*5:Math.max(widthKm,depthKm)*.005;
-      const v=xyz(label.lon,label.lat,offset).project(camera),x=(v.x*.5+.5)*s.clientWidth,y=(-v.y*.5+.5)*s.clientHeight;
+      const offset=label.fusionPoint?2*distance*Math.tan(camera.fov*Math.PI/360)/stageHeight*5:Math.max(widthKm,depthKm)*.005;
+      const v=xyz(label.lon,label.lat,offset).project(camera),x=(v.x*.5+.5)*stageWidth,y=(-v.y*.5+.5)*stageHeight;
       let ly=y;
       if(label.type==='pass'||label.type==='waypoint'){
         for(const offset of [0,-25,25,-50,50,-75,75]){
           ly=y+offset;if(!occupied.some(p=>Math.abs(p.x-x)<65&&Math.abs(p.y-ly)<24))break;
         }
       }
-      let visible=v.z<1&&v.z>-1&&x>35&&x<s.clientWidth-35&&ly>25&&ly<s.clientHeight-40&&!(label.type==='waypoint'&&!$('route-toggle').checked);
+      let visible=v.z<1&&v.z>-1&&x>35&&x<stageWidth-35&&ly>25&&ly<stageHeight-40&&!(label.type==='waypoint'&&!$('route-toggle').checked);
       if(label.type==='city'&&occupied.some(p=>Math.abs(p.x-x)<55&&Math.abs(p.y-y)<25))visible=false;
       if(selected==='national'&&label.type==='region'&&occupied.some(p=>Math.abs(p.x-x)<60&&Math.abs(p.y-y)<18))visible=false;
       if(label.fusionPoint&&!label.active&&occupied.some(p=>Math.abs(p.x-x)<65&&Math.abs(p.y-y)<20))visible=false;
       if(visible)occupied.push({x,y:ly});
       label.el.style.visibility=visible?'visible':'hidden';label.el.style.left=x+'px';label.el.style.top=ly+'px';
-      if(label.leader){const anchor=xyz(label.lon,label.lat,Math.max(widthKm,depthKm)*.0009).project(camera);label.leader.style.display=visible?'':'none';label.leader.setAttribute('x1',(anchor.x*.5+.5)*s.clientWidth);label.leader.setAttribute('y1',(-anchor.y*.5+.5)*s.clientHeight);label.leader.setAttribute('x2',x);label.leader.setAttribute('y2',ly-2);}
+      if(label.leader){const anchor=xyz(label.lon,label.lat,Math.max(widthKm,depthKm)*.0009).project(camera);label.leader.style.display=visible?'':'none';label.leader.setAttribute('x1',(anchor.x*.5+.5)*stageWidth);label.leader.setAttribute('y1',(-anchor.y*.5+.5)*stageHeight);label.leader.setAttribute('x2',x);label.leader.setAttribute('y2',ly-2);}
     });
-    drawScreenLabels(s.clientWidth,s.clientHeight,occupied);
+    drawScreenLabels(stageWidth,stageHeight,occupied);
     if(sample){
       performance.measure(frameMetric,{start:drawStart,end:drawEnd});
       performance.measure('atlas-3d:overlay-'+phase,{start:drawEnd,end:performance.now()});
