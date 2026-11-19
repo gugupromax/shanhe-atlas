@@ -1,8 +1,10 @@
-# 山河地图 · Shanhe Atlas
+# 山河图集 · Shanhe Atlas
 
 基于 [江山时序 / jiangshan-map](https://github.com/DeanChensj/jiangshan-map) 二次开发的 2D/3D 中国历史地图，结合真实地形探索朝代疆域、历史事件、人物行迹与城市沿革。本 Fork 用于个人非商业学习与交流，保留原项目作者声明、GPL-3.0 及第三方数据许可例外；用途说明不改变原许可证。
 
 3D 扩展最初基于上游提交 `897b9ad` 开发，本次已同步至 [`1a73bee`](https://github.com/DeanChensj/jiangshan-map/commit/1a73bee6c94e1eae93ceee44dcc1ac60cebc429b)。新增内容为本地真实高程、3D 渲染、原版地图贴地形、双模式状态同步及本地启动工具；上游地图数据与原版业务脚本保留其来源与许可。
+
+[打开山河图集](https://gugupromax.github.io/shanhe-atlas/) · 中国历史地图 · 平面与 3D 地形
 
 ## 本 Fork 的 3D 扩展
 
@@ -16,7 +18,7 @@
 
 新增高程来自 [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/)，数据下载日期、范围、网格及哈希见 `data/context_manifest.json`、`data/manifest.json`。署名：SRTM、GMTED2010 terrain data courtesy of the U.S. Geological Survey；Global ETOPO1 terrain data: NOAA；详见 [原始署名要求](https://github.com/tilezen/joerd/blob/master/docs/attribution.md)。Three.js r160 使用 MIT，许可证保存在 `vendor/LICENSE-three.txt`。
 
-原有 CHGIS/Hartwell 及 DataV 图层仍保留上游的许可说明与例外，不因新增 3D 而统一改为 GPL 或声明为本 Fork 原创。下方保留上游 README，其在线演示仍指向原作者网站，不代表本 Fork 已部署 3D 网站。
+原有 CHGIS/Hartwell 及 DataV 图层仍保留上游的许可说明与例外，不因新增 3D 而统一改为 GPL 或声明为本 Fork 原创。下方保留上游 README，其中的演示链接指向原作者网站。
 
 ### 中央红军长征专题
 

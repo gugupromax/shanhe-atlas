@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Programmatic Static SEO/GEO Topic Page Generator for Shanhe Atlas (山河地图)
+ * Programmatic Static SEO/GEO Topic Page Generator for Shanhe Atlas (山河图集)
  *
  * Generates zero-query-string static HTML landing pages under `topics/*.html` for:
  *   1. All 18 historical eras (`topics/<dynasty.key>.html`)
@@ -181,7 +181,7 @@ const FEATURED_TOPICS = [
       '杜甫归乡路线地图',
       '剑外巴峡巫峡襄阳洛阳古今地名',
       '唐代历史地图763年',
-      '山河地图',
+      '山河图集',
     ],
   },
   {
@@ -205,7 +205,7 @@ const FEATURED_TOPICS = [
       '自题金山画像历史地图',
       '乌台诗案湖州黄州惠州儋州古今地名',
       '北宋路州历史地图',
-      '山河地图',
+      '山河图集',
     ],
   },
   {
@@ -229,7 +229,7 @@ const FEATURED_TOPICS = [
       '文天祥抗元路线图',
       '惶恐滩零丁洋崖山古今地名',
       '南宋末年崖山海战地图',
-      '山河地图',
+      '山河图集',
     ],
   },
   {
@@ -254,7 +254,7 @@ const FEATURED_TOPICS = [
       '蓝关古今地名对照',
       '秦岭蓝田关地图位置',
       '韩愈贬潮州路线地图',
-      '山河地图',
+      '山河图集',
     ],
   },
   {
@@ -279,7 +279,7 @@ const FEATURED_TOPICS = [
       '古代江州是重庆还是九江',
       '江州司马青衫湿是哪里',
       '北宋江南西路江州地图',
-      '山河地图',
+      '山河图集',
     ],
   },
   {
@@ -304,7 +304,7 @@ const FEATURED_TOPICS = [
       '1205年南宋与金朝疆域地图',
       '元嘉草草封狼居胥历史背景地图',
       '镇江京口古今政区沿革',
-      '山河地图',
+      '山河图集',
     ],
   },
   {
@@ -329,7 +329,7 @@ const FEATURED_TOPICS = [
       '公元前260年战国七雄地图',
       '上党郡长平古今地名对照',
       '白起赵括长平之战地理位置',
-      '山河地图',
+      '山河图集',
     ],
   },
   {
@@ -354,7 +354,7 @@ const FEATURED_TOPICS = [
       '赤壁乌林柴桑夏口江陵地理位置',
       '三国赤壁是湖北黄冈还是咸宁赤壁',
       '赤壁之战古今地名对照',
-      '山河地图',
+      '山河图集',
     ],
   },
   {
@@ -379,7 +379,7 @@ const FEATURED_TOPICS = [
       '淝水寿春八公山是现在的哪里',
       '风声鹤唳草木皆兵历史地图',
       '东晋十六国历史地图',
-      '山河地图',
+      '山河图集',
     ],
   },
 ];
@@ -399,7 +399,7 @@ function renderSharedHead({
   <title>${escHtml(title)}</title>
   <meta name="description" content="${escHtml(description)}" />
   <meta name="keywords" content="${escHtml(keywords.join(', '))}" />
-  <meta name="author" content="Shanhe Atlas (山河地图)" />
+  <meta name="author" content="Shanhe Atlas (山河图集)" />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
   <meta name="applicable-device" content="pc,mobile" />
   <meta name="mobile-agent" content="format=html5;url=${escHtml(canonicalUrl)}" />
@@ -408,7 +408,7 @@ function renderSharedHead({
   <meta name="theme-color" content="#f5efe2" />
   <link rel="canonical" href="${escHtml(canonicalUrl)}" />
   <meta property="og:type" content="article" />
-  <meta property="og:site_name" content="山河地图 · Shanhe Atlas" />
+  <meta property="og:site_name" content="山河图集 · Shanhe Atlas" />
   <meta property="og:locale" content="zh_CN" />
   <meta property="og:locale:alternate" content="en_US" />
   <meta property="og:title" content="${escHtml(title)}" />
@@ -827,7 +827,7 @@ ${JSON.stringify(jsonLdObj, null, 2)}
 function renderTopHeader() {
   return `  <header class="top-bar">
     <a class="brand-link" href="${BASE_URL}/">
-      <span class="seal-badge">山河地图</span>
+      <span class="seal-badge">山河图集</span>
       <span>中国历史地图 · 战国 → 今</span>
     </a>
     <nav class="top-nav" aria-label="专题图志导航">
@@ -852,8 +852,8 @@ function renderFooter(allDynasties) {
       </div>
     </section>
     <footer class="page-footer">
-      <div>山河地图 · <a href="https://github.com/DeanChensj/jiangshan-map">原项目江山时序</a> · <a href="../map-sources.html">图层来源与署名</a></div>
-      <div><a href="${BASE_URL}/topics/index.html">专题图志总览</a> · <a href="${BASE_URL}/llms.txt">LLMs.txt</a> · <a href="https://github.com/gugupromax/shanhe-atlas/issues">山河地图勘误</a></div>
+      <div>山河图集 · <a href="https://github.com/DeanChensj/jiangshan-map">原项目江山时序</a> · <a href="../map-sources.html">图层来源与署名</a></div>
+      <div><a href="${BASE_URL}/topics/index.html">专题图志总览</a> · <a href="${BASE_URL}/llms.txt">LLMs.txt</a> · <a href="https://github.com/gugupromax/shanhe-atlas/issues">山河图集勘误</a></div>
     </footer>`;
 }
 
@@ -1136,7 +1136,7 @@ function buildDynastyPage(d, idx, allDynasties, snapshots, enLocale, ctrl, provi
   const canonicalUrl = `${BASE_URL}/topics/${d.key}.html`;
   const mapUrl = `${BASE_URL}/?year=${focusY}`;
 
-  const pageTitle = `${d.title}历史地图（${spanZh} · ${titleEn}）· 疆域演变、州郡政区、古今地名对照与重大事件 | 山河地图`;
+  const pageTitle = `${d.title}历史地图（${spanZh} · ${titleEn}）· 疆域演变、州郡政区、古今地名对照与重大事件 | 山河图集`;
   const spanFullZh = d.key === 'prc' ? `${fmtYearZh(d.fromYear)}至今` : `${fmtYearZh(d.fromYear)}至${fmtYearZh(d.toYear)}`;
   const pageDesc = `${d.title}历史地图（${spanFullZh}，都城：${d.seat}）：${d.summary} 收录${(d.phases || []).length || 1}幅多阶段版图快照、${(d.settlements || []).length}座城池古今地名对照与${(d.milestones || []).length}项编年重大历史事件。`;
 
@@ -1290,19 +1290,19 @@ function buildDynastyPage(d, idx, allDynasties, snapshots, enLocale, ctrl, provi
         inLanguage: ['zh-CN', 'en'],
         author: {
           '@type': 'Organization',
-          name: '山河地图 (Shanhe Atlas)',
+          name: '山河图集 (Shanhe Atlas)',
           url: `${BASE_URL}/`,
         },
         isPartOf: {
           '@type': 'WebSite',
-          name: '山河地图 · 中国历史地图',
+          name: '山河图集 · 中国历史地图',
           url: `${BASE_URL}/`,
         },
       },
       {
         '@type': 'BreadcrumbList',
         itemListElement: [
-          { '@type': 'ListItem', position: 1, name: '山河地图首页', item: `${BASE_URL}/` },
+          { '@type': 'ListItem', position: 1, name: '山河图集首页', item: `${BASE_URL}/` },
           { '@type': 'ListItem', position: 2, name: '专题图志总览', item: `${BASE_URL}/topics/index.html` },
           { '@type': 'ListItem', position: 3, name: `${d.title}历史地图（${spanZh}）`, item: canonicalUrl },
         ],
@@ -1318,7 +1318,7 @@ function buildDynastyPage(d, idx, allDynasties, snapshots, enLocale, ctrl, provi
     `${d.title}都城${d.seat}`,
     `${titleEn} historical map`,
     '中国历史地图时间轴',
-    '山河地图',
+    '山河图集',
   ];
 
   const html = `${renderSharedHead({
@@ -1332,7 +1332,7 @@ function buildDynastyPage(d, idx, allDynasties, snapshots, enLocale, ctrl, provi
 ${renderTopHeader()}
   <main>
     <nav class="breadcrumb" aria-label="面包屑导航">
-      <a href="${BASE_URL}/">山河地图首页</a> &rsaquo;
+      <a href="${BASE_URL}/">山河图集首页</a> &rsaquo;
       <a href="${BASE_URL}/topics/index.html">专题图志总目录</a> &rsaquo;
       <span>${escHtml(d.title)}历史地图（${escHtml(spanZh)}）</span>
     </nav>
@@ -1366,7 +1366,7 @@ ${renderEmbedMapSection({
 
     <section class="section-card">
       <h2>一、${escHtml(d.title)}版图演变阶段与政权州郡格局（${phases.length} 阶段快照）</h2>
-      <p>在山河地图中拖动底部时间轴滑块，或点击下方各阶段链接，即可查看${escHtml(d.title)}不同年份的政权疆域消长、州道郡县边界及黄河改道水系：</p>
+      <p>在山河图集中拖动底部时间轴滑块，或点击下方各阶段链接，即可查看${escHtml(d.title)}不同年份的政权疆域消长、州道郡县边界及黄河改道水系：</p>
       <div class="table-wrap">
         <table class="data-table">
           <thead>
@@ -1462,7 +1462,7 @@ function buildStorylinePage(s, idx, allStories, allDynasties, sourcesBundle) {
   const stopsChainZh = stops.map((st) => `${st.ancientZh}（今${st.modernZh}）`).join(' → ');
   const stopsChainEn = stops.map((st) => `${st.ancientEn} (${st.modernEn})`).join(' → ');
 
-  const pageTitle = `${s.zh}历史地图（${spanZh} · ${s.en}）· ${modeZh}、${stops.length}站全过程与史料出处 | 山河地图`;
+  const pageTitle = `${s.zh}历史地图（${spanZh} · ${s.en}）· ${modeZh}、${stops.length}站全过程与史料出处 | 山河图集`;
   const pageDesc = `${s.zh}（${s.en}，${s.courtesyZh}）：${s.descZh} 全程共 ${stops.length} 个关键时空节点（${stopsChainZh}），提供${modeZh}、古今地名对照与参考资料。`;
 
   const campMap = new Map(camps.map((c) => [c.key, c]));
@@ -1548,14 +1548,14 @@ function buildStorylinePage(s, idx, allStories, allDynasties, sourcesBundle) {
         inLanguage: ['zh-CN', 'en'],
         author: {
           '@type': 'Organization',
-          name: '山河地图 (Shanhe Atlas)',
+          name: '山河图集 (Shanhe Atlas)',
           url: `${BASE_URL}/`,
         },
       },
       {
         '@type': 'BreadcrumbList',
         itemListElement: [
-          { '@type': 'ListItem', position: 1, name: '山河地图首页', item: `${BASE_URL}/` },
+          { '@type': 'ListItem', position: 1, name: '山河图集首页', item: `${BASE_URL}/` },
           { '@type': 'ListItem', position: 2, name: '专题图志总览', item: `${BASE_URL}/topics/index.html` },
           { '@type': 'ListItem', position: 3, name: `${s.zh}历史地图`, item: canonicalUrl },
         ],
@@ -1570,7 +1570,7 @@ function buildStorylinePage(s, idx, allStories, allDynasties, sourcesBundle) {
     ...(s.aliases || []),
     ...stops.map((st) => st.ancientZh),
     '事件始末沙盘',
-    '山河地图',
+    '山河图集',
   ];
 
   const html = `${renderSharedHead({
@@ -1584,7 +1584,7 @@ function buildStorylinePage(s, idx, allStories, allDynasties, sourcesBundle) {
 ${renderTopHeader()}
   <main>
     <nav class="breadcrumb" aria-label="面包屑导航">
-      <a href="${BASE_URL}/">山河地图首页</a> &rsaquo;
+      <a href="${BASE_URL}/">山河图集首页</a> &rsaquo;
       <a href="${BASE_URL}/topics/index.html">专题图志总目录</a> &rsaquo;
       <span>${escHtml(s.zh)}（${escHtml(spanZh)}）</span>
     </nav>
@@ -1649,7 +1649,7 @@ function buildJourneyPage(j, idx, allJourneys, allDynasties, sourcesBundle) {
   const cleanSpanZh = j.spanZh.replace(/[（）()]/g, ' · ').replace(/\s*·\s*$/, '');
   const cleanSpanEn = j.spanEn.replace(/[（）()]/g, ' · ').replace(/\s*·\s*$/, '');
 
-  const pageTitle = `${j.titleZh}路线图（${cleanSpanZh}）· ${stops.length}站古今地名对照与诗词纪事 | 山河地图`;
+  const pageTitle = `${j.titleZh}路线图（${cleanSpanZh}）· ${stops.length}站古今地名对照与诗词纪事 | 山河图集`;
   const pageDesc = `${j.titleZh}（${j.titleEn}，${cleanSpanZh}）历史地图时空轨迹，全线共 ${stops.length} 站：${stopsChainZh}。提供逐站帝王年号、古今政区对照、经典史料诗词与交互式路线回放。`;
 
   const yearSeen = new Map();
@@ -1698,14 +1698,14 @@ function buildJourneyPage(j, idx, allJourneys, allDynasties, sourcesBundle) {
         inLanguage: ['zh-CN', 'en'],
         author: {
           '@type': 'Organization',
-          name: '山河地图 (Shanhe Atlas)',
+          name: '山河图集 (Shanhe Atlas)',
           url: `${BASE_URL}/`,
         },
       },
       {
         '@type': 'BreadcrumbList',
         itemListElement: [
-          { '@type': 'ListItem', position: 1, name: '山河地图首页', item: `${BASE_URL}/` },
+          { '@type': 'ListItem', position: 1, name: '山河图集首页', item: `${BASE_URL}/` },
           { '@type': 'ListItem', position: 2, name: '专题图志总览', item: `${BASE_URL}/topics/index.html` },
           { '@type': 'ListItem', position: 3, name: j.titleZh, item: canonicalUrl },
         ],
@@ -1720,7 +1720,7 @@ function buildJourneyPage(j, idx, allJourneys, allDynasties, sourcesBundle) {
     `${j.titleEn} map`,
     ...stops.map((s) => s.ancientZh),
     '点人溯事',
-    '山河地图',
+    '山河图集',
   ];
 
   const html = `${renderSharedHead({
@@ -1734,7 +1734,7 @@ function buildJourneyPage(j, idx, allJourneys, allDynasties, sourcesBundle) {
 ${renderTopHeader()}
   <main>
     <nav class="breadcrumb" aria-label="面包屑导航">
-      <a href="${BASE_URL}/">山河地图首页</a> &rsaquo;
+      <a href="${BASE_URL}/">山河图集首页</a> &rsaquo;
       <a href="${BASE_URL}/topics/index.html">专题图志总目录</a> &rsaquo;
       <span>${escHtml(j.titleZh)}</span>
     </nav>
@@ -1790,7 +1790,7 @@ function buildFeaturedTopicPage(topic, allDynasties, ctrl) {
   const info = ctrl.inspect(topic.inspectQuery);
   const isRoute = Array.isArray(info.route) && info.route.length > 1;
 
-  const pageTitle = `${topic.titleZh} · 古今地名政区沿革 | 山河地图`;
+  const pageTitle = `${topic.titleZh} · 古今地名政区沿革 | 山河图集`;
   const pageDesc = `${topic.titleZh}：${topic.summaryZh.slice(0, 140)}… 交互式历史地图定位、帝王年号与两千四百年古今政区沿革。`;
 
   let detailSectionHtml = '';
@@ -1973,14 +1973,14 @@ ${genRows}
         inLanguage: ['zh-CN', 'en'],
         author: {
           '@type': 'Organization',
-          name: '山河地图 (Shanhe Atlas)',
+          name: '山河图集 (Shanhe Atlas)',
           url: `${BASE_URL}/`,
         },
       },
       {
         '@type': 'BreadcrumbList',
         itemListElement: [
-          { '@type': 'ListItem', position: 1, name: '山河地图首页', item: `${BASE_URL}/` },
+          { '@type': 'ListItem', position: 1, name: '山河图集首页', item: `${BASE_URL}/` },
           { '@type': 'ListItem', position: 2, name: '专题图志总览', item: `${BASE_URL}/topics/index.html` },
           { '@type': 'ListItem', position: 3, name: topic.shortZh, item: canonicalUrl },
         ],
@@ -1999,7 +1999,7 @@ ${genRows}
 ${renderTopHeader()}
   <main>
     <nav class="breadcrumb" aria-label="面包屑导航">
-      <a href="${BASE_URL}/">山河地图首页</a> &rsaquo;
+      <a href="${BASE_URL}/">山河图集首页</a> &rsaquo;
       <a href="${BASE_URL}/topics/index.html">专题图志总目录</a> &rsaquo;
       <span>${escHtml(topic.shortZh)}</span>
     </nav>
@@ -2048,9 +2048,9 @@ ${renderFooter(allDynasties)}
 
 function buildTopicsIndexPage(dynMeta, storyMeta, journeyMeta, featuredMeta, allDynasties) {
   const canonicalUrl = `${BASE_URL}/topics/index.html`;
-  const pageTitle = '山河地图 · 中国历史地图专题图志总览（18朝代疆域 · 重大事件始末沙盘 · 人物行迹 · 古诗词路线）';
+  const pageTitle = '山河图集 · 中国历史地图专题图志总览（18朝代疆域 · 重大事件始末沙盘 · 人物行迹 · 古诗词路线）';
   const pageDesc =
-    '山河地图（Shanhe Atlas）静态历史地理专题图志索引：涵盖战国、秦、汉、三国、晋、南北朝、隋、唐、五代、宋、元、明、清、民国与现代18个时期版图政区，秦灭六国、楚汉之争、安史之乱、靖康之变、中央红军长征等5个事件专题，张骞、诸葛亮、玄奘、李白、苏轼、王阳明人物行迹，以及古诗词路线与长平、赤壁、淝水大战地图。';
+    '山河图集（Shanhe Atlas）静态历史地理专题图志索引：涵盖战国、秦、汉、三国、晋、南北朝、隋、唐、五代、宋、元、明、清、民国与现代18个时期版图政区，秦灭六国、楚汉之争、安史之乱、靖康之变、中央红军长征等5个事件专题，张骞、诸葛亮、玄奘、李白、苏轼、王阳明人物行迹，以及古诗词路线与长平、赤壁、淝水大战地图。';
 
   const storyListHtml = storyMeta
     .map(
@@ -2103,7 +2103,7 @@ function buildTopicsIndexPage(dynMeta, storyMeta, journeyMeta, featuredMeta, all
     inLanguage: ['zh-CN', 'en'],
     isPartOf: {
       '@type': 'WebSite',
-      name: '山河地图 · 中国历史地图',
+      name: '山河图集 · 中国历史地图',
       url: `${BASE_URL}/`,
     },
   };
@@ -2118,7 +2118,7 @@ function buildTopicsIndexPage(dynMeta, storyMeta, journeyMeta, featuredMeta, all
       '古诗词地理路线图',
       '古今地名对照表',
       '点人溯事生平行迹',
-      '山河地图',
+      '山河图集',
     ],
     canonicalUrl,
     jsonLdObj: jsonLd,
@@ -2127,17 +2127,17 @@ function buildTopicsIndexPage(dynMeta, storyMeta, journeyMeta, featuredMeta, all
 ${renderTopHeader()}
   <main>
     <nav class="breadcrumb" aria-label="面包屑导航">
-      <a href="${BASE_URL}/">山河地图首页</a> &rsaquo;
+      <a href="${BASE_URL}/">山河图集首页</a> &rsaquo;
       <span>专题图志总目录</span>
     </nav>
 
     <article class="hero-card">
-      <span class="kicker">山河地图 · 历史地理百科与专题索引（共 ${totalCount} 篇静态图志）</span>
+      <span class="kicker">山河图集 · 历史地理百科与专题索引（共 ${totalCount} 篇静态图志）</span>
       <h1>中国历代疆域、事件始末沙盘、点人溯事与诗词战役专题图志总览</h1>
       <p class="en-sub">Complete Directory of Chinese Historical Territory Maps, Two-Camp Event Sandtables, Person Chronicles &amp; Classical Poetry Routes (403 BCE – Present)</p>
-      <p>本目录汇总山河地图的静态专题图志，每篇均提供完整古今地名对照表、帝王年号编年、一手正史出处、两千四百年政区沿革及一键进入交互式古舆图的直达链接。</p>
+      <p>本目录汇总山河图集的静态专题图志，每篇均提供完整古今地名对照表、帝王年号编年、一手正史出处、两千四百年政区沿革及一键进入交互式古舆图的直达链接。</p>
       <div class="cta-row">
-        <a class="cta-btn" href="${BASE_URL}/">进入山河地图（前403年—现代）&rarr;</a>
+        <a class="cta-btn" href="${BASE_URL}/">进入山河图集（前403年—现代）&rarr;</a>
       </div>
     </article>
 
@@ -2361,7 +2361,7 @@ function updateIndexHtmlSeoDirectory(dynMeta, storyMeta, journeyMeta, featuredMe
 
   const totalCount = dynMeta.length + storyMeta.length + journeyMeta.length + featuredMeta.length;
   const allItems = [
-    `          <li><a href="./topics/index.html"><strong>山河地图专题图志总览（${totalCount}篇静态历史地理百科目录）</strong></a></li>`,
+    `          <li><a href="./topics/index.html"><strong>山河图集专题图志总览（${totalCount}篇静态历史地理百科目录）</strong></a></li>`,
     ...storyMeta.map(
       (s) => `          <li><a href="${s.url.slice(1)}"><strong>${escHtml(s.titleZh)}事件专题图志（静态专题页）</strong></a></li>`
     ),

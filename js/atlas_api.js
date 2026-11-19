@@ -1996,7 +1996,7 @@
         {
           name: 'jiangshan_locate',
           description:
-            'Locate a historical Chinese place, poem site, battle, or multi-stop route on the Jiangshan Historical Atlas (403 BCE – 2026 CE), move the map camera, open the 2,400-year administrative genealogy card, and return structured historical context.',
+            'Locate a historical Chinese place, poem site, battle, or multi-stop route on Shanhe Atlas (403 BCE – 2026 CE), move the map camera, open the 2,400-year administrative genealogy card, and return structured historical context.',
           inputSchema: {
             type: 'object',
             properties: {

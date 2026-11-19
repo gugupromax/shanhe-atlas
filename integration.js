@@ -387,7 +387,7 @@
         presentTerrain(false);
       }
       // Keep the flat map responsive until the user actually requests WebGL.
-      if (starting && !frame.getAttribute('src')) frame.src = 'terrain.html?embedded=1&v=atlas-20261119-13';
+      if (starting && !frame.getAttribute('src')) frame.src = 'terrain.html?embedded=1&v=6848823c';
       doc.getElementById('fusion-flat').setAttribute('aria-pressed', String(!active));
       doc.getElementById('fusion-3d').setAttribute('aria-pressed', String(active));
       if (explanation) announce(explanation);

@@ -1833,12 +1833,12 @@
       frame.appendChild(shield);
 
       const badge = make('div', 'embed-badge', 'embed-chip');
-      badge.appendChild(make('span', '', 'embed-seal', this.uiStr('brand_seal', '山河地图')));
+      badge.appendChild(make('span', '', 'embed-seal', this.uiStr('brand_seal', '山河图集')));
       badge.appendChild(make('span', '', 'embed-sep'));
       badge.appendChild(make('span', 'embed-badge-title', 'embed-title'));
       frame.appendChild(badge);
 
-      const open = make('a', 'embed-open', 'embed-chip', en ? 'Open in Shanhe Atlas ↗' : this._zh('在山河地图中打开 ↗'));
+      const open = make('a', 'embed-open', 'embed-chip', en ? 'Open in Shanhe Atlas ↗' : this._zh('在山河图集中打开 ↗'));
       open.target = '_blank';
       open.rel = 'noopener';
       const refreshHref = () => {
@@ -1889,7 +1889,7 @@
       this._syncDocumentSeoMeta();
       this._syncSeoDirectoryLocale();
 
-      this._id('txt-seal').textContent = this.uiStr('brand_seal', '山河地图');
+      this._id('txt-seal').textContent = this.uiStr('brand_seal', '山河图集');
       const homeLink = this._id('act-home');
       if (homeLink) {
         // Home = a clean URL in the current language; this is the "reset" entry point.
@@ -2009,7 +2009,7 @@
         ghBtn.title =
           this.locale === 'en'
             ? 'Star gugupromax/shanhe-atlas on GitHub'
-            : this._zh('在 GitHub 上为「山河地图」点亮 Star');
+            : this._zh('在 GitHub 上为「山河图集」点亮 Star');
         ghBtn.setAttribute('aria-label', ghBtn.title);
       }
       const moreBtn = this._id('act-more-menu');
@@ -2025,7 +2025,7 @@
         const el = this._id(id);
         if (el) el.textContent = this.locale === 'en' ? enTxt : this._zh(zhTxt);
       };
-      setMoreCopy('lbl-more-story', 'About Shanhe Atlas', '山河地图 · 项目说明');
+      setMoreCopy('lbl-more-story', 'About Shanhe Atlas', '山河图集 · 项目说明');
       setMoreCopy('lbl-more-about', 'Original Jiangshan Atlas', '上游项目 · 江山时序');
       setMoreCopy('lbl-historical-map-catalog', 'Historical map references (Chinese)', '历代地图参考');
       const mapReferences = this._id('lnk-dynasty-map-references');
@@ -5907,7 +5907,7 @@
       const cur = this.dynasties && this.dynasties[this.dynastyIdx];
       let pageTitle = isEn
         ? this.uiStr('title', 'Shanhe Atlas · Historical Atlas of China')
-        : this._zh('山河地图 · 中国历史地图与 3D 地形');
+        : this._zh('山河图集 · 中国历史地图 · 平面与 3D 地形');
       let pageDesc = isEn
         ? 'Explore 2,400+ years of Chinese history from the Warring States (403 BCE) to the present across 18 eras, 205 multi-stage territory snapshots, 526 milestones, 733 city landmarks, 20 strategic passes, and 113+ person chronicles.'
         : '交互式中国历史地图时间轴（公元前403年战国三家分晋至现代）：浏览18个朝代、205幅多阶段历史疆域与州道政区快照、526条编年大事、733处城池地标、20座天下名关与百余位青史人物行迹。';
@@ -5920,7 +5920,7 @@
         const paramKey = isStory ? 'event' : 'person';
         pageTitle = isEn
           ? `${pName} — ${isStory ? 'Event Storyline' : 'Historical Events'} Map · Shanhe Atlas`
-          : `${pName}${this._zh(isStory ? '历史大事件全脉络' : '生平纪事地图')} · ${this._zh('山河地图')}`;
+          : `${pName}${this._zh(isStory ? '历史大事件全脉络' : '生平纪事地图')} · ${this._zh('山河图集')}`;
         pageDesc = isEn
           ? `Interactive spatio-temporal chronicle of ${pName} across ${this.activePerson.events.length} historical sites in Shanhe Atlas.`
           : `${pName}${isStory ? '' : '生平'} ${this.activePerson.events.length} 处历史事件时空落点、历代疆域与古今地名对照。`;
@@ -5932,7 +5932,7 @@
         const dSum = this.dynastySummary(cur);
         pageTitle = isEn
           ? `${dName} (${dSpan}) Map · Shanhe Atlas`
-          : `${dName}${this._zh('历史地图')}（${dSpan}） · ${this._zh('山河地图')}`;
+          : `${dName}${this._zh('历史地图')}（${dSpan}） · ${this._zh('山河图集')}`;
         pageDesc = isEn
           ? `${dName} (${dSpan}) historical territory, administrative divisions & cities. Capital: ${dSeat}. ${dSum}`
           : `${dName}（${dSpan}）历史疆域与州郡政区地图。都城：${dSeat}。${dSum}`;
@@ -6022,7 +6022,7 @@
         })
         .join('');
       nav.innerHTML =
-        `<h2>Jiangshan Atlas: Historical Maps of China, Prefectures, Ancient &amp; Modern Place Names, and Major Events (403 BCE – Present)</h2>` +
+        `<h2>Shanhe Atlas: Historical Maps of China, Prefectures, Ancient &amp; Modern Place Names, and Major Events (403 BCE – Present)</h2>` +
         `<p>Interactive timeline atlas of Chinese history across 18 major eras—Warring States, Qin, Western Han, Eastern Han, Three Kingdoms, Western Jin, Eastern Jin &amp; Sixteen Kingdoms, Northern &amp; Southern Dynasties, Sui, Tang, Five Dynasties &amp; Ten Kingdoms, Northern Song (Liao &amp; Western Xia), Southern Song (Jin &amp; Mongol), Yuan, Ming, Qing, Republic of China, and People's Republic of China.</p>` +
         `<section><h3>1. Historical Dynasties &amp; Territories Directory</h3><ul>${dynItems}</ul></section>` +
         `<section><h3>2. Person Chronicles &amp; Life Routes</h3><ul>${journeyItems}</ul></section>` +

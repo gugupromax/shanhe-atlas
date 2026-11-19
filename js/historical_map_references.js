@@ -34,7 +34,7 @@ function renderGroup(group, maps, indexUrl) {
   if (group.comparisonYears.length) {
     const comparison = document.createElement('p');
     comparison.className = 'compare-years';
-    comparison.append('到山河地图对照');
+    comparison.append('到山河图集对照');
     for (const year of group.comparisonYears) {
       comparison.append(link(yearLabel(year), `./?year=${year}`));
     }
@@ -111,5 +111,5 @@ async function loadCatalog() {
 }
 
 loadCatalog().catch(() => {
-  resultCount.textContent = '图目载入失败。请通过山河地图的本地服务打开此页，或查阅国学导航总目录。';
+  resultCount.textContent = '图目载入失败。请通过山河图集的本地服务打开此页，或查阅国学导航总目录。';
 });
