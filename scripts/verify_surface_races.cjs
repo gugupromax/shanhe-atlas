@@ -15,18 +15,23 @@ function section(source, start, end) {
   assert.ok(a >= 0 && b > a, 'runtime function markers remain available');
   return source.slice(a, b);
 }
-function parentFixture(useTangTiles = false) {
-  const context = { console, useTangTiles, isCurrentMapPick };
+function parentFixture(useTangTiles = false, tilesPackaged = true) {
+  const context = { console, useTangTiles, tilesPackaged, isCurrentMapPick };
   vm.runInNewContext(`
     const CHANNEL='jiangshan-fusion',KM_PER_DEGREE=1;
-    let active=true,ready=true,applyingChild=false,lastSignature='',lastSceneKey='',sequence=0;
+    let active=true,ready=true,surfaceBitmaps=false,applyingChild=false,lastSignature='',lastSceneKey='',sequence=0;
     let surfaceTimer,surfaceRequest=0,surfaceKey='',surfaceBaseKey='',surfaceBasePendingId=-1;
-    let surfaceGeneration=0,surfaceRenderJob=null,queuedSurface=null,presented=false;
+    let surfaceGeneration=0,surfaceRenderJob=null,queuedSurface=null,presented=false,detailAcknowledged=false;
     let pendingChildCamera=null;
     let lastTileTier=null,tilesFailed=false;
     const surfaceBounds=[40,-10,165,70],out=[],timers=new Map();let timerId=0,listener;
     const setTimeout=fn=>{timers.set(++timerId,fn);return timerId},clearTimeout=id=>timers.delete(id);
-    const frame={contentWindow:{}},root={location:{protocol:'http:',origin:'http://127.0.0.1:8772'},
+    let failTransfer=false;const bitmaps=[];
+    const frame={dataset:{},contentWindow:{postMessage(packet,origin,transfer) {
+      if(packet.bitmap && transfer[0]!==packet.bitmap)throw Error('bitmap was copied');
+      if(packet.bitmap && failTransfer){failTransfer=false;const error=Error('transfer unavailable');error.name='DataCloneError';throw error;}
+      out.push(packet);
+    }}},root={createImageBitmap(){},location:{protocol:'http:',origin:'http://127.0.0.1:8772'},
       JiangshanMapSurface:{
         adminScreenLabels:app=>[{kind:'circuit',name:app.year===741?'关内道':'河南路',coord:[109,34],opacity:1}],
         passScreenLabels:(app,getStyle,reveal)=>reveal?[{kind:'pass',name:app.year===741?'临渝关':'山海关',coord:[119.77,40.01],opacity:1}]:[],
@@ -45,9 +50,9 @@ function parentFixture(useTangTiles = false) {
       return identifiers.get(value);
     };
     let corridors=true;
-    const layers=()=>({polities:true,corridors}),post=value=>out.push(value);
+    const layers=()=>({polities:true,corridors});
     const tangTileTier=app=>useTangTiles&&app.year===741?'mid':null;
-    const locations=()=>[],snapshot=()=>({polities:[]}),overlays=()=>({});
+    const locations=()=>[];
     const configure=()=>{},announce=()=>{},presentTerrain=show=>{presented=show};
     const startupStages=[];const armTerrainStartup=stage=>startupStages.push(stage);
     const renders=[];
@@ -57,17 +62,23 @@ function parentFixture(useTangTiles = false) {
       if(request.screenAdmin!==true)throw Error('The live texture must remove screen administrative captions');
       renders.push(request.width);
       if(pause){pause=false;await new Promise(resolve=>{release=resolve})}
+      if(request.bitmap){
+        const bitmap={closed:false,close(){this.closed=true;}};
+        bitmaps.push(bitmap);return {bitmap,bounds:request.bounds};
+      }
       return {url:'data:image/png;base64,AA==',bounds:request.bounds};
     }};
-    ${section(parentSource, '    function detailBounds(cameraView', '    const checked = name => {')}
+    ${section(parentSource, '    function post(message)', '    const checked = name => {')}
     ${section(parentSource, "    function sync(reason = 'controller', force = false) {", "    function schedule(reason = 'controller') {")}
     ${section(parentSource, "    root.addEventListener('message', event => {", "    if (typeof ResizeObserver === 'function')")}
     globalThis.api={
-      activate(year,widthKm=20){app.year=year;cameraView.widthKm=widthKm;sync('controller')},
+      activate(year,widthKm=20){active=true;app.year=year;cameraView.widthKm=widthKm;sync('controller')},
+      suspend(){active=false;suspendSurface();sync('activate',true)},
+      changeFlatYear(year){app.year=year;sync('controller')},
       selectArea(area){app.activeMapArea=area;sync('controller')},
       zoom(width){app.camera.w=width;sync('child-view')},
       showCounties(){counties=true;sync('child-view')},
-      get picks(){return picks},
+      get picks(){return picks},get bitmaps(){return bitmaps},failNextTransfer(){failTransfer=true;},
       toggleCorridors(on){corridors=on;sync('controller')},
       async flush(){const pending=[...timers.values()];timers.clear();for(const fn of pending)await fn()},
       take(){return out.splice(0)},
@@ -89,8 +100,9 @@ function childFixture() {
     const images=[],acks=[],applied=[],elements={},$=id=>elements[id]||(elements[id]={dataset:{},querySelector:()=>({})});
     const document={body:{dataset:{}}},dataset={bounds:[40,-10,165,70]},mapFrame={toWorld:(x,z)=>({x,z})},camera={fov:40,aspect:1};
     const terrain={visible:false},renderer={capabilities:{getMaxAnisotropy:()=>1}};
-    atlasSurface={clearDetail(){},base(texture){applied.push(['base',texture.image.src])},detail(texture){applied.push(['detail',texture.image.src])}};
-    const THREE={Texture:class{constructor(image){this.image=image}}};
+    let heldBase;
+    atlasSurface={clearDetail(){},base(texture){heldBase?.dispose?.();heldBase=texture;applied.push(['base',texture.image.src])},detail(texture){applied.push(['detail',texture.image.src])}};
+    const THREE={Texture:class{constructor(image){this.image=image}addEventListener(type,fn){if(type==='dispose')this.dispose=fn}}};
     class Image{constructor(){images.push(this)}}
     const paintHistory=()=>{},rebuildMarkers=()=>{},constrainDesired=()=>{},requestAnimationFrame=()=>{};
     const fusion={applied(){},send:(type,message)=>acks.push({type,...message})};
@@ -168,6 +180,23 @@ function base(packets) { return packets.find(packet => packet.quality === 'base'
   c2.surface({...detail,renderId:102,url:'new'});
   c2.decode(4);c2.decode(3);
   assert.equal(c2.applied.at(-1)[1], 'new');
+  const bitmaps=childFixture();
+  bitmaps.state(c2.lastState);
+  const fakeBitmap=()=>({closed:false,close(){this.closed=true;}});
+  const earlyDetail=fakeBitmap(),dropped=fakeBitmap(),oldBase=fakeBitmap(),replacement=fakeBitmap();
+  const bitmapPacket=(quality,renderId,bitmap)=>({...detail,quality,renderId,bitmap});
+  bitmaps.surface(bitmapPacket('detail',8,earlyDetail));
+  bitmaps.surface(bitmapPacket('detail',7,dropped));
+  assert.ok(dropped.closed,'an older out-of-order detail is discarded');
+  bitmaps.state({...c2.lastState,sceneKey:'new'});
+  assert.ok(earlyDetail.closed,'a buffered bitmap for a departed scene is released');
+  bitmaps.surface(bitmapPacket('base',9,oldBase));
+  assert.ok(oldBase.closed,'a transferred bitmap delivered to the wrong scene is released');
+  bitmaps.surface({...bitmapPacket('base',10,replacement),sceneKey:'new'});
+  assert.equal(bitmaps.count,0,'bitmap transport does not create a PNG decoder');
+  assert.equal(replacement.closed,false,'an active texture retains its image for context restoration');
+  bitmaps.surface({...bitmapPacket('base',11,fakeBitmap()),sceneKey:'new'});
+  assert.ok(replacement.closed,'a replaced GPU texture also releases its bitmap');
   const remembered = p2.cache;
   p2.receive({type:'surface-applied',quality:'base',sceneKey:'forged'},false);
   assert.equal(p2.cache, remembered, 'another window cannot acknowledge a surface');
@@ -191,6 +220,48 @@ function base(packets) { return packets.find(packet => packet.quality === 'base'
   await firstCapture;
   assert.deepEqual(Array.from(p3.renders), [1024, 3072], 'publish the base once, then render latest detail');
   assert.deepEqual(Array.from(p3.take().filter(packet => packet.type === 'surface'), packet => packet.quality), ['base', 'detail']);
+  const toggle=parentFixture();
+  toggle.activate(960);await toggle.flush();
+  const unacknowledged=toggle.take();
+  toggle.suspend();toggle.activate(960);await toggle.flush();
+  const retry=toggle.take();
+  assert.ok(base(retry),'resume must re-export a base the inactive child might have dropped');
+  for(const packet of retry.filter(p=>p.type==='surface'))toggle.receive({...packet,type:'surface-applied'});
+  const draws=toggle.renders.length;
+  toggle.suspend();toggle.activate(960);await toggle.flush();
+  assert.equal(toggle.renders.length,draws,'reopening the same acknowledged live view skips redundant texture uploads');
+  toggle.activate(960,30);await toggle.flush();
+  assert.equal(toggle.renders.length,draws+1,'resizing the view requests fresh detail');
+  toggle.receive({...unacknowledged.find(p=>p.quality==='detail'),type:'surface-applied'});
+  toggle.suspend();toggle.activate(960,30);await toggle.flush();
+  assert.equal(toggle.renders.length,draws+2,'old detail ACK cannot suppress a new camera refresh');
+  for(const packet of toggle.take().filter(p=>p.type==='surface'))toggle.receive({...packet,type:'surface-applied'});
+  toggle.suspend();toggle.changeFlatYear(961);toggle.changeFlatYear(960);toggle.activate(960,30);
+  await toggle.flush();
+  assert.ok(base(toggle.take()),'returning to the original year after a flat-mode scene change must not hang waiting for a base');
+  const transfer=parentFixture();
+  transfer.failNextTransfer();
+  transfer.receive({type:'ready',surfaceBitmaps:true});
+  await transfer.flush();
+  assert.equal(transfer.bitmaps[0].closed,true,'a refused transfer releases the sender bitmap');
+  await transfer.flush();
+  const fallbackPackets=transfer.take().filter(packet=>packet.type==='surface');
+  assert.deepEqual(Array.from(fallbackPackets,packet=>packet.quality),['base','detail']);
+  assert.ok(fallbackPackets.every(packet=>packet.url&&!packet.bitmap),'an unsupported transfer retries as PNG');
+  const cancelled=parentFixture();
+  cancelled.holdNextRender();
+  cancelled.receive({type:'ready',surfaceBitmaps:true});
+  const oldFrame=cancelled.flush();
+  cancelled.activate(960);
+  cancelled.releaseRender();
+  await oldFrame;
+  assert.ok(cancelled.bitmaps[0].closed,'a stale export releases the unsent bitmap');
+  const published=parentFixture(true,false);
+  published.activate(741);
+  await published.flush();
+  const publishedPackets=published.take();
+  assert.equal(publishedPackets.find(packet=>packet.type==='state').tileTier,null);
+  assert.ok(base(publishedPackets),'a deployment without tiled assets immediately exports the live surface');
   const tang=parentFixture(true);
   tang.activate(741);
   await tang.flush();
@@ -208,6 +279,21 @@ function base(packets) { return packets.find(packet => packet.quality === 'base'
   tang.selectArea(null);
   assert.equal(tang.take().find(packet=>packet.type==='state').areaHighlight,undefined);
   assert.equal(tang.renders.length,0,'opening and closing a tile selection triggers no SVG capture');
+  tang.receive({type:'tiles-error',sceneKey:defaultState.sceneKey});
+  await tang.flush();
+  const fallback=tang.take().find(packet=>packet.type==='state');
+  assert.equal(fallback.tileTier,null);
+  assert.ok(!('snapshot' in fallback) && !('overlays' in fallback), 'the live SVG is the sole full-scene artwork');
+  const rendersBeforeBoundary=tang.renders.length;
+  tang.selectArea({highlight});
+  const boundary=tang.take().find(packet=>packet.type==='state');
+  assert.equal(boundary.sceneKey,fallback.sceneKey,'a live 741 boundary preserves the scene');
+  assert.deepEqual(boundary.areaHighlight,highlight);
+  assert.equal(boundary.adminLabels.length,0);
+  tang.selectArea(null);
+  assert.equal(tang.take().find(packet=>packet.type==='state').areaHighlightId,0);
+  await tang.flush();
+  assert.equal(tang.renders.length,rendersBeforeBoundary,'live boundary selection and dismissal reuse both textures');
   tang.activate(1381);
   await tang.flush();
   const otherYear=tang.take();

@@ -21,6 +21,8 @@ The original import scripts are not in this repository, so provenance is reconst
 
 ## 校核记录
 
+民国十二期的省级政区按各期快照显示。此前这些快照共用一套标注为清末 1911 年的府州界；原始 344 个要素引用存于 `roc/s_roc.geojson` 的 `referenceLayers` 中，保留年份和几何以供核对。1912 年各地改制进度不一，1913 年 1 月 8 日的组织令规定府、厅、州改县的处理方式。民国各期的府县辖界待逐期考证；1931 年的县治点由独立的有年款点层提供。[1913 年《画一现行各县地方行政官厅组织令》](https://zh.wikisource.org/wiki/畫一現行各縣地方行政官廳組織令) · [济南市情资料库《1913 年》](https://shandong-chorography.org/database/b1/section/1/article/65/)
+
 西汉共享示意层原收录「砀郡」旧面，继承到西汉晚期会跨出梁国所在范围。已停止在西汉层引用这块面。西汉晚期梁国、梁郡使用据[复旦时空地名库睢阳条](https://tgaz.fudan.edu.cn/tgaz/placename/hvd_82072)和[《汉书》诸侯王表](https://zh.wikisource.org/zh-hans/漢書/卷014)切换的治所点。
 
 东汉的两份郡级图层也已移除同一旧面，依赖它们的快照随之更新。详细点位包中的 `chgis:0:210768` 跨越多个更名时段，汉代展示使用以下校核结果。秦代快照仍有其本期的砀郡。

@@ -471,13 +471,13 @@
   {
     "circuit": "河南道",
     "map": ["都畿道、河南道分幅","http://www.guoxue123.com/other/map/pic/10/27.jpg"],
-    "history": ["《旧唐书》卷三十八 · 兖州","https://zh.wikisource.org/zh-hans/舊唐書/卷38#兖州"],
+    "history": ["《新唐书》卷三十八 · 兖州（鱼台条记宝应元年前名方与）","https://zh.wikisource.org/zh-hans/新唐書/卷038#兖州"],
     "prefectures": [{
       "name": "兖州",
       "seat": "瑕丘县",
       "coord": [116.81,35.55],
       "counties": [
-        ["方舆县",116.53,35.01],
+        ["方与县",116.53,35.01],
         ["金乡县",116.32,35.07],
         ["邹县",116.97,35.4],
         ["任城县",116.58,35.41],

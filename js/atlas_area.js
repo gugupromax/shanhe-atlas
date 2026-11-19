@@ -3,6 +3,7 @@
 
   let projector;
   const tangYear = 741;
+  const seatMatchKm = 5;
   const sourceMap = 'http://www.guoxue123.com/other/map/pic/10/03.jpg';
   const tangAreaKey = (place) => [place.level, place.parent, place.ancient].join('/');
 
@@ -59,9 +60,9 @@
   }
 
   class AtlasAreaMixin {
-    _loadTang741Places() {
+    _loadTang741Places(requestedYear = this.year) {
       this._renderTang741CircuitGuides();
-      if (this.year !== tangYear || tangAtlas(this.year)) return;
+      if (requestedYear !== tangYear || tangAtlas(requestedYear)) return;
       if (this._tang741Promise) return this._tang741Promise;
       this._tang741Promise = this._loadScriptOnce(
         this._lazyAssetUrl('js/tang_741.js', 'vTang741')
@@ -121,8 +122,9 @@
       return selected;
     }
 
-    _loadPeriodAdminPlaces(userRequest = false) {
-      if (this.year === tangYear || window.ATLAS_PERIOD_ADMIN || typeof document === 'undefined') return;
+    _loadPeriodAdminPlaces(userRequest = false, queryYear) {
+      if ((queryYear ?? this.year) === tangYear || window.ATLAS_PERIOD_ADMIN || typeof document === 'undefined') return;
+      if (document.getElementById?.('atlas-app-script')?.dataset.periodAdmin === 'absent') return;
       if (this._periodAdminLoad) return this._periodAdminLoad;
       if (this._periodAdminRetryAfter > Date.now() ||
           (!userRequest && this._periodAdminFailedYear === this.year)) return;
@@ -130,17 +132,17 @@
       const source = 'data/tiles/period-admin.js';
       this._periodAdminLoad = (async () => {
         await this._loadScriptOnce(source);
-        if (!window.ATLAS_PERIOD_ADMIN && this.year !== tangYear) {
+        if (!window.ATLAS_PERIOD_ADMIN && (queryYear != null || this.year !== tangYear)) {
           // A transient failure gets one retry, shared by map rendering and search.
           await new Promise(resolve => setTimeout(resolve, 800));
-          if (this.year === tangYear) return;
+          if (queryYear == null && this.year === tangYear) return;
           await this._loadScriptOnce(source);
         }
         if (window.ATLAS_PERIOD_ADMIN) {
           if (this.year !== tangYear) this._renderSettlements(this.dynasties[this.dynastyIdx]);
-        } else if (this.year !== tangYear) {
+        } else if (queryYear != null || this.year !== tangYear) {
           // On public installations the optional file can be absent permanently.
-          this._periodAdminFailedYear = this.year;
+          this._periodAdminFailedYear = queryYear ?? this.year;
           this._periodAdminRetryAfter = Date.now() + 30000;
         }
       })().finally(() => { this._periodAdminLoad = null; });
@@ -271,7 +273,7 @@
       for (const seat of additions) {
         if (seat.schematic || !settlementsByName.has(seat.ancient)) continue;
         const nearby = settlementsByName.get(seat.ancient).filter(town =>
-          this.projector.greatCircleKm(town.coord, seat.coord) <= 5);
+          this.projector.greatCircleKm(town.coord, seat.coord) <= seatMatchKm);
         for (const town of nearby) {
           seatBySettlement.set(town, nearby.length === 1 && !seatBySettlement.has(town) ? seat : null);
         }
@@ -313,9 +315,28 @@
           keywords: [titleZh, titleEn, place.parent, modernZh, modernEn].join(' ').toLowerCase(),
         };
       });
-      const currentTitles = new Set(entries.map((item) => item.kind + '/' + item.titleZh));
-      const index = baseIndex.filter((item) => item.dynasty !== dynasty ||
-        !currentTitles.has(item.kind + '/' + item.titleZh)).concat(entries);
+      // A dated seat can supersede a nearby mark, but a shared title alone
+      // does not identify a town (e.g. Ming Suzhou in Jiangnan and Sichuan).
+      const placesByTitle = new Map();
+      for (const place of places) {
+        const key = (place.level === 'county' ? 'city/' : 'prefecture/') + place.ancient;
+        if (!placesByTitle.has(key)) placesByTitle.set(key, []);
+        placesByTitle.get(key).push(place);
+      }
+      const originals = new Map();
+      for (const item of baseIndex) {
+        if (item.dynasty !== dynasty || !item.coord) continue;
+        const sameTitle = placesByTitle.get(item.kind + '/' + item.titleZh);
+        if (!sameTitle) continue;
+        const matches = sameTitle.filter(place =>
+          (place.shape && projector.pointInShape(...item.coord, place.shape)) ||
+          this.projector.greatCircleKm(item.coord, place.coord) <= seatMatchKm);
+        for (const place of matches) {
+          originals.set(place, matches.length === 1 && !originals.has(place) ? item : null);
+        }
+      }
+      const replaced = new Set(originals.values());
+      const index = baseIndex.filter(item => !replaced.has(item)).concat(entries);
       this._periodAdminIndex = {base: baseIndex, places, locale: this.locale, index};
       return index;
     }
@@ -374,21 +395,25 @@
     _tang741SearchIndex(baseIndex) {
       const atlas = tangAtlas(this.year);
       if (!atlas) return baseIndex;
-      if (this._tang741BaseIndex === baseIndex) return this._tang741Index;
+      if (this._tang741BaseIndex === baseIndex && this._tang741IndexLocale === this.locale) return this._tang741Index;
       const d = this.dynasties[this.dynastyIdx];
       const entries = atlas.places.map((place) => {
         const titleZh = place.detailTitle || place.ancient;
         const titleEn = this._enDict(titleZh) || titleZh;
+        const seatNames = (place.seat || '').split('、').filter(name => name.endsWith('县'));
         const aliases = [...new Set([
           place.ancient, this._enDict(place.ancient), ...(place.aliases || []),
+          ...seatNames.flatMap(name => [name, this._enDict(name)]),
         ].filter(Boolean).map((name) => name.toLowerCase()))];
         const modernEn = place.modern ? this._enModernCity(place.modern) : '';
         return {
           kind: place.level === 'county' ? 'city' : 'prefecture',
           tangArea: tangAreaKey(place), dynasty: d, year: tangYear, coord: place.coord,
           titleZh, titleEn, aliases, modernZh: place.modern || '', modernEn,
-          subZh: `741 年 · ${place.parent}`,
-          subEn: `741 CE · ${this._enDict(place.parent) || place.parent}`,
+          subZh: [`741 年 · ${place.parent}`, place.seat && '治所：' + place.seat].filter(Boolean).join(' · '),
+          subEn: [`741 CE · ${this._enDict(place.parent) || place.parent}`, place.seat &&
+            'Seat: ' + (seatNames.length ? seatNames.map(name => this._enDict(name) || name).join(', ') : place.seat)]
+            .filter(Boolean).join(' · '),
           keywords: [titleZh, titleEn, ...aliases, place.modern, modernEn].join(' ').toLowerCase(),
         };
       });
@@ -401,6 +426,7 @@
         });
       }
       this._tang741BaseIndex = baseIndex;
+      this._tang741IndexLocale = this.locale;
       this._tang741Index = baseIndex.concat(entries);
       return this._tang741Index;
     }
@@ -495,13 +521,17 @@
       const visible = (group) => group && !group.classList.contains('is-hidden');
       const guide = visible(this.grpPrefectures) && this._tang741GuideAt(lng, lat);
       if (guide) return this._showMapArea('boundary', guide.title, guide.members, guide);
-      const polities = (snapshot.polities || []).filter((item) => item.role !== 'neighbor');
-      const polity = [...polities].reverse().find(hit);
-      if (polity && visible(this.grpPrefectures)) {
+      const zOrder = {neighbor: 0, main: 1, rival: 2, protectorate: 3};
+      const polities = (snapshot.polities || []).slice().sort((a, b) =>
+        (zOrder[a.role] || 0) - (zOrder[b.role] || 0));
+      const polity = polities.findLast(hit);
+      // Administrative paths are clipped to non-neighbor polities in the SVG.
+      if (polity && polity.role !== 'neighbor' && visible(this.grpPrefectures)) {
         const region = (snapshot.regions || []).find(hit);
         const fine = !this.svg.classList.contains('is-admin-overview') &&
           (!this._isMobileViewport() || this.svg.classList.contains('is-mobile-zoomed-detail') || this.year === 741);
-        const prefecture = fine && (snapshot.prefectures || []).find(hit);
+        // Each prefecture is a separate SVG hit target; the last painted one is on top.
+        const prefecture = fine && (snapshot.prefectures || []).findLast(hit);
         if (prefecture) {
           return this._showMapArea('prefecture', prefecture.title,
             prefecture.parents || [prefecture.parent], prefecture, [polity.title, region?.title]);
@@ -509,6 +539,7 @@
         if (region) return this._showMapArea('circuit', region.title, region.parents || [region.parent], region, [polity.title]);
       }
       if (polity && visible(this.grpPolities)) {
+        if (polity.role === 'neighbor') return this._showMapArea('neighbor', polity.title, [], polity);
         return this._showMapArea('polity', polity.title, [], polity);
       }
       if (this.dynasties[this.dynastyIdx]?.key === 'prc' && visible(this.grpProvinces)) {
@@ -530,7 +561,8 @@
       this.closeGenealogyCard();
       this.closeMilestoneBalloon();
       this.closeMapArea();
-      const point = type === 'county' && Array.isArray(item.coord) && item.coord.length === 2 &&
+      const point = (type === 'county' || type === 'prefecture') && !item.schematic &&
+        Array.isArray(item.coord) && item.coord.length === 2 &&
         item.coord.every(Number.isFinite) ? item.coord : null;
       this.activeMapArea = {
         type, title,
@@ -540,14 +572,18 @@
       const types = {
         circuit: ['道及大区', 'Circuit or region'],
         prefecture: ['州府政区', 'Prefecture'],
-        county: ['县治', 'County seat'],
+        county: this.year === tangYear || item.historicalType === '县'
+          ? ['县治', 'County seat'] : ['县级治所', 'County-level seat'],
         polity: ['政权疆域', 'Polity'],
+        neighbor: ['同期周边政权', 'Contemporary neighboring polity'],
         modern: ['现代政区', 'Modern province'],
         boundary: ['已核对道界段', 'Verified boundary segment'],
       };
       const format = (value) => this.locale === 'en' ? this.trTerm(value) : this._zh(value);
       this._id('map-area-title').textContent = format(title);
-      this._id('map-area-kicker').textContent = [this.formatYear(this.year), format(types[type][isEn ? 1 : 0])].join(' · ');
+      const role = [this.formatYear(this.year), format(types[type][isEn ? 1 : 0])];
+      if (item.historicalType && item.historicalType !== '县') role.push(format(item.historicalType));
+      this._id('map-area-kicker').textContent = role.join(' · ');
       const hierarchy = this._id('map-area-hierarchy');
       hierarchy.textContent = [...new Set(parents.filter((name) => name && name !== title))].map(format).join(' · ');
       hierarchy.hidden = !hierarchy.textContent;

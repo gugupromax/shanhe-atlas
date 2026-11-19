@@ -28,6 +28,11 @@
     <p lang="en">CHGIS, Version: 6. © Fairbank Center for Chinese Studies of Harvard University and the Center for Historical Geographical Studies at Fudan University, 2016.</p>
     <h2>分年资料与地形</h2>
     <ul>
+      <li>基础水系按<a href="https://github.com/DeanChensj/jiangshan-map/blob/a9d3019/js/china_geo_data.js">原始经纬度记录</a>校正了压缩时产生的逐点偏移。太湖、洪泽湖等六个自交岸环及贝加尔湖的岛岸，依据 <a href="https://www.naturalearthdata.com/downloads/10m-physical-vectors/10m-lakes/">Natural Earth 1:10m 湖泊</a>概化，坐标取至 0.01°。这些湖面提供现代地理参照，古代及季节性岸线可能与之不同。</li>
+      <li>黄河下游 11 年魏郡决口后泛流；69 年王景奉命治河，次年夏完工。图上 11—69 年沿用东徙方向示意，70 年起标“王景故道”。参见<a href="https://zh.wikisource.org/wiki/後漢書/卷76#王景">《后汉书》卷七十六·王景传</a>。</li>
+      <li>1938 年花园口决口后，黄河下游南泛，1947 年堵口后复归山东河道。1938—1946 年图面标出经贾鲁河、周口、颍河入淮的一条示意通道。各年分流和淹没范围有变，详见<a href="https://www.geog.com.cn/CN/10.11821/xb195302008">罗来兴《1938—1947 年间的黄河南泛》</a>。同一年内发生改道时，图面采用改道后的流向。</li>
+      <li>东居延海是黑河尾闾湖泊之一。1927 年考察和 1958 年航片提供了该湖的实测记录。自 1927 年起改以“东居延海”定位；1992 年干涸，2002 年生态输水入湖，2005 年实现全年有水。有实测面积而缺少当年湖岸的年份仅标湖址。参见<a href="https://doi.org/10.11821/dlyj201707003">李蓓等《东居延海湿地恢复进程研究》</a>和<a href="https://yyj.moa.gov.cn/zhxx/201904/t20190419_6198341.htm">全年有水记录</a>。古居延泽、东居延海和西居延海的位置与水域范围应分别考察。</li>
+      <li id="water-credits">2021 年及以后显示的东居延海以 2021 年湖岸为地理参照。取 <a href="https://doi.org/10.5281/zenodo.7254221">ESA WorldCover 2021 v200</a> 的 N42E099 图幅，在东经 101.10°—101.43°、北纬 42.14°—42.42° 的范围内提取类别 80 的最大连通常年水面，概化至 0.01°。湖岸随季节和输水变化。© ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium. <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>。</li>
       <li>741 年补录点位与两畿可辨界段参照《中国历史地图集》及史籍。资料卡列出相应出处和定位说明。本地生成的中近景瓦片含州府图层，瓦片文件存放在本机。</li>
       <li>三维高程采用 AWS Terrain Tiles 提供的 Mapzen Terrarium 数据。三维视图用现代高程呈现地貌。地形数据范围和精度见 <a href="./terrain.html">独立三维地图</a>的数据说明。</li>
     </ul>

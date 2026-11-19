@@ -4211,6 +4211,7 @@ window.EN_LOCALE = {
     "灤州": "Luan Zhou",
     "府州政区：覆盖内地十八省及东北": "Prefectures: covers the 18 interior provinces & Northeast",
     "府州政区（清末 1911 年）": "Prefectures (Late Qing, 1911)",
+    "民国时期省级政区示意；本期府县辖界未复原": "Schematic Republican-era provinces. Local administrative boundaries have not been reconstructed for this period.",
     "州郡政区：仅覆盖东南核心诸郡": "Commanderies: covers southeastern core commanderies only",
     "府州政区：覆盖两京十三布政使司": "Prefectures: covers the Two Capitals & Thirteen Provinces",
     "路府政区：覆盖内地行省": "Circuits & Prefectures: covers interior provinces",

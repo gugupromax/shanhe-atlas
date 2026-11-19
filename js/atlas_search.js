@@ -1165,6 +1165,7 @@
         if (item.kind === 'city' && item.coord) {
           const dupCity = deduped.some(
             (prev) =>
+              !prev.adminArea && // Dated seats already passed the catalog's one-to-one site comparison.
               prev.kind === 'city' &&
               prev.titleZh === item.titleZh &&
               prev.coord &&

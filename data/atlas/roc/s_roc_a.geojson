@@ -3,8 +3,7 @@
   "license": "Approximate historical boundaries for illustration, not surveyed borders. When reusing, credit Jiangshan Atlas (https://github.com/DeanChensj/jiangshan-map) and the sources in data/atlas/README.md. Prefecture-level (郡/州/府) boundaries derive from CHGIS V6 and the Hartwell China Historical GIS: academic, non-commercial use only; do not redistribute; not licensed under GPL-3.0.",
   "snapshot": {
     "caption": "1928 — 1930 · 东北易帜与北伐完成：张学良通电易帜，南京国民政府完成形式统一",
-    "note": "府州政区（清末 1911 年）",
-    "prefRef": "s_roc",
+    "note": "民国时期省级政区示意；本期府县辖界未复原",
     "polities": [
       "s_roc_a0/中华民国",
       "s_roc_a0/日本帝国",

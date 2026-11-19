@@ -51,6 +51,7 @@ const STATIC_TAG_ASSETS = [
 ];
 
 const LAZY_ATTR_ASSETS = [
+  { attr: 'data-v-terrain', datasetKey: 'vTerrain', relPath: 'terrain.html' },
   { attr: 'data-v-tang741', datasetKey: 'vTang741', relPath: 'js/tang_741.js' },
   { attr: 'data-v-snapshots', datasetKey: 'vSnapshots', relPath: 'js/atlas_snapshots.js' },
   { attr: 'data-v-i18n', datasetKey: 'vI18n', relPath: 'js/i18n_dict.js' },
@@ -70,7 +71,7 @@ const preloadRe = (relPath) => new RegExp(`('${escapeRegExp(relPath)}\\?v=)([0-9
 // on every platform, without rewriting the assets themselves.
 function readNormalizedAsset(filePath) {
   const buf = fs.readFileSync(filePath);
-  return /\.(?:js|css)$/i.test(filePath)
+  return /\.(?:js|css|html)$/i.test(filePath)
     ? Buffer.from(buf.toString('utf8').replace(/\r\n?/g, '\n'), 'utf8')
     : buf;
 }
@@ -78,6 +79,20 @@ function readNormalizedAsset(filePath) {
 function shortSha256(filePath) {
   const buf = readNormalizedAsset(filePath);
   return crypto.createHash('sha256').update(buf).digest('hex').slice(0, 8);
+}
+
+// Stamp the child page first, then use its resulting content hash in the parent
+// launcher. A cached terrain renderer and its message protocol must update together.
+function syncTerrainHtml(rootDir, checkOnly) {
+  const file = path.join(rootDir, 'terrain.html');
+  const html = fs.readFileSync(file, 'utf8');
+  const tags = /(<(?:script|link)\b[^>]*?\b(?:src|href)=")([\w./-]+\.(?:js|css))(?:\?v=[\w.-]+)?(")/g;
+  const updated = html.replace(tags, (_, prefix, asset, quote) =>
+    prefix + asset + '?v=' + shortSha256(path.join(rootDir, asset)) + quote);
+  if (updated === html) return false;
+  assert(!checkOnly, 'Stale terrain.html asset hashes. Run node scripts/sync_version.js --write-only');
+  fs.writeFileSync(file, updated, 'utf8');
+  return true;
 }
 
 function computeAssetHashes(rootDir = ROOT) {
@@ -194,6 +209,7 @@ function ensureGitMergeDriverConfig(rootDir = ROOT) {
 }
 
 function verifyIndexHtmlAssetHashes(rootDir = ROOT, indexHtmlInput = null, appCodeInput = null) {
+  syncTerrainHtml(rootDir, true);
   const indexHtml =
     indexHtmlInput !== null ? indexHtmlInput : fs.readFileSync(path.join(rootDir, 'index.html'), 'utf8');
   const controllerSrc =
@@ -255,6 +271,7 @@ function verifyIndexHtmlAssetHashes(rootDir = ROOT, indexHtmlInput = null, appCo
 }
 
 function syncIndexHtmlAssetHashes(rootDir = ROOT, { configureGitMergeDriver = true } = {}) {
+  const terrainChanged = syncTerrainHtml(rootDir, false);
   const indexPath = path.join(rootDir, 'index.html');
   const before = fs.readFileSync(indexPath, 'utf8');
   const hashes = computeAssetHashes(rootDir);
@@ -264,7 +281,7 @@ function syncIndexHtmlAssetHashes(rootDir = ROOT, { configureGitMergeDriver = tr
     fs.writeFileSync(indexPath, after, 'utf8');
   }
   if (configureGitMergeDriver) ensureGitMergeDriverConfig(rootDir);
-  return { changed, hashes };
+  return { changed:changed || terrainChanged, hashes };
 }
 
 if (require.main === module) {

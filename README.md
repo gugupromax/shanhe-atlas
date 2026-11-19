@@ -315,7 +315,8 @@ hit.prefecture;                  // 默认为 null；加 --with-prefectures 导�
 | **郡 / 州 / 府级边界**（`prefecture`，含战国与秦的郡） | 源自 **CHGIS V6** 与 **Robert M. Hartwell China Historical GIS**，简化至 0.01° 并经手工调整 | **不适用 GPL-3.0**。仅限学术、非商业用途，不得再分发，详见下文 |
 | 古地名、重大事件、行迹路线、人物年谱、地名沿革 | 本项目依据史籍整理 | GPL-3.0 |
 | 现代省界 | DataV GeoAtlas（阿里云） | 以 DataV GeoAtlas 条款为准 |
-| 河流、湖泊、周边国家 | 公有领域数据 | 公有领域 |
+| 基础河湖与周边国家 | 公有领域数据；参考湖岸来自 [Natural Earth](https://www.naturalearthdata.com/downloads/10m-physical-vectors/10m-lakes/) | 公有领域 |
+| 东居延海现代参考岸线 | [ESA WorldCover 2021 v200](https://doi.org/10.5281/zenodo.7254221) 常年水面分类的概化轮廓，提取方法与署名见[图层来源](map-sources.html#water-credits) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
 | 地形晕渲 | 由 `scripts/build_terrain_tiles.py` 基于 [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/)（公有领域的 **SRTM**、**GMTED2010**、**ETOPO1**）渲染；仓库只发布最细约 1 km/像素的晕渲图片 | GPL-3.0（图片） |
 | 古琴录音 | Wikimedia Commons（《流水》《平沙落雁》《阳关三叠》《醉渔唱晚》《酒狂》） | 公有领域 |
 

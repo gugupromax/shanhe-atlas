@@ -52,6 +52,7 @@ assert.deepEqual(protocol.validateState(tileState).tileBounds,[100,30,120,40]);
 assert.equal(protocol.validateState({...tileState,year:742}).tileTier,null);
 assert.equal(protocol.validateState({...tileState,tileBounds:[10,30,120,40]}).tileBounds,null);
 assert.deepEqual(protocol.validateState(tileState).areaHighlight,tileState.areaHighlight);
+assert.deepEqual(protocol.validateState({...tileState,tileTier:null}).areaHighlight,tileState.areaHighlight);
 const countyFocus={...tileState,year:1102,areaHighlight:{point:[113.28,33.5]}};
 assert.deepEqual(protocol.validateState(countyFocus).areaHighlight,countyFocus.areaHighlight);
 assert.equal(protocol.validateState(countyFocus).areaHighlightId,4);
@@ -78,6 +79,22 @@ const child=protocol.createChild(fake,{onState:()=>received++,onConfig:()=>{}});
 handlers.message({source:{},data:good});assert.equal(received,0);
 handlers.message({source:parent,data:good});assert.equal(received,1);
 handlers.message({source:parent,data:{...good,seq:0}});assert.equal(received,1);
+// Accept transferred bitmaps only from the paired parent, within the same renderer budget.
+class BitmapFixture {
+  constructor(width=16){this.width=width;this.height=16;this.closed=false;}
+  close(){this.closed=true;}
+}
+let deliveredSurface;
+const surfaceChild=protocol.createChild({...fake,ImageBitmap:BitmapFixture},{onSurface:packet=>{deliveredSurface=packet;}});
+surfaceChild.ready();
+assert.equal(sent.at(-1).surfaceBitmaps,true);
+const transferred={channel:protocol.CHANNEL,type:'surface',sceneKey:'741',quality:'base',renderId:1,bounds:[40,-10,165,70],bitmap:new BitmapFixture()};
+handlers.message({source:parent,data:transferred});
+assert.equal(deliveredSurface.bitmap,transferred.bitmap);
+const oversized=new BitmapFixture(8192);
+handlers.message({source:parent,data:{...transferred,bitmap:oversized}});
+assert.equal(oversized.closed,true);
+assert.equal(deliveredSurface.bitmap,transferred.bitmap);
 const context={window:{addEventListener:()=>{}},setTimeout,clearTimeout,URLSearchParams};vm.runInNewContext(fs.readFileSync(path.join(root,'js/app.js'),'utf8'),context);
 const projector=new context.window.MercatorProjector(1000,650,{west:66,east:142,south:14,north:55});
 vm.runInNewContext(fs.readFileSync(path.join(root,'js/lore_core.js'),'utf8'),context);

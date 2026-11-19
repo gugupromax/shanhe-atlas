@@ -3,7 +3,7 @@
   'use strict';
   const $ = id => document.getElementById(id);
   const embedded=new URLSearchParams(location.search).get('embedded')==='1';
-  let fusion=null,fusionState=null,fusionActive=!embedded,fusionLocations=[],fusionLayers={},fusionOverlays={},fusionPaintedKey=null,fusionViewKey='',fusionHeightTimer=null,fusionViewTimer=null,fusionStarted=false;
+  let fusion=null,fusionState=null,fusionActive=!embedded,fusionLocations=[],fusionLayers={},fusionPaintedKey=null,fusionViewKey='',fusionHeightTimer=null,fusionViewTimer=null,fusionStarted=false;
   let atlasSurface=null,surfaceSceneKey='',surfaceBaseId=-1,surfaceDetailId=-1,surfaceLoads=0,pendingSurfaceDetail=null;
   let tangTiles=null,tangTileJob=0,tangTilePlanKey='',tangBaseApplied=false,tangAppliedTier='far';
   let areaOverlay=null,areaOverlayId=0;
@@ -85,7 +85,8 @@
   }
   function xyz(lon,lat,offset=0) {
     const p=mapFrame.toWorld(lon,lat);
-    return new THREE.Vector3(p.x,(isSeaAt(lon,lat)?0:elevation(lon,lat))/1000*exaggeration*mapFrame.heightScale(lat)+offset,p.z);
+    const step=embedded&&terrainOverview?.visible?4:1;
+    return new THREE.Vector3(p.x,terrainSurfaceHeight(p.x,p.z,step,lon,lat)+offset,p.z);
   }
   function isSeaAt(lon,lat){if(!seaMask)return false;const [w,s,e,n]=dataset.bounds;const col=Math.max(0,Math.min(dataset.width-1,Math.round((lon-w)/(e-w)*(dataset.width-1)))),row=Math.max(0,Math.min(dataset.height-1,Math.round((n-lat)/(n-s)*(dataset.height-1))));return !!seaMask[row*dataset.width+col];}
   function findSea(){
@@ -480,13 +481,11 @@
   function paintHistory(snapshot){
     if(embedded)return; // The original SVG artwork is the sole map surface in fused mode.
     if(!terrain)return;terrain.material.map?.dispose();terrain.material.map=null;
-    if(snapshot&&(embedded||$('polity-toggle').checked)&&selected==='national'){
+    if(snapshot&&$('polity-toggle').checked&&selected==='national'){
       const canvas=document.createElement('canvas');canvas.width=4096;canvas.height=2048;
       const context=canvas.getContext('2d');context.fillStyle='#ffffff';context.fillRect(0,0,canvas.width,canvas.height);
       const [w,s,e,n]=dataset.bounds;
-      if(embedded&&window.JiangshanFusionLayers){
-        window.JiangshanFusionLayers.draw(context,{snapshot,layers:fusionLayers,overlays:fusionOverlays,bounds:dataset.bounds,width:canvas.width,height:canvas.height});
-      }else for(const polity of snapshot.polities){
+      for(const polity of snapshot.polities){
         const shape=polity.shape,polygons=shape.type==='Polygon'?[shape.coordinates]:shape.coordinates;
         for(const polygon of polygons){
           context.beginPath();
@@ -677,12 +676,22 @@
     });
   }
   function applyOriginalSurface(surface){
-    if(!atlasSurface||fusionState?.tileTier||surface.sceneKey!==fusionState?.sceneKey)return;
-    if(surface.quality==='detail'&&surfaceSceneKey!==surface.sceneKey){pendingSurfaceDetail=surface;return;}
-    const load=surfaceLoads,image=new Image();
-    image.onload=()=>{
-      if(load!==surfaceLoads||surface.sceneKey!==fusionState?.sceneKey||surface.renderId<(surface.quality==='base'?surfaceBaseId:surfaceDetailId))return;
-      const texture=new THREE.Texture(image);texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),8);texture.needsUpdate=true;
+    if(!atlasSurface||!fusionState?.active||fusionState.tileTier||surface.sceneKey!==fusionState.sceneKey){surface.bitmap?.close();return;}
+    if(surface.quality==='detail'&&surfaceSceneKey!==surface.sceneKey){
+      if(pendingSurfaceDetail&&pendingSurfaceDetail.renderId>surface.renderId){surface.bitmap?.close();return;}
+      pendingSurfaceDetail?.bitmap?.close();pendingSurfaceDetail=surface;return;
+    }
+    const load=surfaceLoads;
+    const apply=image=>{
+      if(load!==surfaceLoads||!fusionState?.active||surface.sceneKey!==fusionState.sceneKey||surface.renderId<(surface.quality==='base'?surfaceBaseId:surfaceDetailId)){
+        surface.bitmap?.close();return;
+      }
+      const texture=new THREE.Texture(image);
+      if(surface.bitmap){
+        texture.flipY=false;
+        texture.addEventListener('dispose',()=>surface.bitmap.close());
+      }
+      texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),8);texture.needsUpdate=true;
       if(surface.quality==='base'){
         if(surfaceSceneKey!==surface.sceneKey)atlasSurface.clearDetail();
         atlasSurface.base(texture);surfaceBaseId=surface.renderId;
@@ -693,12 +702,15 @@
       }else{atlasSurface.detail(texture,surface.bounds,dataset.bounds);surfaceDetailId=surface.renderId;}
       surfaceSceneKey=surface.sceneKey;terrain.visible=true;
       document.body.dataset.mapSurface='original-svg';document.body.dataset.surfaceYear=String(historyYear);document.body.dataset.surfaceQuality=surface.quality;
-      if(surface.quality==='base')fusion.send('surface-applied',{sceneKey:surface.sceneKey,quality:'base',renderId:surface.renderId});
+      fusion.send('surface-applied',{sceneKey:surface.sceneKey,quality:surface.quality,renderId:surface.renderId});
       $('load-state').hidden=true;dirty=true;
       if(surface.quality==='base'&&pendingSurfaceDetail){const pending=pendingSurfaceDetail;pendingSurfaceDetail=null;applyOriginalSurface(pending);}
     };
+    if(surface.bitmap){apply(surface.bitmap);return;}
+    const image=new Image();
+    image.onload=()=>apply(image);
     image.onerror=()=>{
-      if(load!==surfaceLoads)return;
+      if(load!==surfaceLoads||!fusionState?.active||surface.sceneKey!==fusionState.sceneKey)return;
       if(surface.quality==='base')fusion.send('terrain-error');
       else console.warn('原版地图细节贴图未能解码');
     };
@@ -707,6 +719,8 @@
   function applyFusionState(state){
     fusionActive=state.active;
     if(!fusionActive){
+      surfaceLoads++;
+      pendingSurfaceDetail?.bitmap?.close();pendingSurfaceDetail=null;
       clearTimeout(fusionViewTimer);fusionViewTimer=null;
       if(tangTilePlanKey){tangTileJob++;tangTilePlanKey='';}
       return;
@@ -726,14 +740,14 @@
       areaOverlayId=highlightId;areaOverlay.set(highlightId?state.areaHighlight:null);
     }
     historyYear=state.year;document.body.dataset.fusionYear=String(state.year);document.body.dataset.fusionPerson=state.selection.personKey||'';document.body.dataset.fusionStop=String(state.selection.stopIndex);
-    const sceneKey=state.sceneKey||JSON.stringify([state.year,state.layers,state.selection,state.snapshot]);
+    const sceneKey=state.sceneKey||JSON.stringify([state.year,state.layers,state.selection]);
     if(sceneKey!==fusionPaintedKey){
-      if(surfaceSceneKey!==sceneKey){surfaceLoads++;surfaceBaseId=-1;surfaceDetailId=-1;pendingSurfaceDetail=null;}
-      fusionPaintedKey=sceneKey;fusionLocations=state.locations;fusionLayers=state.layers;fusionOverlays=state.overlays;currentSnapshot=state.snapshot;selectedEvent=null;
+      if(surfaceSceneKey!==sceneKey){surfaceLoads++;surfaceBaseId=-1;surfaceDetailId=-1;pendingSurfaceDetail?.bitmap?.close();pendingSurfaceDetail=null;}
+      fusionPaintedKey=sceneKey;fusionLocations=state.locations;fusionLayers=state.layers;selectedEvent=null;
       adminLabelData=state.adminLabels||[];
       passLabelData=state.passLabels||[];
       if(state.selection.traceCoord&&!fusionLocations.some(p=>p.kind==='selected'))fusionLocations=[{name:'沿革地点',coord:state.selection.traceCoord,kind:'selected'},...fusionLocations];
-      $('polity-toggle').checked=state.layers.polities===true;paintHistory(currentSnapshot);rebuildMarkers();
+      $('polity-toggle').checked=state.layers.polities===true;rebuildMarkers();
     }
     const viewKey=state.center.map(v=>v.toFixed(7)).join(',')+':'+state.widthKm.toFixed(4);
     if(state.reason!=='child-view'&&viewKey!==fusionViewKey){
@@ -771,8 +785,8 @@
       $('labels').append(el);labels.push({el,lon:p.coord[0],lat:p.coord[1],type:'fusion-'+p.kind,fusionPoint:p,active});
     }
   }
-  function terrainSurfaceHeight(worldX,worldZ,step) {
-    const [lon,lat]=mapFrame.toGeo(worldX,worldZ);
+  function terrainSurfaceHeight(worldX,worldZ,step,lon,lat) {
+    if(lon===undefined)[lon,lat]=mapFrame.toGeo(worldX,worldZ);
     const [west,south,east,north]=dataset.bounds;
     const lastColumn=dataset.width-1,lastRow=dataset.height-1;
     const col=Math.max(0,Math.min(Math.ceil(lastColumn/step)-1,
@@ -786,7 +800,7 @@
     const x=THREE.MathUtils.clamp((worldX-positions.getX(a))/(positions.getX(b)-positions.getX(a)),0,1);
     const z=THREE.MathUtils.clamp((worldZ-positions.getZ(a))/(positions.getZ(c)-positions.getZ(a)),0,1);
     // Sample exactly the same two triangles used by the ground meshes.
-    const [ay,by,cy,dy]=[a,b,c,d].map(i=>positions.getY(i));
+    const ay=positions.getY(a),by=positions.getY(b),cy=positions.getY(c),dy=positions.getY(d);
     return x+z<=1?ay+(by-ay)*x+(cy-ay)*z:dy+(cy-dy)*(1-x)+(by-dy)*(1-z);
   }
   function gateSite(lon,lat) {
@@ -934,7 +948,15 @@
     camera.lookAt(target.x,lookY,target.z);camera.updateMatrixWorld();
     if(embedded){
       const visibleWidth=2*distance*Math.tan(camera.fov*Math.PI/360)*camera.aspect;
-      terrainOverview.visible=visibleWidth>widthKm*.42;
+      const overview=visibleWidth>widthKm*.42;
+      if(terrainOverview.visible!==overview){
+        terrainOverview.visible=overview;
+        // Screen labels retain world coordinates between frames. Their height changes
+        // when the displayed mesh changes from full-resolution to four-cell triangles.
+        for(const label of screenLabels){
+          if(label.gateIndex<0)label.point.y=terrainSurfaceHeight(label.point.x,label.point.z,overview?4:1);
+        }
+      }
       terrainDetail.visible=!terrainOverview.visible;
       prepareEmbeddedTerrain();
       if(passGates){

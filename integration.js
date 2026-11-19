@@ -78,7 +78,7 @@
     const viewport = doc.getElementById('viewport-frame');
     if (!app || !viewport || !app.svg || root.atlasFusion) return;
     let active = false;
-    let ready = false;
+    let ready = false, surfaceBitmaps = false;
     let applyingChild = false;
     let queued = false;
     let sequence = 0;
@@ -89,8 +89,10 @@
     let exaggeration = 20;
     const surfaceBounds = [40, -10, 165, 70];
     const mapSurface = root.JiangshanMapSurface?.create({ app, svg: app.svg });
+    const tilesPackaged = doc.getElementById('atlas-app-script')?.dataset?.tangTiles !== 'absent';
     let surfaceTimer, surfaceRequest = 0, surfaceKey = '', surfaceBaseKey = '', surfaceBasePendingId = -1;
     let surfaceGeneration = 0, surfaceRenderJob = null, queuedSurface = null;
+    let detailAcknowledged = false;
     let startupTimer, presented = false;
     let pendingChildCamera = null;
     let lastTileTier = null, tilesFailed = false;
@@ -177,7 +179,14 @@
         frame.dataset.surfaceRenderMs = String(Math.round(message.renderMs || 0));
         frame.dataset.surfaceQuality = message.quality;
       }
-      if (frame.contentWindow) frame.contentWindow.postMessage({ channel: CHANNEL, ...message }, '*');
+      if (message.bitmap) {
+        try {
+          frame.contentWindow.postMessage({ channel: CHANNEL, ...message }, '*', [message.bitmap]);
+        } catch (error) {
+          message.bitmap.close();
+          throw error;
+        }
+      } else if (frame.contentWindow) frame.contentWindow.postMessage({ channel: CHANNEL, ...message }, '*');
     }
     function detailBounds(cameraView, padding = 1.2) {
       const rect = app.svg.getBoundingClientRect();
@@ -190,11 +199,21 @@
         Math.min(surfaceBounds[2], se[0]), Math.min(surfaceBounds[3], nw[1])];
       return bounds[0] < bounds[2] && bounds[1] < bounds[3] ? bounds : null;
     }
+    function suspendSurface() {
+      clearTimeout(surfaceTimer);
+      surfaceRequest++;
+      surfaceGeneration++;
+      // An in-flight base may be dropped when the child goes inactive. Retry it on return.
+      surfaceBasePendingId = -1;
+      if (!detailAcknowledged) surfaceKey = '';
+      queuedSurface = null;
+    }
     function requestSurface(sceneKey, cameraView) {
       if (pendingChildCamera || lastTileTier) return;
       const key = JSON.stringify([sceneKey, cameraView]);
       if (key === surfaceKey) return;
       surfaceKey = key;
+      detailAcknowledged = false;
       const request = ++surfaceRequest;
       const generation = surfaceGeneration;
       clearTimeout(surfaceTimer);
@@ -209,8 +228,8 @@
           if (surfaceBaseKey !== sceneKey && surfaceBasePendingId < 0) {
             const started = root.performance.now();
             const base = await mapSurface.render({ bounds: surfaceBounds, width: 1024, height: 1024,
-              screenPasses: true, screenAdmin: true, screenLabels: app.year === 741 });
-            if (!currentScene()) return;
+              bitmap: surfaceBitmaps, screenPasses: true, screenAdmin: true, screenLabels: app.year === 741 });
+            if (!currentScene()) { base.bitmap?.close(); return; }
             surfaceBasePendingId = request * 2;
             post({ type: 'surface', quality: 'base', sceneKey, renderId: request * 2, renderMs: root.performance.now() - started, ...base });
           }
@@ -219,11 +238,17 @@
           if (!bounds) return;
           const started = root.performance.now();
           const detail = await mapSurface.render({ bounds, width: 3072, height: 3072,
-            screenPasses: true, screenAdmin: true, screenLabels: app.year === 741 });
-          if (!currentScene() || request !== surfaceRequest) return;
+            bitmap: surfaceBitmaps, screenPasses: true, screenAdmin: true, screenLabels: app.year === 741 });
+          if (!currentScene() || request !== surfaceRequest) { detail.bitmap?.close(); return; }
           post({ type: 'surface', quality: 'detail', sceneKey, renderId: request * 2 + 1, renderMs: root.performance.now() - started, ...detail });
         } catch (error) {
           if (currentScene() && request === surfaceRequest) {
+            if (surfaceBitmaps && error.name === 'DataCloneError') {
+              surfaceBitmaps = false;
+              surfaceKey = ''; surfaceBasePendingId = -1;
+              requestSurface(sceneKey, cameraView);
+              return;
+            }
             console.error('Original map surface:', error);
             if (!presented) {
               failTerrain('三维贴图生成失败，已保留平面地图。可以再次点击 3D 地形重试。');
@@ -269,34 +294,16 @@
         }))) : [];
       return stops.concat(milestones, city);
     }
-    function snapshot() {
-      const snap = app.svg.classList.contains('is-awaiting-snapshot') ? {} : app.lastRenderedSnap || {};
-      const copy = items => (items || []).filter(s => s.shape).map(s => ({ title: s.title,
-        tint: s.tint, category: s.role || s.category, anchor: s.anchor, shape: s.shape }));
-      return { polities: copy(snap.polities), regions: copy(snap.regions), prefectures: copy(snap.prefectures) };
-    }
-    function overlays() {
-      const hydro = app.hydroData || {};
-      const visible = s => typeof app._isHydroVisible !== 'function' || app._isHydroVisible(s, app.year);
-      return {
-        rivers: (hydro.rivers || []).filter(visible).map(s => ({ lines: s.lines, name: s.nameZh || s.name })),
-        lakes: (hydro.lakes || []).filter(visible).map(s => ({ rings: s.rings, name: s.nameZh || s.name })),
-        corridors: (app.corridors || []).filter(s => !s.span || (app.year >= s.span[0] && app.year <= s.span[1]))
-          .map(s => ({ segments: s.segments, title: app.corridorTitle(s) })),
-        provinces: (app.provinces || []).filter(s => s.rings).map(s => ({ title: s.name,
-          shape: { type: 'MultiPolygon', coordinates: s.rings } })),
-      };
-    }
     function sync(reason = 'controller', force = false) {
       if (!ready || applyingChild) return;
       const cameraView = readView(app, app.svg.getBoundingClientRect());
       const layerState = layers();
       if (app.year !== 741) tilesFailed = false;
-      const tileTier = tilesFailed ? null : tangTileTier(app, layerState, root.location.protocol);
+      const tileTier = tilesPackaged && !tilesFailed ? tangTileTier(app, layerState, root.location.protocol) : null;
       const passLayerActive = layerState.corridors && !app.challenge;
       const revealPasses = passLayerActive && app.camera?.w <= 500;
       const area = app.activeMapArea;
-      const screenHighlight = tileTier || area?.highlight?.point;
+      const screenHighlight = tileTier || area?.highlight?.point || (app.year === 741 && area?.highlight?.segments);
       const person = app.activePerson;
       const selection = { personKey: person && (person.profiles || [person.profile]).filter(Boolean).map(p => p.key).join(','),
         personTitle: person && person.profile && (person.profile.zh || person.profile.titleZh),
@@ -321,7 +328,10 @@
       }
       lastSignature = signature;
       const fullScene = active && (force || sceneKey !== lastSceneKey);
-      if (sceneKey !== lastSceneKey) { surfaceGeneration++; surfaceBaseKey = ''; surfaceBasePendingId = -1; }
+      if (sceneKey !== lastSceneKey) {
+        surfaceGeneration++; surfaceBaseKey = ''; surfaceBasePendingId = -1;
+        surfaceKey = ''; detailAcknowledged = false;
+      }
       lastSceneKey = sceneKey;
       lastTileTier = tileTier;
       post({ type: 'state', active, reason, seq: ++sequence, sceneKey, year: Math.round(app.year),
@@ -333,8 +343,7 @@
         tileTier, tileBounds: tileTier ? detailBounds(cameraView, .72) : null,
         areaHighlight: screenHighlight ? area?.highlight : null,
         areaHighlightId: screenHighlight ? id(area) : 0,
-        snapshot: fullScene && !tileTier ? snapshot() : { polities: [] },
-        layers: layerState, overlays: fullScene && !tileTier ? overlays() : {} });
+        layers: layerState });
       if (active) requestSurface(sceneKey, cameraView);
     }
     function schedule(reason = 'controller') {
@@ -376,18 +385,17 @@
         const camera = pendingChildCamera;
         pendingChildCamera = null;
         if (camera) applyChildCamera(camera);
-        clearTimeout(surfaceTimer);
+        suspendSurface();
         clearTimeout(startupTimer);
         clearTimeout(statusTimer);
         status.classList.remove('is-visible');
-        surfaceRequest++;
-        surfaceGeneration++;
-        surfaceKey = '';
-        queuedSurface = null;
         presentTerrain(false);
       }
       // Keep the flat map responsive until the user actually requests WebGL.
-      if (starting && !frame.getAttribute('src')) frame.src = 'terrain.html?embedded=1&v=6848823c';
+      if (starting && !frame.getAttribute('src')) {
+        const version = doc.getElementById('atlas-app-script')?.dataset?.vTerrain;
+        frame.src = 'terrain.html?embedded=1' + (version ? '&v=' + encodeURIComponent(version) : '');
+      }
       doc.getElementById('fusion-flat').setAttribute('aria-pressed', String(!active));
       doc.getElementById('fusion-3d').setAttribute('aria-pressed', String(active));
       if (explanation) announce(explanation);
@@ -460,6 +468,7 @@
       if (root.location.protocol !== 'file:' && event.origin !== root.location.origin) return;
       if (message.type === 'ready') {
         ready = true;
+        surfaceBitmaps = message.surfaceBitmaps === true && typeof root.createImageBitmap === 'function';
         if (active && !presented) armTerrainStartup('map');
         tilesFailed = false;
         surfaceBaseKey = ''; surfaceBasePendingId = -1; surfaceKey = ''; surfaceRequest++; surfaceGeneration++;
@@ -468,6 +477,9 @@
       } else if (message.type === 'surface-applied' && message.quality === 'base' && message.sceneKey === lastSceneKey && message.renderId === surfaceBasePendingId) {
         surfaceBaseKey = message.sceneKey;
         if (active && !presented) presentTerrain(true);
+      } else if (message.type === 'surface-applied' && message.quality === 'detail' && active &&
+                 message.sceneKey === lastSceneKey && message.renderId === surfaceRequest * 2 + 1) {
+        detailAcknowledged = true;
       } else if (message.type === 'tiles-ready' && active && lastTileTier && message.sceneKey === lastSceneKey) {
         surfaceBaseKey = message.sceneKey;
         if (!presented) presentTerrain(true);
@@ -541,7 +553,9 @@
     });
     if (typeof ResizeObserver === 'function') new ResizeObserver(() => schedule()).observe(viewport);
     app.svg.addEventListener('load', () => {
-      if (active) { surfaceKey = ''; schedule(); requestSurface(lastSceneKey, readView(app, app.svg.getBoundingClientRect())); }
+      surfaceKey = '';
+      detailAcknowledged = false;
+      if (active) { schedule(); requestSurface(lastSceneKey, readView(app, app.svg.getBoundingClientRect())); }
     }, true);
     root.addEventListener('resize', () => schedule());
     root.atlasFusion = { setMode, sync, get active() { return active; }, get ready() { return ready; } };

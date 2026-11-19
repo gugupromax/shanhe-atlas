@@ -220,7 +220,7 @@
   {
     "circuit": "江南西道",
     "map": ["《中国历史地图集》江南西道（741年）","http://www.guoxue123.com/other/map/pic/10/12.jpg"],
-    "history": ["《旧唐书》卷四十 · 袁州","https://zh.wikisource.org/zh-hans/旧唐书/卷40#袁州"],
+    "history": ["《新唐书》卷四十一 · 袁州（新渝县名用字沿革）","https://zh.wikisource.org/zh-hans/新唐書/卷041#袁州"],
     "prefectures": [
       {
         "name": "袁州",
@@ -229,7 +229,7 @@
         "replace": "袁州",
         "counties": [
           ["萍乡县",113.81,27.68],
-          ["新喻县",114.93,27.82]
+          ["新渝县",114.93,27.82]
         ]
       }
     ]

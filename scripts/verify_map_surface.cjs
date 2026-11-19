@@ -95,6 +95,7 @@ class Node {
     const nodes = this.children.flatMap(n => [n, ...n.querySelectorAll('*')]);
     const hasClass = (node, name) => (node?.attrs.class || '').split(/\s+/).includes(name);
     return nodes.filter(n => tags.some(t => {
+      if (t === '#grp-map-area .is-boundary-guide') return hasClass(n, 'is-boundary-guide') && n.parentNode?.attrs.id === 'grp-map-area';
       if (t === '#grp-settlements .pass-gate-icon') return hasClass(n, 'pass-gate-icon');
       if (t === '#grp-settlements .settlement-node.is-pass > text.name') {
         return n.tagName === 'text' && hasClass(n, 'name') && hasClass(n.parentNode, 'is-pass');
@@ -190,7 +191,8 @@ function fixture(page = base) {
       new Node('g', { id: 'grp-rivers', class: 'is-hidden' }, [new Node('path', { d: 'M1 2L3 4' })]),
       new Node('g', { id: 'grp-polities' }, [new Node('path', { class: 'polity-shape is-hovered', d: 'M0 0L1 1Z', onclick: 'bad()' })]),
       new Node('g', { id: 'grp-region-labels' }, [new Node('text', {id:'region-label'})]),
-      new Node('g', { id: 'grp-map-area' }, [new Node('g', { id: 'map-area-focus' })]),
+      new Node('g', { id: 'grp-map-area' }, [new Node('g', { id: 'map-area-focus' }),
+        new Node('path', {id:'selection-guide',class:'is-boundary-guide'}), new Node('path', {id:'selection-shape'})]),
       new Node('g', { id: 'grp-settlements' }, [
         new Node('g', { class: 'settlement-node is-admin-prefecture' }, [
           new Node('circle', { id: 'prefecture-dot', class: 'dot' }),
@@ -226,6 +228,14 @@ function fixture(page = base) {
   const published = fixture(projectPage);
   assert.match((await published.exporter.render(request)).url, /^data:image\/png;base64,/);
   assert.equal(published.fetchCount, 1, 'published atlas reads its own relief image');
+  const marker = {};
+  published.doc.defaultView.createImageBitmap = async (_canvas, options) => {
+    assert.deepEqual(options, {imageOrientation:'flipY',premultiplyAlpha:'none'});
+    return marker;
+  };
+  assert.equal((await published.exporter.render({...request,bitmap:true})).bitmap,marker);
+  published.doc.defaultView.createImageBitmap = () => Promise.reject(new Error('unsupported options'));
+  assert.match((await published.exporter.render({...request,bitmap:true})).url,/^data:image\/png;base64,/);
   const output = await f.exporter.render(request);
   assert.match(output.url, /^data:image\/png;base64,/);
   assert.deepEqual(output.bounds, request.bounds);
@@ -303,6 +313,9 @@ function fixture(page = base) {
   }
   assert.ok(f.clone.querySelector('#prefecture-dot'), 'the texture retains the seat symbol');
   await f.exporter.render({ ...request, screenLabels: true });
+  assert.equal(f.clone.querySelector('#selection-guide'),null,'the separate 741 guide highlight must not be baked into the live map');
+  assert.ok(f.clone.querySelector('#selection-shape') && f.svg.querySelector('#selection-guide'),
+    'retain polygon-style selections and the original 2D guide');
   for (const id of ['pass-icon','pass-label','county-dot','county-label']) assert.equal(f.clone.querySelector('#' + id), null);
   assert.ok(f.svg.querySelector('#pass-icon') && f.svg.querySelector('#pass-label'), 'preserve the original 2D gate');
   assert.equal(f.fetchCount, 1, 'local image reads must be cached');

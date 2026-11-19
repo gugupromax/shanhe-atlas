@@ -20,8 +20,10 @@ const tiers = [
 ];
 const manifestPath = path.join(destination, 'manifest.json');
 const inputPaths = [
-  'assets/terrain_relief.webp', 'css/style.css', 'js/atlas_boot.js',
-  'js/atlas_snapshots.js', 'js/tang_741.js', 'map-surface.js',
+  'index.html', 'assets/terrain_relief.webp', 'css/style.css', 'integration.css',
+  'js/china_geo_data.js', 'js/map_data.js', 'js/lore_core.js', 'js/atlas_boot.js',
+  'js/atlas_snapshots.js', 'js/app.js', 'js/atlas_area.js', 'js/tang_741.js',
+  'map-surface.js', 'scripts/build_tang_741_tiles.cjs',
 ];
 const mY = (lat) => Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360));
 const [west, south, east, north] = coverage;
@@ -31,7 +33,7 @@ const hash = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
 async function inputHashes() {
   const pairs = await Promise.all(inputPaths.map(async relative => {
     const bytes = await fs.readFile(path.join(project, relative));
-    const input = /\.(js|css)$/.test(relative) ? bytes.toString('utf8').replace(/\r\n/g, '\n') : bytes;
+    const input = /\.(?:c?js|css|html)$/.test(relative) ? bytes.toString('utf8').replace(/\r\n/g, '\n') : bytes;
     return [relative, hash(input)];
   }));
   return Object.fromEntries(pairs);

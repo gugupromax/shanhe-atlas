@@ -45,7 +45,8 @@ function setup(year = 199) {
     grpPrefectures:mockLayer(), grpSettlements:mockLayer(), grpRegionLabels:mockLayer(),
     _id: () => ({}), _enDict: name => name, formatYear: y => String(y),
     _materializeDeferredPrefectures() {}, _getViewportAspect: () => .7,
-    projector: {toScreen:(lng,lat)=>[lng,lat]},
+    projector: {toScreen:(lng,lat)=>[lng,lat],
+      greatCircleKm:context.HistoricalAtlasController._projectorClass.prototype.greatCircleKm},
     _animateCameraTo(camera) { this.focused = camera; },
     _showMapArea(...args) { this.card = args; return true; },
     openGenealogyAt(...coords) { this.genealogy = coords; },
@@ -83,7 +84,7 @@ test('all-period prefecture labels are snapshot-scoped, schematic, and selectabl
 
   const original = [{ancient:'甲州',coord:[103,34]}];
   assert.equal(ctrl._adminVisiblePlaces(original, ctrl.dynasties[0]).length, 1);
-  const index = ctrl._adminSearchIndex([{kind:'prefecture', titleZh:'甲州', dynasty:ctrl.dynasties[0]}]);
+  const index = ctrl._adminSearchIndex([{kind:'prefecture', titleZh:'甲州', coord:first.anchor, dynasty:ctrl.dynasties[0]}]);
   assert.equal(index.length, 1);
   assert.equal(index[0].adminArea, place.areaKey);
   ctrl._selectSearchResult(index[0]);
@@ -100,6 +101,31 @@ test('all-period prefecture labels are snapshot-scoped, schematic, and selectabl
   ctrl._selectSearchResult(index[0]);
   assert.equal(ctrl.card, lastCard, 'a stale result cannot open an area in a different year');
   assert.notEqual(ctrl._adminSettlementRevision(ctrl.dynasties[0]), 'first:');
+});
+
+test('administrative search replaces a unique local match and preserves homonyms and ambiguous candidates', () => {
+  const ctrl = setup(1368);
+  const dynasty = ctrl.dynasties[0];
+  const native = (name, coord) => ({kind:'city',titleZh:name,coord,dynasty});
+  const seat = (name, coord, key) => ({level:'county',ancient:name,coord,areaKey:'county/'+key});
+  const jiangnan = native('苏州', [120.581,31.301]);
+  const town = native('某县', [110,30]);
+  const homonym = native('某县', [110.5,30]);
+  const disputed = native('同名县', [115,35]);
+  const places = [
+    seat('苏州', [102.1816,28.8619], 'chgis:1:200282'),
+    seat('某县', [110.01,30], 'local'),
+    seat('同名县', [114.98,35], 'west'), seat('同名县', [115.02,35], 'east'),
+  ];
+  ctrl._periodAdminAreas = () => places;
+  const results = ctrl._adminSearchIndex([jiangnan,town,homonym,disputed]);
+  assert(results.includes(jiangnan) && results.includes(homonym) && results.includes(disputed));
+  assert(!results.includes(town));
+  assert.equal(results.filter(item => item.adminArea).length, 4);
+  // Search ranking must not reapply the legacy 120 km city-clustering radius to a dated seat.
+  const ranked = ctrl._rankQuickSearchResults(results.filter(item => item.titleZh === '某县')
+    .map(item => ({...item,score:item.adminArea ? 110 : 105})));
+  assert.equal(ranked.length,2);
 });
 
 test('county points stay inside their sourced date interval and never stand in for polygons', () => {
@@ -230,6 +256,54 @@ test('two clicks in a single prefecture keep its hierarchy and separate point-sp
   assert(ctrl.openMapAreaAt(102, 34));
   assert.equal(nodes.get('map-area-hierarchy').textContent, '史料所载之州');
   assert(!nodes.get('map-area-hierarchy').hidden);
+
+  ctrl._showAdminPlace({ancient:'苏州',level:'county',historicalType:'州',coord:[102.1816,28.8619]});
+  assert.equal(nodes.get('map-area-kicker').textContent, '199 · 县级治所 · 州');
+  assert.deepEqual(ctrl.activeMapArea.highlight.point,[102.1816,28.8619]);
+  ctrl._showAdminPlace({ancient:'某路',level:'prefecture',historicalType:'路',coord:[114,30]});
+  assert.deepEqual(ctrl.activeMapArea.highlight.point,[114,30], 'an attested seat without a polygon still highlights');
+  ctrl._showAdminPlace({ancient:'某县',level:'county',historicalType:'县',coord:[113,31]});
+  assert.equal(nodes.get('map-area-kicker').textContent, '199 · 县治');
+});
+
+test('pick order follows the visible SVG and keeps prefectures clipped to the historical territory', () => {
+  const ctrl = setup(1060);
+  const box = (title,role,from,to) => ({...marker(title,from,to),role});
+  const snapshot = {
+    polities:[box('都护府','protectorate',101,108),box('主政权','main',100,110),box('邻国','neighbor',108,118)],
+    regions:[box('某道',null,100,118)],
+    prefectures:[box('底层',null,101,116),box('顶层',null,102,116)],
+  };
+  ctrl.lastRenderedSnap = snapshot;
+  ctrl.grpPolities = mockLayer();
+  ctrl._isMobileViewport = () => false;
+  ctrl.openMapAreaAt(103,34);
+  assert.equal(ctrl.card[1],'顶层');
+  ctrl._syncTang741Detail(1.5);
+  ctrl.openMapAreaAt(103,34);
+  assert.equal(ctrl.card[1],'某道');
+  ctrl.grpPrefectures.classList.add('is-hidden');
+  ctrl.openMapAreaAt(103,34);
+  assert.equal(ctrl.card[1],'都护府');
+  ctrl.grpPrefectures.classList.remove('is-hidden');
+  ctrl.openMapAreaAt(113,34);
+  assert.equal(ctrl.card[0],'neighbor');
+  assert.equal(ctrl.card[1],'邻国');
+});
+
+test('the 1911 reference polygons stay in the source archive and out of all Republican snapshots', () => {
+  const dir = path.join(root,'data/atlas/roc');
+  for (const filename of fs.readdirSync(dir).filter(name => name.endsWith('.geojson'))) {
+    const doc = JSON.parse(fs.readFileSync(path.join(dir,filename),'utf8'));
+    if (filename === 's_roc.geojson') {
+      const archived = doc.referenceLayers.find(layer => layer.year === 1911);
+      assert.equal(archived.features.length,344);
+      assert(archived.features.some(id => id.endsWith('/济南府')));
+    }
+    assert.equal(doc.snapshot.prefRef,undefined,filename);
+    assert.equal(doc.snapshot.prefectures?.length || 0,0,filename);
+    assert(doc.snapshot.regions?.length || doc.snapshot.regionRef,filename);
+  }
 });
 
 test('overlapping town and dated seat have one clickable marker without hiding the original town at other levels', () => {

@@ -273,12 +273,55 @@
       return out;
     }
 
+    _resolveDatedCounty(place, year) {
+      if (!/(?:县|縣|\s+County)$/i.test(place)) return undefined;
+      const rows = year === 741
+        ? window.TANG_741_ATLAS?.places
+        : window.ATLAS_PERIOD_ADMIN?.placesForYear(year);
+      if (!rows?.length) return undefined;
+      this._countyNameIndexes ||= new WeakMap();
+      const dict = this.enLocale?.dict;
+      const converter = window.ZH_HANT_CONV;
+      let entry = this._countyNameIndexes.get(rows);
+      if (!entry || entry.dict !== dict || entry.converter !== converter) {
+        const names = new Map();
+        const add = (name, row) => {
+          const key = this._toHans(name).toLowerCase();
+          const previous = names.get(key);
+          if (previous === undefined) names.set(key, row);
+          else if (previous && (previous.coord[0] !== row.coord[0] || previous.coord[1] !== row.coord[1])) names.set(key, null);
+        };
+        const indexSeat = row => {
+          add(row.ancient, row);
+          if (dict?.[row.ancient]) add(dict[row.ancient], row);
+        };
+        for (const row of rows) {
+          if (row.level === 'county') indexSeat(row);
+          else if (year === 741 && row.seat) {
+            // The Tang layer shares one pin between a prefecture and its seat counties.
+            for (const ancient of row.seat.split('、').filter(name => name.endsWith('县'))) {
+              indexSeat({ancient, coord:row.coord, modern:row.modern});
+            }
+          }
+        }
+        entry = {names, dict, converter};
+        this._countyNameIndexes.set(rows, entry);
+      }
+      const seat = entry.names.get(this._toHans(place).toLowerCase());
+      // A single coordinate cannot represent two same-named county seats.
+      if (!seat) return seat;
+      const [lng, lat] = seat.coord;
+      return {kind:'city', name:seat.ancient, modern:seat.modern || '', lng, lat, coord:[lng, lat], zoom:6};
+    }
+
     resolvePlace(place, year = this.year) {
       if (!place || typeof place !== 'string') return null;
       const rawInput = place.trim();
       if (!rawInput) return null;
       const yr =
         year !== null && year !== '' && Number.isFinite(Number(year)) ? Number(year) : this.year;
+      const county = this._resolveDatedCounty(rawInput, yr);
+      if (county !== undefined) return county;
       const targetDynIdx = this._findDynastyIndex(yr);
       const targetDyn = this.dynasties[targetDynIdx] || this.dynasties[0];
       const targetSnapKey = this._resolveSnapKey(targetDyn, yr);
@@ -1516,7 +1559,9 @@
     }
 
     locate(opts = {}) {
-      const { year, place, lng, lat, zoom } = opts || {};
+      const { year, place, lng, lat } = opts || {};
+      const request = {};
+      this._latestLocateRequest = request;
       const hasEnDict = this._hasEnDict();
       const needsEnDict =
         !hasEnDict && (this.locale === 'en' || (place && /[a-z]/i.test(String(place))));
@@ -1526,16 +1571,6 @@
           (place && /[\u4e00-\u9fff]/.test(String(place))) ||
           (year && /[\u4e00-\u9fff]/.test(String(year))));
       const needsLoreDetail = !this._isLoreDetailLoaded();
-      if (!this._fullSnapshotsLoaded || needsEnDict || needsZhHant || needsLoreDetail) {
-        Promise.all([
-          this._fullSnapshotsLoaded ? Promise.resolve() : this._ensureFullSnapshots(),
-          needsEnDict ? this._ensureEnglishLocale() : Promise.resolve(),
-          needsZhHant ? this._ensureZhHant() : Promise.resolve(),
-          needsLoreDetail ? this._ensureLoreDetail() : Promise.resolve(),
-        ]).then(() => {
-          this.locate(opts);
-        });
-      }
       this.stopAutoplay();
       const placeTokens = this._parsePlaceTokens(place, year);
       const yearList = this._parseYearList(year);
@@ -1548,6 +1583,35 @@
         this.jumpToYear(initialYear);
       }
 
+      const pending = [];
+      if (!this._fullSnapshotsLoaded) pending.push(this._ensureFullSnapshots());
+      if (needsEnDict) pending.push(this._ensureEnglishLocale());
+      if (needsZhHant) pending.push(this._ensureZhHant());
+      if (needsLoreDetail) pending.push(this._ensureLoreDetail());
+      // A single explicit coordinate takes precedence over the place name.
+      const countyQueries = placeTokens.length === 1 && lng != null && lat != null && lng !== '' && lat !== ''
+        ? [] : placeTokens.filter(tok => /(?:县|縣|\s+County)$/i.test(tok.place));
+      const countyLoads = [];
+      if (countyQueries.some(tok => tok.year === 741)) countyLoads.push(this._loadTang741Places?.(741));
+      const periodQuery = countyQueries.find(tok => tok.year !== 741);
+      if (periodQuery) countyLoads.push(this._loadPeriodAdminPlaces?.(true, periodQuery.year));
+      const loadingCounties = countyLoads.filter(Boolean);
+      const apply = () => this._applyLocation(opts, placeTokens);
+      const result = loadingCounties.length ? this.inspect({year:this.year}) : apply();
+      if (pending.length || loadingCounties.length) {
+        const expectedYear = this.year, trace = this.activeTrace, person = this.activePerson;
+        const area = this.activeMapArea, route = this.activeCustomRoute;
+        Promise.all([...pending, ...loadingCounties]).then(() => {
+          if (this._latestLocateRequest === request && this.year === expectedYear &&
+              this.activeTrace === trace && this.activePerson === person &&
+              this.activeMapArea === area && this.activeCustomRoute === route) apply();
+        });
+      }
+      return result;
+    }
+
+    _applyLocation(opts, placeTokens) {
+      const { year, place, lng, lat, zoom } = opts || {};
       if (placeTokens.length >= 2) {
         const stops = placeTokens
           .map((tok) => {

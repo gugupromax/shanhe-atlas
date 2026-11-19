@@ -73,7 +73,7 @@ def read_dbf(archive: Path):
         width = raw[field+16]
         fields[name] = slice(offset, offset + width)
         offset += width
-    needed = {'SYS_ID', 'NAME_CH', 'PRES_LOC', 'X_COOR', 'Y_COOR', 'BEG_YR', 'END_YR', 'LEV_RANK'}
+    needed = {'SYS_ID', 'NAME_CH', 'TYPE_CH', 'PRES_LOC', 'X_COOR', 'Y_COOR', 'BEG_YR', 'END_YR', 'LEV_RANK'}
     if offset != row_length or not needed <= fields.keys():
         raise ValueError(f'{archive.name}: unexpected DBF fields')
     for start in range(header_length, header_length+row_count*row_length, row_length):
@@ -105,7 +105,7 @@ def read_chgis(path, kind):
             stats['outside scope or invalid'] += 1
             continue
         row = [f'chgis:{kind}:{identifier}', name, round(lon, 4), round(lat, 4),
-               begin, end, kind, kind, '', item['PRES_LOC'], '']
+               begin, end, kind, kind, '', item['PRES_LOC'], '', item['TYPE_CH']]
         if row[0] in rows:
             if rows[row[0]] != row:
                 raise ValueError(f'{path.name}: conflicting source id {identifier}')
@@ -156,7 +156,8 @@ def read_slice(path, expected_year, source):
                 continue
             replaced = f'chgis:{rank}:{item["chgis_id"]}' if item.get('chgis_id') else ''
             rows.append([f'slice:{year}:{rank}:{item["id"]}', name, round(lon, 4), round(lat, 4),
-                         year, year, rank, source, item.get('parent', '').strip(), '', replaced])
+                         year, year, rank, source, item.get('parent', '').strip(), '', replaced,
+                         item.get('historical_type', item['level'] if source == 4 else '').strip()])
     return rows, stats
 
 
@@ -237,7 +238,7 @@ def render(rows, inputs, atlas_index):
         + (modern ? '今址参考：' + modern + '。' : '')
         + (parent ? '' : '点位数据未附行政隶属。');
       found.set(key, {id, ancient, coord:[lon,lat], level, from, through,
-        tier:2, parent, modern, precision, source, sources:[sources[source]]});
+        tier:2, parent, modern, historicalType:row[11] || '', precision, source, sources:[sources[source]]});
     }
     const result = [...found.values()];
     const dynasty = window.DYNASTY_DATA?.findLast(d => year >= d.fromYear && year <= d.toYear)?.key;

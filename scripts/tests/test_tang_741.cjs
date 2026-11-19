@@ -60,6 +60,16 @@ test('741 search results open the same sourced places and guides as the map', ()
   const index = ctrl._tang741SearchIndex(baseIndex);
   assert.equal(index.length, places.length + circuitGuides.length);
   assert.equal(new Set(index.map((item) => item.tangArea)).size, index.length);
+  const shared = index.find(item => item.titleZh === '苏州');
+  for (const name of ['吴县', '长洲县']) {
+    assert(shared.aliases.includes(name), 'a co-located county should resolve to its prefecture marker');
+    assert(shared.subZh.includes(name));
+  }
+  for (const [name, parent, book] of [['新渝县', '袁州', '卷041'], ['方与县', '兖州', '卷038']]) {
+    const county = places.find(item => item.ancient === name && item.parent === parent);
+    assert(county && county.sources.some(([,url]) => url.includes(book)));
+  }
+  assert(!places.some(item => item.ancient === '新喻县' || item.ancient === '方舆县'));
   for (const title of ['蓝田县', '曲阿县', '盩厔县']) {
     const place = places.find((item) => item.ancient === title);
     const item = index.find((entry) => entry.titleZh === title);

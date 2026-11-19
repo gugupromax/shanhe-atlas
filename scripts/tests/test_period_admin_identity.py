@@ -8,10 +8,24 @@ from tempfile import TemporaryDirectory
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from build_period_admin import read_atlas, render
+from build_period_admin import read_atlas, read_slice, render
 
 
 class AtlasIdentityTest(unittest.TestCase):
+    def test_local_tier_preserves_the_sources_administrative_type(self):
+        with TemporaryDirectory() as temp:
+            source = Path(temp) / 'slice.csv'
+            source.write_text(
+                'year,id,name,lon,lat,parent,level,historical_type\n'
+                '1911,one,某厅,113,30,某府,county,厅\n'
+                '1911,two,某县,113.5,31,某府,county,县\n', encoding='utf-8')
+            rows, _ = read_slice(source, 1911, 5)
+        program = ('global.window = {};\n' + render(rows, [], {}) +
+                   '\nconsole.log(JSON.stringify(window.ATLAS_PERIOD_ADMIN.placesForYear(1911)'
+                   '.map(p => [p.ancient, p.level, p.historicalType])));')
+        result = subprocess.check_output(['node', '-'], input=program, text=True, encoding='utf-8')
+        self.assertCountEqual(json.loads(result), [['某县', 'county', '县'], ['某厅', 'county', '厅']])
+
     def test_generated_index_respects_dates_and_year_specific_replacements(self):
         def row(identifier, start, end, source=1, replaces=None):
             return [identifier, identifier, 110, 32, start, end, 1, source, '', '', replaces]

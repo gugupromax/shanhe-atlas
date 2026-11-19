@@ -3673,6 +3673,7 @@
       const activeList = (this._adminVisiblePlaces?.(settlements, dynasty) || settlements)
         .filter(
           (item) =>
+            (item.level !== 'county' || this._adminLevel !== 'prefectures') &&
             (item.appear === undefined || this.year >= item.appear) &&
             (item.vanish === undefined || this.year < item.vanish)
         )
@@ -7527,6 +7528,8 @@
     }
 
     _loadTerrainIndex() {
+      if (this._terrainIndex) return Promise.resolve(this._terrainIndex);
+      if (Date.now() < this._terrainIndexRetryAfter) return Promise.resolve(null);
       if (!this._terrainIndexPromise) {
         this._terrainIndexPromise = fetch('assets/terrain/index.json')
           .then((r) => (r.ok ? r.json() : null))
@@ -7538,24 +7541,29 @@
             this._terrainIndex = levels.size ? levels : null;
             return this._terrainIndex;
           })
-          .catch(() => null);
+          .catch(() => null)
+          .finally(() => {
+            this._terrainIndexPromise = null;
+            if (!this._terrainIndex) this._terrainIndexRetryAfter = Date.now() + 10000;
+          });
       }
       return this._terrainIndexPromise;
+    }
+
+    _needsTerrainDetail(cam, pxPerUnit) {
+      // The base image supplies 2 px per SVG unit and covers the reset view.
+      if (cam.w > this._getDefaultCamera().w * 0.8 || pxPerUnit <= 1.7) return false;
+      const conn = typeof navigator !== 'undefined' ? navigator.connection : null;
+      return !conn || !(conn.saveData || /(^|-)2g$|^3g$/.test(conn.effectiveType || ''));
     }
 
     // mode: 'commit' applies and stores level hysteresis (the rendered view), 'peek' applies it
     // without storing (predicting a flight's destination), 'free' ignores it (idle prefetch).
     _terrainTileLevel(cam, pxPerUnit, mode) {
-      // Keep the default (reset) view on the base image; detail starts once the user zooms in.
-      if (cam.w > this._getDefaultCamera().w * 0.8) return null;
-      // Data Saver or a 2G/slow-3G link: the base relief is enough.
-      const conn = typeof navigator !== 'undefined' ? navigator.connection : null;
-      if (conn && (conn.saveData || /(^|-)2g$|^3g$/.test(conn.effectiveType || ''))) return null;
+      if (!this._needsTerrainDetail(cam, pxPerUnit)) return null;
       // Sized for CSS pixels, not device pixels: the relief is a 48%-opacity backdrop, and
       // matching retina density would quadruple the tiles per screen.
       const need = pxPerUnit * this.projector.scale;
-      // Base image: 2 px per SVG unit; no gain while it is not being upscaled.
-      if (need <= 2 * this.projector.scale * 0.85) return null;
       const ppd = (lz) => (this._terrainTileSize * 2 ** lz) / 360;
       const levels = [...this._terrainIndex.keys()].sort((a, b) => a - b);
       const maxPpd = this._isMobileViewport() ? 190 : Infinity;
@@ -7611,7 +7619,7 @@
           for (let lz = z; lz >= minZ; lz--) {
             const d = z - lz;
             const t = { z: lz, x: x >> d, y: y >> d, dist, top: lz === z };
-            if (this._terrainIndex.get(lz).has(`${t.x}_${t.y}`)) {
+            if (this._terrainIndex.get(lz)?.has(`${t.x}_${t.y}`)) {
               const key = `${t.z}/${t.x}/${t.y}`;
               const prev = out.get(key);
               if (!prev || prev.dist > dist) out.set(key, t);
@@ -7667,6 +7675,10 @@
       const layer = this.terrainTileLayer;
       if (!this._terrainReady()) return;
       if (!this._terrainIndex) {
+        if (!this.terrainMode || this._terrainIndexPromise || Date.now() < this._terrainIndexRetryAfter) return;
+        const rect = this._cameraViewportRect || this.svg.getBoundingClientRect();
+        const density = Math.min(rect.width / this.camera.w, rect.height / this.camera.h);
+        if (!this._needsTerrainDetail(this.camera, density)) return;
         this._loadTerrainIndex().then((idx) => {
           if (idx) this._updateTerrainTiles();
         });
@@ -7674,19 +7686,18 @@
       }
       if (!this._terrainTiles) this._terrainTiles = new Map();
       const want = new Map(this._terrainTilesFor(this.camera, 'commit'));
-
-      const stale = [...this._terrainTiles.keys()].filter((k) => !want.has(k));
+      this._terrainWanted = want;
       const dropStale = () => {
-        for (const k of stale) {
-          if (want.has(k)) continue;
-          const el = this._terrainTiles.get(k);
+        // The camera can return to an already-loaded tile before this batch settles.
+        for (const [k, el] of this._terrainTiles) {
+          if (this._terrainWanted.has(k)) continue;
           if (el && el.parentNode) el.parentNode.removeChild(el);
           this._terrainTiles.delete(k);
         }
       };
       const fresh = [...want].filter(([k]) => !this._terrainTiles.has(k));
       if (!fresh.length) {
-        dropStale();
+        if ([...want.keys()].every(k => this._terrainTiles.get(k).classList.contains('is-loaded'))) dropStale();
         return;
       }
       let pending = fresh.length;
@@ -7725,7 +7736,13 @@
           img.classList.add('is-loaded');
           settle();
         });
-        img.addEventListener('error', settle);
+        img.addEventListener('error', () => {
+          if (this._terrainTiles.get(key) === img) {
+            this._terrainTiles.delete(key);
+            if (img.parentNode) img.parentNode.removeChild(img);
+          }
+          settle();
+        });
         img.setAttribute('href', `assets/terrain/${t.z}/${t.x}/${t.y}.webp`);
         // Coarser fallback tiles sit beneath finer neighbours they overlap.
         if (t.top) layer.appendChild(img);
@@ -9765,8 +9782,9 @@
       if (adminLevel) {
         this._adminLevel = this._id('chk-admin-counties').checked ? 'counties' : 'prefectures';
         adminLevel.addEventListener('change', (event) => {
+          if (this._adminLevel === event.target.value) return;
           this._adminLevel = event.target.value;
-          this._rescaleSvgTypography();
+          this._renderSettlements(this.dynasties[this.dynastyIdx]);
         });
       }
       bindToggle('chk-provinces', this.grpProvinces);

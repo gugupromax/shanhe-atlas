@@ -360,6 +360,14 @@ function loadSources(rootDir = ROOT) {
   for (const key of order) {
     const { json, rel } = byKey.get(key);
     const snap = json.snapshot;
+    // Comparison maps kept with the source are not evidence for the snapshot's date.
+    for (const layer of json.referenceLayers || []) {
+      if (!Number.isInteger(layer.year) || !Array.isArray(layer.features) || !layer.features.length) {
+        errors.push(`${rel}: expected a dated reference layer with feature ids`);
+      } else {
+        for (const ref of layer.features) resolve(ref, key, rel);
+      }
+    }
     if (Array.isArray(snap)) {
       snapshots[key] = snap.map((ref) => resolve(ref, key, rel));
     } else if (snap && typeof snap === 'object') {

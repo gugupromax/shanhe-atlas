@@ -48,6 +48,26 @@ function fixture(t, newline = '\n') {
   return dir;
 }
 
+test('terrain renderer changes invalidate both the iframe and its script URL', t => {
+  const dir = fixture(t);
+  const child = path.join(dir, 'terrain.html');
+  const script = path.join(dir, 'terrain-app.js');
+  fs.writeFileSync(child, '<script src="terrain-app.js"></script>\r\n');
+  fs.writeFileSync(script, '/* v1 */\r\n');
+  const sync = () => versions.syncIndexHtmlAssetHashes(dir, {configureGitMergeDriver:false});
+  sync();
+  const oldChild = fs.readFileSync(child, 'utf8');
+  const oldParent = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
+  assert.match(oldChild, /terrain-app\.js\?v=[a-f0-9]{8}/);
+  assert.match(oldParent, /data-v-terrain="[a-f0-9]{8}"/);
+  fs.appendFileSync(script, '/* v2 */\n');
+  assert.throws(() => versions.verifyIndexHtmlAssetHashes(dir, null, ''), /Stale terrain/);
+  sync();
+  assert.notEqual(fs.readFileSync(child, 'utf8'), oldChild);
+  assert.notEqual(fs.readFileSync(path.join(dir, 'index.html'), 'utf8'), oldParent);
+  assert.doesNotThrow(() => versions.verifyIndexHtmlAssetHashes(dir, null, ''));
+});
+
 test('cache hashes and gzip sizes agree for LF and CRLF text checkouts', t => {
   const lf = fixture(t);
   const crlf = fixture(t, '\r\n');

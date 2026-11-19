@@ -52,7 +52,24 @@ function stageMetadata(stageDir, siteAddress) {
     ...fs.readdirSync(path.join(stage, 'topics')).filter((name) => name.endsWith('.html'))
       .map((name) => 'topics/' + name)];
   const sitemap = materializeSitemap(read('sitemap.xml'), siteUrl);
-  for (const file of files) write(file, materializeHtml(read(file), new URL(file, siteUrl)));
+  for (const file of files) {
+    let html = materializeHtml(read(file), new URL(file, siteUrl));
+    if (file === 'index.html') {
+      const optionalFiles = [
+        ['period-admin', 'data/tiles/period-admin.js'],
+        ['tang-tiles', 'assets/tang-741-tiles/manifest.json'],
+      ];
+      html = html.replace(/<script\b[^>]*\bid="atlas-app-script"[^>]*>/, tag => {
+        for (const [name, relative] of optionalFiles) {
+          const flag = ` data-${name}="absent"`;
+          tag = tag.replace(flag, '');
+          if (!fs.existsSync(path.join(stage, relative))) tag = tag.replace(/>$/, flag + '>');
+        }
+        return tag;
+      });
+    }
+    write(file, html);
+  }
   write('sitemap.xml', sitemap);
   write('robots.txt', read('robots.txt').replace(/^[ \t]*Sitemap:.*(?:\r?\n|$)/gim, '').trimEnd()
     + '\n\nSitemap: ' + new URL('sitemap.xml', siteUrl).href + '\n');

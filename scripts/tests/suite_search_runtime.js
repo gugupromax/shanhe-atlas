@@ -1803,6 +1803,7 @@ async function runSearchRuntimeSuite(ctx) {
           _terrainTileSize: terrainIdx.tileSize,
           _terrainIndex: new Map(Object.entries(terrainIdx.levels).map(([z, l]) => [Number(z), new Set(l)])),
           _getDefaultCamera: () => ({ x: 350, y: 215, w: 500, h: 420, zoom: 2 }),
+          _needsTerrainDetail: proto._needsTerrainDetail,
           _isMobileViewport: () => false,
         };
         // Camera width in SVG units on a ~1400 CSS px wide map.

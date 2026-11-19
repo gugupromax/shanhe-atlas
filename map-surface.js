@@ -308,6 +308,8 @@
       const clone = svg.cloneNode(true);
       freezeStrokes(svg, clone);
       const overlays = ['#map-area-focus'];
+      // 741 circuit selections have a camera-projected outline, including on the live fallback.
+      if (request.screenLabels === true) overlays.push('#grp-map-area .is-boundary-guide');
       if (request.screenPasses === true || request.screenLabels === true) overlays.push(passCaption, passArtwork);
       if (request.screenLabels === true || request.screenAdmin === true) {
         const groups = request.screenLabels === true ? tangCaptionGroups : adminCaptionGroups;
@@ -395,10 +397,20 @@
         context.fillStyle = water;
         context.fillRect(0, 0, size.width, size.height);
         context.drawImage(image, 0, 0, size.width, size.height);
+        const geometry = { bounds: bounds.slice(), width: size.width, height: size.height,
+          attribution: '江山时序原版地图 SVG；保留原图许可与数据使用约定' };
+        if (request.bitmap && typeof win.createImageBitmap === 'function') {
+          try {
+            // The GPU cannot flip ImageBitmap on upload as it would an HTMLImageElement.
+            const bitmap = await win.createImageBitmap(canvas, { imageOrientation: 'flipY', premultiplyAlpha: 'none' });
+            return { ...geometry, bitmap };
+          } catch {
+            // Some browsers implement createImageBitmap but reject these conversion options.
+          }
+        }
         const url = canvas.toDataURL('image/png');
         if (!url.startsWith('data:image/png;base64,')) throw new Error('原地图纹理导出为空');
-        return { url, bounds: bounds.slice(), width: size.width, height: size.height,
-          attribution: '江山时序原版地图 SVG；保留原图许可与数据使用约定' };
+        return { ...geometry, url };
       } finally { win.URL.revokeObjectURL(objectUrl); }
     }
 

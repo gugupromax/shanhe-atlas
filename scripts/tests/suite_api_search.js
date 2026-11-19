@@ -1390,6 +1390,13 @@ async function runApiSearchSuite(ctx) {
       Array.isArray(snap.regions) && snap.regions.length > 0,
       `Snapshot ${sk} must have non-empty regions after _hydrateSnapshots(), got ${(snap.regions || []).length}`
     );
+    if (sk === 's_roc' || sk.startsWith('s_roc_')) {
+      assert(snap.regions.some(region => region.title === '山东'),
+        `Snapshot ${sk} must retain the Shandong province layer`);
+      assert.strictEqual((snap.prefectures || []).length, 0,
+        `Snapshot ${sk} must not treat the archived 1911 prefectures as Republican boundaries`);
+      continue;
+    }
     const minPref =
       sk === 's_zhanguo_a' || sk === 's_zhanguo_a2'
         ? 3

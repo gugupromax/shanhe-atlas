@@ -4,12 +4,35 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
-const { deploymentUrl, materializeHtml, materializeSitemap } = require('../stage_site_metadata.cjs');
+const { deploymentUrl, materializeHtml, materializeSitemap, stageMetadata } = require('../stage_site_metadata.cjs');
 
 const root = path.resolve(__dirname, '../..');
 const read = (name) => fs.readFileSync(path.join(root, name), 'utf8');
 const localLinks = (html) => [...html.matchAll(/<a\b[^>]*\bhref="(\.\.?\/[^"]*)"/gi)]
   .map((match) => match[1].replaceAll('&amp;', '&'));
+
+test('staging records which optional map layers are present, including on a repeat build', t => {
+  const stage = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'atlas-stage-'));
+  t.after(() => fs.rmSync(stage, {recursive:true, force:true}));
+  fs.mkdirSync(path.join(stage, 'topics'));
+  for (const file of ['index.html', 'map-sources.html', 'sitemap.xml', 'robots.txt']) {
+    fs.copyFileSync(path.join(root, file), path.join(stage, file));
+  }
+  const check = (absentCounties, absentTiles) => {
+    stageMetadata(stage, 'https://atlas.example/maps/');
+    const tag = fs.readFileSync(path.join(stage, 'index.html'), 'utf8').match(/<script\b[^>]*\bid="atlas-app-script"[^>]*>/)[0];
+    assert.equal((tag.match(/data-period-admin="absent"/g) || []).length, Number(absentCounties));
+    assert.equal((tag.match(/data-tang-tiles="absent"/g) || []).length, Number(absentTiles));
+  };
+  check(true, true);
+  check(true, true);
+  fs.mkdirSync(path.join(stage, 'data/tiles'), {recursive:true});
+  fs.writeFileSync(path.join(stage, 'data/tiles/period-admin.js'), '');
+  check(false, true);
+  fs.mkdirSync(path.join(stage, 'assets/tang-741-tiles'), {recursive:true});
+  fs.writeFileSync(path.join(stage, 'assets/tang-741-tiles/manifest.json'), '{}');
+  check(false, false);
+});
 
 test('topic navigation returns to the same project at the root and under a repository prefix', () => {
   for (const address of ['https://atlas.example/', 'https://atlas.example/maps/shanhe']) {

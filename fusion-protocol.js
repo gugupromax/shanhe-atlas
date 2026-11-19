@@ -38,9 +38,9 @@
     const bounds=value.tileBounds;
     const tileBounds=tileTier&&Array.isArray(bounds)&&bounds.length===4&&bounds.every(Number.isFinite)&&
       bounds[0]>=40&&bounds[1]>=-10&&bounds[2]<=165&&bounds[3]<=70&&bounds[0]<bounds[2]&&bounds[1]<bounds[3]?bounds.slice():null;
-    const areaHighlight=tileTier||validCoord(value.areaHighlight?.point)?validateHighlight(value.areaHighlight):null;
+    const areaHighlight=tileTier||validCoord(value.areaHighlight?.point)||(value.year===741&&value.areaHighlight?.segments)?validateHighlight(value.areaHighlight):null;
     const areaHighlightId=areaHighlight&&Number.isSafeInteger(value.areaHighlightId)?value.areaHighlightId:0;
-    return {active:value.active===true,reason:value.reason||'controller',sceneKey:typeof value.sceneKey==='string'?value.sceneKey:'',seq:Number.isInteger(value.seq)?value.seq:0,year:value.year,center:value.center.slice(0,2),widthKm:value.widthKm,locations,selection,adminLabels:validateScreenLabels(value.adminLabels,adminLabelKinds,6000),passLabels:validateScreenLabels(value.passLabels,passLabelKinds,100),tileTier,tileBounds,areaHighlight,areaHighlightId,snapshot:value.snapshot&&Array.isArray(value.snapshot.polities)?value.snapshot:{polities:[],regions:[],prefectures:[]},layers:value.layers||{},overlays:value.overlays||{}};
+    return {active:value.active===true,reason:value.reason||'controller',sceneKey:typeof value.sceneKey==='string'?value.sceneKey:'',seq:Number.isInteger(value.seq)?value.seq:0,year:value.year,center:value.center.slice(0,2),widthKm:value.widthKm,locations,selection,adminLabels:validateScreenLabels(value.adminLabels,adminLabelKinds,6000),passLabels:validateScreenLabels(value.passLabels,passLabelKinds,100),tileTier,tileBounds,areaHighlight,areaHighlightId,layers:value.layers||{}};
   }
   function createChild(root,handlers){
     let latest=null,lastSeq=-1,ready=false;
@@ -51,9 +51,18 @@
         const state=validateState(message);if(!state||state.seq<lastSeq)return;
         lastSeq=state.seq;latest=state;handlers.onState(state);
       }else if(message.type==='surface' && typeof handlers.onSurface==='function'){
-        if(typeof message.sceneKey!=='string'||!Number.isInteger(message.renderId)||!['base','detail'].includes(message.quality)||typeof message.url!=='string'||!message.url.startsWith('data:image/png;base64,')||message.url.length>64000000||!Array.isArray(message.bounds)||message.bounds.length!==4||!message.bounds.every(Number.isFinite))return;
-        const [w,s,e,n]=message.bounds;if(w>=e||s>=n||w< -180||e>180||s< -85||n>85)return;
-        handlers.onSurface({sceneKey:message.sceneKey,renderId:message.renderId,quality:message.quality,url:message.url,bounds:message.bounds.slice()});
+        const bitmap=typeof root.ImageBitmap==='function'&&message.bitmap instanceof root.ImageBitmap ? message.bitmap : null;
+        const validImage=bitmap ? bitmap.width>0&&bitmap.height>0&&bitmap.width<=4096&&bitmap.height<=4096 :
+          typeof message.url==='string'&&message.url.startsWith('data:image/png;base64,')&&message.url.length<=64000000;
+        const bounds=message.bounds;
+        if(!validImage||typeof message.sceneKey!=='string'||!Number.isInteger(message.renderId)||
+          !['base','detail'].includes(message.quality)||!Array.isArray(bounds)||bounds.length!==4||!bounds.every(Number.isFinite)||
+          bounds[0]>=bounds[2]||bounds[1]>=bounds[3]||bounds[0]<-180||bounds[2]>180||bounds[1]<-85||bounds[3]>85) {
+          bitmap?.close();
+          return;
+        }
+        handlers.onSurface({sceneKey:message.sceneKey,renderId:message.renderId,quality:message.quality,
+          ...(bitmap?{bitmap}:{url:message.url}),bounds:bounds.slice()});
       }else if(message.type==='surface-error' && typeof handlers.onSurfaceError==='function'){
         if(typeof message.sceneKey==='string')handlers.onSurfaceError(message.sceneKey);
       }else if(message.type==='config'){
@@ -62,7 +71,7 @@
         handlers.onConfig(config);
       }
     });
-    return {send,get latest(){return latest;},ready(){if(!ready){ready=true;send('ready');}},applied(seq,year,supported=true){send('applied',{seq,year,supported});}};
+    return {send,get latest(){return latest;},ready(){if(!ready){ready=true;send('ready',{surfaceBitmaps:typeof root.ImageBitmap==='function'});}},applied(seq,year,supported=true){send('applied',{seq,year,supported});}};
   }
   return {CHANNEL,validCoord,validateState,createChild};
 });

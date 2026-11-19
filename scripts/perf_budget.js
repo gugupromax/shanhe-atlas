@@ -60,7 +60,8 @@ function measurePerfBudget(rootDir = ROOT) {
   const indexHtml = fs.readFileSync(indexHtmlPath, 'utf8');
   const syncRelPaths = extractSyncScriptPaths(indexHtml);
   const syncScripts = syncRelPaths.map((rel) => measureBundle(rel, rootDir));
-  const lazyScripts = LAZY_ATTR_ASSETS.map(({ relPath }) => measureBundle(relPath, rootDir));
+  const lazyScripts = LAZY_ATTR_ASSETS.filter(({relPath}) => relPath.endsWith('.js'))
+    .map(({ relPath }) => measureBundle(relPath, rootDir));
 
   const syncScriptsRawBytes = syncScripts.reduce((sum, s) => sum + s.rawBytes, 0);
   const syncScriptsGzipBytes = syncScripts.reduce((sum, s) => sum + s.gzipBytes, 0);
