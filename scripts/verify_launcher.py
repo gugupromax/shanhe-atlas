@@ -30,6 +30,12 @@ if '--offline' in sys.argv:
         launch['main']();request.assert_called_once_with(record['url']+'/__jiangshan_stop__',record['token'])
     server_class=launch['LocalHTTPServer']
     assert server_class.allow_reuse_address is False and server_class.allow_reuse_port is False
+    # Two fresh browser views can open a burst of loopback TCP connections before
+    # the Python accept loop runs. Verify the listening socket can queue them.
+    with server_class(('127.0.0.1',0),scope['SimpleHTTPRequestHandler']) as pending, contextlib.ExitStack() as clients:
+        for _ in range(12):
+            clients.enter_context(scope['socket'].create_connection(pending.server_address,timeout=3))
+    print('PASS: loopback listener queued 12 connections before request handlers started.')
     # Bind ephemeral ports only: exercise both a legacy reusable listener and
     # the fixed exclusive listener without touching any running project server.
     for first_class in (launch['ThreadingHTTPServer'],server_class):

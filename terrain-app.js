@@ -646,7 +646,8 @@
       const first=await center;
       if(!current())return;
       if(first){
-        atlasSurface.detailTiles([first],dataset.bounds);
+        const preview=plan.tiles.length<=atlasSurface.tileLimit?loader.availableTiles(plan,first):[first];
+        atlasSurface.detailTiles(preview,dataset.bounds);
         tangAppliedTier=state.tileTier;
         document.body.dataset.tileProgress='center';
         measure('center-ready');

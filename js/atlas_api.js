@@ -273,8 +273,7 @@
       return out;
     }
 
-    _resolveDatedCounty(place, year) {
-      if (!/(?:县|縣|\s+County)$/i.test(place)) return undefined;
+    _datedCountyIndex(year) {
       const rows = year === 741
         ? window.TANG_741_ATLAS?.places
         : window.ATLAS_PERIOD_ADMIN?.placesForYear(year);
@@ -284,7 +283,7 @@
       const converter = window.ZH_HANT_CONV;
       let entry = this._countyNameIndexes.get(rows);
       if (!entry || entry.dict !== dict || entry.converter !== converter) {
-        const names = new Map();
+        const names = new Map(), coordinates = new Map();
         const add = (name, row) => {
           const key = this._toHans(name).toLowerCase();
           const previous = names.get(key);
@@ -294,6 +293,10 @@
         const indexSeat = row => {
           add(row.ancient, row);
           if (dict?.[row.ancient]) add(dict[row.ancient], row);
+          const key = row.coord.join(',');
+          const prior = coordinates.get(key);
+          if (prior === undefined) coordinates.set(key, row);
+          else if (prior && prior.ancient !== row.ancient) coordinates.set(key, null);
         };
         for (const row of rows) {
           if (row.level === 'county') indexSeat(row);
@@ -304,9 +307,16 @@
             }
           }
         }
-        entry = {names, dict, converter};
+        entry = {names, coordinates, dict, converter};
         this._countyNameIndexes.set(rows, entry);
       }
+      return entry;
+    }
+
+    _resolveDatedCounty(place, year) {
+      if (!/(?:县|縣|\s+County)$/i.test(place)) return undefined;
+      const entry = this._datedCountyIndex(year);
+      if (!entry) return undefined;
       const seat = entry.names.get(this._toHans(place).toLowerCase());
       // A single coordinate cannot represent two same-named county seats.
       if (!seat) return seat;
@@ -325,6 +335,8 @@
       const targetDynIdx = this._findDynastyIndex(yr);
       const targetDyn = this.dynasties[targetDynIdx] || this.dynasties[0];
       const targetSnapKey = this._resolveSnapKey(targetDyn, yr);
+      const hanIsland = this._resolveHanIslandCommandery?.(rawInput, yr, targetDyn);
+      if (hanIsland !== undefined) return hanIsland;
       if (!this._resolvePlaceCache || this._resolvePlaceCacheSnapRef !== this.snapshots) {
         this._resolvePlaceCache = new Map();
         this._resolvePlaceCacheSnapRef = this.snapshots;
@@ -910,9 +922,14 @@
       return null;
     }
 
-    _inspectCoord(cLng, cLat, d, snap, year = this.year) {
+    _inspectCoord(cLng, cLat, d, snap, year = this.year, placeName = '') {
       const isEn = this.locale === 'en';
       const eraHit = this._resolveEraPlaceAt(cLng, cLat, d, snap);
+      const index = this._datedCountyIndex(year);
+      const named = typeof placeName === 'string' && placeName && index?.names.get(this._toHans(placeName.trim()).toLowerCase());
+      const exactName = named && named.coord[0] === cLng && named.coord[1] === cLat;
+      const seat = exactName ? named : index?.coordinates.get(cLng + ',' + cLat);
+      if (seat && (exactName || !eraHit.near || eraHit.near.km > 0)) eraHit.near = {s:seat, km:0};
       const modernProvince = eraHit.modernLoc.inModernChina
         ? isEn
           ? this.trTerm(eraHit.modernLoc.modernTitle)
@@ -1378,7 +1395,7 @@
           const sd = this.dynasties[sdIdx] || d;
           const sSnapKey = this._resolveSnapKey(sd, tok.year);
           const sSnap = this.snapshots[sSnapKey] || snap;
-          const info = this._inspectCoord(r.lng, r.lat, sd, sSnap, tok.year);
+          const info = this._inspectCoord(r.lng, r.lat, sd, sSnap, tok.year, r.name);
           const prev = route.length ? route[route.length - 1] : null;
           const tId = tok.trackIdx || 0;
           const prevTrackId = prev && prev.trackIdx !== undefined ? prev.trackIdx : 0;
@@ -1478,7 +1495,7 @@
       const hasCoord = cLng !== null && cLat !== null;
 
       const info = hasCoord
-        ? this._inspectCoord(cLng, cLat, d, snap, singleYear)
+        ? this._inspectCoord(cLng, cLat, d, snap, singleYear, resolved?.name || singlePlace)
         : {
             polity: null,
             regions: [],

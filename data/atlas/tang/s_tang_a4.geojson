@@ -3,7 +3,7 @@
   "license": "Approximate historical boundaries for illustration, not surveyed borders. When reusing, credit Jiangshan Atlas (https://github.com/DeanChensj/jiangshan-map) and the sources in data/atlas/README.md. Prefecture-level (郡/州/府) boundaries derive from CHGIS V6 and the Hartwell China Historical GIS: academic, non-commercial use only; do not redistribute; not licensed under GPL-3.0.",
   "snapshot": {
     "caption": "668 — 670 · 李勣灭高句丽：于平壤置安东都护府，盛唐六大都护府极盛疆域",
-    "note": "州郡政区：唐代十道/十五道与州府政区",
+    "note": "贞观十道仅标大致方位。本期道界未复原，州府沿用跨期示意。",
     "prefRef": "s_tang_a",
     "polities": [
       "唐",
@@ -34,21 +34,7 @@
       "新罗",
       "s_sui_a/流求"
     ],
-    "regions": [
-      "s_tang_a1/关内道",
-      "s_tang_0/河南道",
-      "s_tang_a1/河东道",
-      "河北道",
-      "s_tang_0/山南东道",
-      "s_tang_0/山南西道",
-      "s_tang_a1/陇右道",
-      "s_tang_0/淮南道",
-      "s_tang_0/江南东道",
-      "s_tang_0/江南西道",
-      "s_tang_0/黔中道",
-      "s_tang_0/剑南道",
-      "s_tang_0/岭南道"
-    ]
+    "regionRef": "s_tang_627"
   },
   "features": [
     {

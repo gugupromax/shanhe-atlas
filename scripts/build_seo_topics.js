@@ -2307,8 +2307,8 @@ function updateIndexHtmlSeoDirectory(dynMeta, storyMeta, journeyMeta, featuredMe
   const totalMilestones = dynasties.reduce((sum, d) => sum + (d.milestones || []).length, 0);
   const totalLandmarks = (loreData.PLACE_LANDMARK_EVENTS || []).length;
   html = html.replace(
-    /共\d+个历史时期、\d+幅多阶段疆域与州郡政区快照、\d+条编年大事、\d+处城池地标/,
-    `共${dynasties.length}个历史时期、${histSnapCount}幅多阶段疆域与州郡政区快照、${totalMilestones}条编年大事、${totalLandmarks}处城池地标`
+    /\d+个历史时期、\d+幅多阶段疆域与州郡政区快照、\d+条编年大事、\d+处城池地标/g,
+    `${dynasties.length}个历史时期、${histSnapCount}幅多阶段疆域与州郡政区快照、${totalMilestones}条编年大事、${totalLandmarks}处城池地标`
   );
 
   const llmsPath = path.join(ROOT, 'llms.txt');

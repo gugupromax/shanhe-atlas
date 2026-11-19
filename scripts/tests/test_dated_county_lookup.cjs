@@ -26,6 +26,10 @@ test('741 county deep links match all the distinct named pins, including after l
   const suzhou = sandbox.window.TANG_741_ATLAS.places.find(place => place.ancient === '苏州');
   assert.deepEqual(Array.from(ctrl.resolvePlace('长洲县', 741).coord), Array.from(suzhou.coord));
   assert.deepEqual(Array.from(ctrl.resolvePlace('吴县', 741).coord), Array.from(suzhou.coord));
+  assert.equal(ctrl.inspect({year:741, place:'吴县'}).nearestCity.ancient, '吴县');
+  const near = ctrl.inspect({year:741, lng:109.32, lat:34.17}).nearestCity;
+  assert.equal(near.ancient, '蓝田县');
+  assert.equal(near.distanceKm, 0);
 });
 
 test('county lookup respects the requested year and withholds ambiguous coordinates', () => {
@@ -81,4 +85,17 @@ test('restoring a year already drawn by the boot snapshot keeps it selectable', 
   assert.equal(ctrl.lastRenderedSnap, drawn);
   assert.equal(ctrl.grpGhostDiff.innerHTML, '');
   assert.deepEqual(jumps, [[-402, false]]);
+});
+
+test('settlement revisions follow data epochs and refresh an existing pass when a nearby event enters its window', () => {
+  const {ctrl, sandbox, dynasties, loreData} = createValidationContext({fastMode:true});
+  const dyn = dynasties.find(d => d.key === 'zhanguo');
+  sandbox.window.ATLAS_PERIOD_ADMIN = {revisionForYear:y => y < -330 ? -350 : -330};
+  ctrl.year = -332;
+  assert.equal(ctrl._adminSettlementRevision(dyn, -334), ctrl._adminSettlementRevision(dyn, -333));
+  assert.notEqual(ctrl._adminSettlementRevision(dyn, -332), ctrl._adminSettlementRevision(dyn, -330));
+  const pass = loreData.STRATEGIC_PASSES.find(p => p.ancientZh === '函谷关');
+  assert.equal(ctrl._passNearMilestone(dyn, ctrl._passAtYear(pass,-332).coord, -332), false);
+  assert.equal(ctrl._passNearMilestone(dyn, ctrl._passAtYear(pass,-331).coord, -331), true);
+  assert.notEqual(ctrl._settlementMask(dyn,-332), ctrl._settlementMask(dyn,-331));
 });

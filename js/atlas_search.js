@@ -326,7 +326,10 @@
         const enDyn = (this.enLocale.dynasties && this.enLocale.dynasties[d.key]) || {};
         const dynNameEn = enDyn.name || d.title;
         for (const s of d.settlements || []) {
-          const yr = s.appear !== undefined ? Math.max(d.fromYear, s.appear) : d.focusYear;
+          const first = Math.max(d.fromYear, s.appear ?? d.fromYear);
+          const last = this._clampYearToDynasty(d, (s.vanish ?? d.toYear + 1) - 1);
+          if (first > last) continue;
+          const yr = Math.min(last, Math.max(first, s.appear ?? d.focusYear));
           const rawAncEn = this._enDict(s.ancient);
           const ancEn = isModernDyn ? this._enModernCity(s.ancient) : rawAncEn;
           const modEn = this._enModernCity(s.modern || '');
@@ -334,8 +337,14 @@
           const sAliases = (s.aliases || [])
             .flatMap((a) => [String(a || '').toLowerCase(), this._enDict(a).toLowerCase()])
             .filter(Boolean);
+          const datedNames = (s.eraNames || []).map(name => ({
+            zh:name.zh, en:name.en || this._enDict(name.zh || '') || name.zh,
+            first:Math.max(first, name.from ?? first), last:Math.min(last, (name.until ?? last + 1) - 1),
+          })).filter(name => name.zh && name.first <= name.last);
+          for (const name of datedNames) sAliases.push(name.zh.toLowerCase(), name.en.toLowerCase());
           entries.push({
             kind: 'city',
+            ...(datedNames.length ? {datedNames} : {}),
             dynasty: d,
             year: yr,
             coord: s.coord,
@@ -980,6 +989,12 @@
 
         if (score > 0) {
           let resItem = item;
+          if (item.datedNames) {
+            const matches = item.datedNames.filter(name => name.zh.toLowerCase() === q || name.en.toLowerCase() === q);
+            const name = matches.find(name => this.year >= name.first && this.year <= name.last) || matches[0];
+            if (name) resItem = {...item, titleZh:name.zh, titleEn:name.en,
+              year:Math.min(name.last, Math.max(name.first, this.year))};
+          }
           if (item.kind === 'event' && (matchedAltZh || matchedAltEn)) {
             resItem = {
               ...item,

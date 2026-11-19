@@ -258,6 +258,8 @@ async function runCoreDataSuite(ctx) {
 
   const lakeLabels = (hydro.labels || []).filter((l) => l.kind === 'lake');
 
+  // The ten early Tang circuits have sourced names and label anchors only.
+  const directionalCircuits = new Set(snapshots.s_tang_627.regions);
   if (!FAST_MODE) {
     for (const [k, snap] of Object.entries(snapshots)) {
       if (Array.isArray(snap)) {
@@ -265,6 +267,11 @@ async function runCoreDataSuite(ctx) {
       } else if (snap && typeof snap === 'object') {
         for (const grp of ['polities', 'prefectures', 'regions']) {
           for (const item of snap[grp] || []) {
+            if (grp === 'regions' && directionalCircuits.has(item)) {
+              assert(!item.shape && item.category === '道' && item.anchor.length === 2 &&
+                item.anchor.every(Number.isFinite), 'Invalid early Tang circuit label in ' + k);
+              continue;
+            }
             verifyShape(item.shape, `${k}.${grp}(${item.title || 'unnamed'})`);
             if (grp === 'polities' && (item.role === 'main' || item.role === 'rival') && item.anchor) {
               const [ax, ay] = item.anchor;

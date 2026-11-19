@@ -362,8 +362,10 @@ function loadSources(rootDir = ROOT) {
     const snap = json.snapshot;
     // Comparison maps kept with the source are not evidence for the snapshot's date.
     for (const layer of json.referenceLayers || []) {
-      if (!Number.isInteger(layer.year) || !Array.isArray(layer.features) || !layer.features.length) {
-        errors.push(`${rel}: expected a dated reference layer with feature ids`);
+      const describedPeriod = layer.year === undefined && typeof layer.period === 'string' && layer.period.trim() &&
+        typeof layer.dateNote === 'string' && layer.dateNote.trim();
+      if ((!Number.isInteger(layer.year) && !describedPeriod) || !Array.isArray(layer.features) || !layer.features.length) {
+        errors.push(`${rel}: expected a dated or period-qualified reference layer with feature ids`);
       } else {
         for (const ref of layer.features) resolve(ref, key, rel);
       }

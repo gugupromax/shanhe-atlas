@@ -130,6 +130,28 @@ test('center preview picks the containing tile and reuses its request in the det
   assert.equal(f.images.filter(path => path === tile.path).length, 1);
 });
 
+test('panning retains decoded neighbors in the new viewport without starting extra preview requests', async () => {
+  const f = fixture();
+  const loader = tiles.create({ document: f.document });
+  const grid = (col) => {
+    const [west,,,north] = tiles.tileBounds('near', 3, col);
+    const [,south,east] = tiles.tileBounds('near', 4, col+1);
+    return loader.plan('near', [west, south, east, north]);
+  };
+  const firstView = grid(3), nextView = grid(4);
+  const first = await loader.loadTiles(firstView);
+  const [w,s,e,n] = nextView.tiles[1].bounds;
+  const center = await loader.loadCenter(nextView, [(w+e)/2, (s+n)/2]);
+  const partial = loader.availableTiles(nextView, center);
+  assert.deepEqual(partial.map(tile => tile.image), [first[1].image, center.image, first[3].image]);
+  assert.deepEqual(partial.map(tile => tile.bounds), nextView.tiles.slice(0,3).map(tile => tile.bounds));
+  assert.equal(f.images.length, 5, 'the other missing tile has not been requested');
+  assert.equal(f.canvases.length, 0);
+  const complete = await loader.loadTiles(nextView);
+  assert.equal(f.images.length, 6);
+  assert.deepEqual(loader.availableTiles(nextView, center), complete);
+});
+
 test('versioned paths are local and match the validated manifest directory', async () => {
   const f = fixture();
   const version = 'v-0123456789abcdef';

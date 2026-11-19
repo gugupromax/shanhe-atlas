@@ -3660,6 +3660,22 @@
       return item.ancient || '';
     }
 
+    _passNearMilestone(dynasty, coord, year) {
+      const events = dynasty.milestones;
+      if (!events?.length) return false;
+      this._passMilestoneYears ||= new WeakMap();
+      let locations = this._passMilestoneYears.get(events);
+      if (!locations) this._passMilestoneYears.set(events, locations = new Map());
+      const key = coord.join(',');
+      let years = locations.get(key);
+      if (!years) {
+        years = events.filter(m => this._milestoneCoords(m).some(p =>
+          this.projector.greatCircleKm(coord, p) <= 42)).map(m => m.year);
+        locations.set(key, years);
+      }
+      return years.some(eventYear => Math.abs(eventYear - year) <= 8);
+    }
+
     _settlementMask(dynasty, year) {
       const sMask = (dynasty.settlements || [])
         .map((item) => {
@@ -3673,13 +3689,13 @@
           return item.eraNames ? `${base}${this._settlementAncient(item, year)}` : base;
         })
         .join('');
-      const pMask = HistoricalAtlasController.STRATEGIC_PASSES.map((p) =>
-        (p.appear !== undefined && year < p.appear) ||
-        (p.vanish !== undefined && year >= p.vanish)
-          ? '0'
-          : this._passName(p, year, 'zh') + (p.sites ? '/' + this._passAtYear(p, year).coord.join(',') : '')
-      ).join('|');
-      return `${sMask}:${pMask}:${year === 741}:${this._adminSettlementRevision?.(dynasty) || ''}`;
+      const pMask = HistoricalAtlasController.STRATEGIC_PASSES.map(p => {
+        if ((p.appear !== undefined && year < p.appear) || (p.vanish !== undefined && year >= p.vanish)) return '0';
+        const site = this._passAtYear(p, year);
+        return this._passName(p, year, 'zh') + (p.sites ? '/' + site.coord.join(',') : '') +
+          (this._passNearMilestone(dynasty, site.coord, year) ? '*' : '');
+      }).join('|');
+      return `${sMask}:${pMask}:${year === 741}:${this._adminSettlementRevision?.(dynasty, year) || ''}`;
     }
 
     _renderSettlements(dynasty) {
@@ -3837,11 +3853,7 @@
         for (const pass of activePasses) {
           const p = this._passAtYear(pass, this.year);
           const [px, py] = this.projector.toScreen(p.coord[0], p.coord[1]);
-          const hasNearMilestone = (dynasty.milestones || []).some(
-            (m) =>
-              Math.abs(m.year - this.year) <= 8 &&
-              this._milestoneCoords(m).some((mc) => this.projector.greatCircleKm(p.coord, mc) <= 42)
-          );
+          const hasNearMilestone = this._passNearMilestone(dynasty, p.coord, this.year);
           const hasNearTrace =
             this.activeTrace && this.projector.greatCircleKm(p.coord, this.activeTrace) <= 32;
           const cls = [
@@ -5942,8 +5954,8 @@
         ? this.uiStr('title', 'Shanhe Atlas · Historical Atlas of China')
         : this._zh('山河图集 · 中国历史地图 · 平面与 3D 地形');
       let pageDesc = isEn
-        ? 'Explore 2,400+ years of Chinese history from the Warring States (403 BCE) to the present across 18 eras, 205 multi-stage territory snapshots, 526 milestones, 733 city landmarks, 20 strategic passes, and 113+ person chronicles.'
-        : '交互式中国历史地图时间轴（公元前403年战国三家分晋至现代）：浏览18个朝代、205幅多阶段历史疆域与州道政区快照、526条编年大事、733处城池地标、20座天下名关与百余位青史人物行迹。';
+        ? 'Explore 2,400+ years of Chinese history from the Warring States (403 BCE) to the present through changing borders, historical place names, rivers and passes, and the journeys of historical figures.'
+        : '交互式中国历史地图时间轴（公元前403年战国三家分晋至现代）：查看历代疆域与州郡沿革、河湖变迁、关隘和历史人物行迹。';
       let canonicalUrl = baseSiteUrl;
 
       if (this.activePerson) {

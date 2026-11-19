@@ -1121,7 +1121,8 @@ async function runSearchRuntimeSuite(ctx) {
         assert.strictEqual(ctrl._passName(niangzi, -403, 'zh'), '井陉关');
         assert.strictEqual(ctrl._passName(niangzi, -403, 'en'), 'Jingxing Pass');
         assert.strictEqual(ctrl._passName(niangzi, 741, 'zh'), '娘子关');
-        assert.strictEqual(ctrl._passName(wusheng, -403, 'zh'), '冥阨');
+        assert.strictEqual(ctrl._passName(wusheng, -403, 'zh'), '豫鄂山口（古名待考）');
+        assert.strictEqual(ctrl._passName(wusheng, 509, 'zh'), '武阳关');
         assert.strictEqual(ctrl._passName(wusheng, 1140, 'zh'), '武阳关');
         assert.strictEqual(ctrl._passName(wusheng, 1500, 'zh'), '武胜关');
         assert.strictEqual(ctrl._passName(shanhai, 755, 'zh'), '临渝关');

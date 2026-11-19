@@ -181,11 +181,22 @@
       return loadTile(tile.path).then((image) => ({ image, bounds: tile.bounds }));
     }
 
+    function availableTiles(grid, centerTile) {
+      // Keep already-decoded neighbors on screen while the missing tiles load.
+      // Both the preview and final pass use grid order to sample shared edges consistently.
+      const available = [];
+      for (const tile of grid.tiles) {
+        const image = tile.bounds === centerTile.bounds ? centerTile.image : cache.get(tile.path);
+        if (image) available.push({ image, bounds: tile.bounds });
+      }
+      return available;
+    }
+
     function loadTiles(grid) {
       return Promise.all(grid.tiles.map(async ({ path, bounds }) => ({ image: await loadTile(path), bounds })));
     }
 
-    return { loadBase, loadCenter, loadDetail, loadTiles, plan };
+    return { loadBase, loadCenter, availableTiles, loadDetail, loadTiles, plan };
   }
 
   return { coverage, tileBounds, plan, create, loadManifest };

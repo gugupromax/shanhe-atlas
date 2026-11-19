@@ -326,6 +326,20 @@ async function runApiSearchSuite(ctx) {
     `Expected '明神宗' quick search to include 1573 CE Wanli accession era, got ${JSON.stringify(empHit3)}`
   );
   const passSearch = ctrl._queryQuickSearch('函谷关');
+  // A search hit should open a year in which that town is actually displayed.
+  for (const item of ctrl._ensureSearchIndex().filter(hit => hit.kind === 'city' && hit.dynasty)) {
+    const towns = (item.dynasty.settlements || []).filter(s => s.ancient === item.titleZh &&
+      s.coord && item.coord && s.coord[0] === item.coord[0] && s.coord[1] === item.coord[1]);
+    if (towns.length) assert(towns.some(s => (s.appear == null || s.appear <= item.year) &&
+      (s.vanish == null || item.year < s.vanish)), item.titleZh + ' in ' + item.year);
+  }
+  for (const [query, first, last] of [['三元特种区',1939,1939], ['三元县',1940,1948], ['剑州',960,978]]) {
+    const item = ctrl._queryQuickSearch(query).find(hit => hit.kind === 'city' && hit.titleZh === query &&
+      (hit.modernZh === '三明' || hit.modernZh === '南平'));
+    assert(item && item.year >= first && item.year <= last, query);
+  }
+  const wusheng = ctrl._queryQuickSearch('武胜关').find(hit => hit.passKey === 'wushengguan');
+  assert.equal(wusheng.year,509);
   for (const [query, year, coord] of [
     ['函谷关', -115, [110.92, 34.63]], ['函谷关', -114, [112.17, 34.72]],
     ['函谷关', -115, [110.92, 34.63]], ['Hangu Pass', 26, [112.17, 34.72]],
@@ -1405,10 +1419,14 @@ async function runApiSearchSuite(ctx) {
   // CUJ 19: Complete Region/Prefecture Hydration & Transition Era Snapshots (Chu-Han, Gengshi/Chimei, Huang Chao & Late Tang Warlords)
   for (const [sk, snap] of Object.entries(snapshots)) {
     if (!snap || Array.isArray(snap) || sk === 's_prc') continue;
-    assert(
-      Array.isArray(snap.regions) && snap.regions.length > 0,
-      `Snapshot ${sk} must have non-empty regions after _hydrateSnapshots(), got ${(snap.regions || []).length}`
-    );
+    if (sk === 's_tang_0' || sk === 's_tang_a0') {
+      assert.strictEqual(snap.regions.length, 0, 'The ten circuits had not been established in 618–626');
+    } else {
+      assert(
+        Array.isArray(snap.regions) && snap.regions.length > 0,
+        `Snapshot ${sk} must have non-empty regions after _hydrateSnapshots(), got ${(snap.regions || []).length}`
+      );
+    }
     if (sk === 's_roc' || sk.startsWith('s_roc_')) {
       assert(snap.regions.some(region => region.title === '山东'),
         `Snapshot ${sk} must retain the Shandong province layer`);

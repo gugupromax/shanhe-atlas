@@ -6,6 +6,10 @@
   const seatMatchKm = 5;
   const sourceMap = 'http://www.guoxue123.com/other/map/pic/10/03.jpg';
   const tangAreaKey = (place) => [place.level, place.parent, place.ancient].join('/');
+  const hanIslandCommanderies = [
+    {name:'儋耳郡', en:"Dan'er Commandery", id:'chgis:0:34272', from:-110, through:-83},
+    {name:'珠崖郡', en:'Zhuya Commandery', id:'chgis:0:34273', from:-110, through:-47},
+  ];
 
   // The gazetteer records three different names/intervals at the same seat.
   // The inherited polygon and the older CHGIS row both collapse that history.
@@ -60,6 +64,18 @@
   }
 
   class AtlasAreaMixin {
+    _resolveHanIslandCommandery(input, year, dynasty) {
+      if (dynasty?.key !== 'xihan' || !/(郡|commandery)$/i.test(input)) return undefined;
+      const name = input.replace(/’/g, "'").toLowerCase();
+      const item = hanIslandCommanderies.find(record => record.name === name || record.en.toLowerCase() === name);
+      if (!item) return undefined;
+      if (year < item.from || year > item.through) return null;
+      const seat = window.ATLAS_PERIOD_ADMIN?.placesForYear(year).find(p => p.id === item.id);
+      const snap = this.snapshots?.[this._resolveSnapKey(dynasty, year)];
+      const coord = seat?.coord || snap?.prefectures?.find(p => p.title === item.name && p.shape)?.anchor;
+      if (!coord) return null;
+      return {kind:'prefecture', name:item.name, lng:coord[0], lat:coord[1], coord:[...coord], zoom:3.8};
+    }
     _loadTang741Places(requestedYear = this.year) {
       this._renderTang741CircuitGuides();
       if (requestedYear !== tangYear || tangAtlas(requestedYear)) return;
@@ -181,11 +197,14 @@
       return x < left || y < top || x + w > right || y + h > bottom;
     }
 
-    _adminSettlementRevision(dynasty) {
-      if (this.year === tangYear) return '';
-      const snapshot = this._snapshotForAdmin(dynasty);
-      return [snapshot ? this._resolveSnapKey(dynasty, this.year) : '',
-        window.ATLAS_PERIOD_ADMIN ? this.year : reviewedLiang(dynasty, this.year)?.id || ''].join(':');
+    _adminSettlementRevision(dynasty, year = this.year) {
+      if (year === tangYear) return '';
+      const key = this._resolveSnapKey(dynasty, year);
+      const provider = window.ATLAS_PERIOD_ADMIN;
+      const period = provider ? (provider.revisionForYear?.(year) ?? year) : '';
+      const review = reviewedLiang(dynasty, year);
+      const revision = [period, review?.id, review?.parent].filter(value => value != null && value !== '').join('/');
+      return [this.snapshots?.[key] || (!this.snapshots && this.lastRenderedSnap) ? key : '', revision].join(':');
     }
 
     _periodAdminAreas(dynasty = this.dynasties?.[this.dynastyIdx]) {
@@ -206,6 +225,10 @@
         ? original.filter(item => item?.id !== 'chgis:0:210768') : original;
       const records = correction ? [correction, ...dated] : dated;
       for (const record of records) {
+        // CHGIS includes the abolition year. This atlas shows the post-event
+        // frame for 46 BCE (Book of Han, Annals of Emperor Yuan, Chuyuan 3).
+        if (dynasty.key === 'xihan' && record?.level === 'prefecture' && hanIslandCommanderies.some(
+          item => item.id === record.id && (this.year < item.from || this.year > item.through))) continue;
         if (!record?.id || !record.ancient || !['county', 'prefecture'].includes(record.level) ||
             !validCoord(record.coord) || (record.from != null && record.from > this.year) ||
             (record.through != null && record.through < this.year)) continue;

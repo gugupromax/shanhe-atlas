@@ -42,6 +42,11 @@ class AtlasIdentityTest(unittest.TestCase):
         self.assertEqual(json.loads(output), [
             [], ['early'], ['early'], ['early'], [], [], [], ['town'], ['town'], ['town'],
             ['override'], ['town'], ['town'], ['town'], [], ['late'], [], ['republic'], []])
+        program = ('global.window = {};\n' + render(rows, [], {}) +
+                   '\nconsole.log(JSON.stringify([63,64,127,128,129,192,193,1911,1912,1931,1932]'
+                   '.map(window.ATLAS_PERIOD_ADMIN.revisionForYear)));')
+        dates = json.loads(subprocess.check_output(['node','-'],input=program,text=True,encoding='utf-8'))
+        self.assertEqual(dates, [63,63,63,128,129,129,193,1900,1912,1931,1932])
 
     def test_competing_coordinates_are_withheld_only_for_their_year_and_id(self):
         fields = ['year', 'id', 'name', 'lon', 'lat', 'chgis_id']

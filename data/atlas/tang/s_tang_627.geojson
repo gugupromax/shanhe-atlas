@@ -1,0 +1,153 @@
+{
+  "type": "FeatureCollection",
+  "license": "Approximate historical boundaries for illustration, not surveyed borders. When reusing, credit Jiangshan Atlas (https://github.com/DeanChensj/jiangshan-map) and the sources in data/atlas/README.md. Prefecture-level (郡/州/府) boundaries derive from CHGIS V6 and the Hartwell China Historical GIS: academic, non-commercial use only; do not redistribute; not licensed under GPL-3.0.",
+  "snapshot": {
+    "caption": "627—629 年 · 贞观初分天下为十道",
+    "note": "贞观十道仅标大致方位。本期道界未复原，州府沿用跨期示意。",
+    "prefRef": "s_tang_a",
+    "polities": [
+      "s_tang_a0/唐",
+      "s_tang_a0/吐谷浑",
+      "s_tang_a0/吐蕃",
+      "s_tang_a0/六诏",
+      "s_tang_a0/东突厥",
+      "s_tang_a0/高昌 · 西域诸国",
+      "s_tang_a0/西突厥",
+      "s_tang_a0/占城",
+      "s_sui_a/狮子国",
+      "s_tang_a0/泰人诸邦",
+      "s_tang_0/堕罗钵底",
+      "s_tang_a0/真腊",
+      "s_tang_0/印度诸邦",
+      "s_tang_0/波罗王朝",
+      "s_tang_0/高句丽",
+      "s_sui_a/大和（日本）",
+      "s_sui_a/阿曼",
+      "s_sui_a/阿伊努",
+      "s_tang_0/北亚林中诸部",
+      "s_tang_0/花剌子模",
+      "s_tang_0/通古斯诸部",
+      "s_tang_0/百济",
+      "s_tang_0/迦湿弥罗",
+      "s_tang_0/萨珊波斯",
+      "s_tang_0/迦毕试",
+      "s_tang_0/漕矩吒",
+      "s_tang_0/新罗",
+      "s_sui_a/流求"
+    ],
+    "regions": [
+      "关内道",
+      "河南道",
+      "河东道",
+      "河北道",
+      "山南道",
+      "陇右道",
+      "淮南道",
+      "江南道",
+      "剑南道",
+      "岭南道"
+    ]
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "关内道",
+      "properties": {
+        "title": "关内道",
+        "category": "道",
+        "anchor": [108.95, 36.9]
+      },
+      "geometry": null
+    },
+    {
+      "type": "Feature",
+      "id": "河南道",
+      "properties": {
+        "title": "河南道",
+        "category": "道",
+        "anchor": [114.93, 34.48]
+      },
+      "geometry": null
+    },
+    {
+      "type": "Feature",
+      "id": "河东道",
+      "properties": {
+        "title": "河东道",
+        "category": "道",
+        "anchor": [112.29, 37.3]
+      },
+      "geometry": null
+    },
+    {
+      "type": "Feature",
+      "id": "河北道",
+      "properties": {
+        "title": "河北道",
+        "category": "道",
+        "anchor": [115.69, 38.84]
+      },
+      "geometry": null
+    },
+    {
+      "type": "Feature",
+      "id": "山南道",
+      "properties": {
+        "title": "山南道",
+        "category": "道",
+        "anchor": [107.03, 33.08]
+      },
+      "geometry": null
+    },
+    {
+      "type": "Feature",
+      "id": "陇右道",
+      "properties": {
+        "title": "陇右道",
+        "category": "道",
+        "anchor": [103.46, 36.22]
+      },
+      "geometry": null
+    },
+    {
+      "type": "Feature",
+      "id": "淮南道",
+      "properties": {
+        "title": "淮南道",
+        "category": "道",
+        "anchor": [118.68, 31.98]
+      },
+      "geometry": null
+    },
+    {
+      "type": "Feature",
+      "id": "江南道",
+      "properties": {
+        "title": "江南道",
+        "category": "道",
+        "anchor": [115.86, 28.68]
+      },
+      "geometry": null
+    },
+    {
+      "type": "Feature",
+      "id": "剑南道",
+      "properties": {
+        "title": "剑南道",
+        "category": "道",
+        "anchor": [104.35, 29.91]
+      },
+      "geometry": null
+    },
+    {
+      "type": "Feature",
+      "id": "岭南道",
+      "properties": {
+        "title": "岭南道",
+        "category": "道",
+        "anchor": [111.12, 23.32]
+      },
+      "geometry": null
+    }
+  ]
+}

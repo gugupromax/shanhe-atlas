@@ -21,6 +21,10 @@ The original import scripts are not in this repository, so provenance is reconst
 
 ## 校核记录
 
+福建剑州在太平兴国四年（979）更名南剑州，治剑浦县，即今南平延平。两宋点位采用本图延平府的近似位置。今三明城区在民国时以三元为地名，1939 年设三元特种区，次年设县，1956 年三元、明溪两县合并后始有三明县名。标点约示城区范围。[福建省民政厅《南平市十县（市、区）地名文化》](https://mzt.fj.gov.cn/ztzl/xczmxd/dmwh/202408/t20240826_6506561.htm) · [尤溪县政府《政区建置》](https://www.fjyx.gov.cn/zjyx/yxgk/qngx_28732/202404/t20240409_2016330.htm) · [三元区政府《建制沿革》](https://www.smsy.gov.cn/zjsy/jzyg/201703/t20170329_657646.htm)
+
+武胜关使用梁天监八年（509）武阳之战为检索代表年份。早期三隘如何对应后世关址存在异说，故早期仅标山口。明清名称按栏目分期选择，未考定改名确年。[《资治通鉴》卷一四七·胡三省注](https://zh.wikisource.org/wiki/資治通鑒_(胡三省音注)/卷147) · [《大清一统志》卷一六八](https://zh.wikisource.org/wiki/欽定大清一統志_(四庫全書本)/卷168)
+
 民国十二期的省级政区按各期快照显示。此前这些快照共用一套标注为清末 1911 年的府州界；原始 344 个要素引用存于 `roc/s_roc.geojson` 的 `referenceLayers` 中，保留年份和几何以供核对。1912 年各地改制进度不一，1913 年 1 月 8 日的组织令规定府、厅、州改县的处理方式。民国各期的府县辖界待逐期考证；1931 年的县治点由独立的有年款点层提供。[1913 年《画一现行各县地方行政官厅组织令》](https://zh.wikisource.org/wiki/畫一現行各縣地方行政官廳組織令) · [济南市情资料库《1913 年》](https://shandong-chorography.org/database/b1/section/1/article/65/)
 
 西汉共享示意层原收录「砀郡」旧面，继承到西汉晚期会跨出梁国所在范围。已停止在西汉层引用这块面。西汉晚期梁国、梁郡使用据[复旦时空地名库睢阳条](https://tgaz.fudan.edu.cn/tgaz/placename/hvd_82072)和[《汉书》诸侯王表](https://zh.wikisource.org/zh-hans/漢書/卷014)切换的治所点。
@@ -32,6 +36,10 @@ The original import scripts are not in this repository, so provenance is reconst
 
 政区资料卡的隶属栏采用记录自带的上级。点击示意边界时，资料卡另列点选位置落入的图层；郡界与手绘州界相交处可能随点选位置显示不同的图层名称。
 
+## 西汉海南郡界的分年处理
+
+元封元年（前110）设儋耳、珠崖二郡。始元五年（前82）儋耳并入珠崖，初元三年（前46）罢珠崖。本图以变更后的状态表示当年：仅在前110年至前83年显示既有的两郡示意面。前82年至前47年保留珠崖郡的说明；合并后的辖界待考。旧数据包含撤郡当年的珠崖郡点，地图按同一口径处理。同名的其他时代记录仍按各自史料。此修正仅涉及郡级行政建置。[《汉书·贾捐之传》](https://zh.wikisource.org/zh-hans/漢書/卷064下) · [《汉书·元帝纪》](https://zh.wikisource.org/wiki/漢書/卷009)
+
 ## License · 许可
 
 - Boundaries derived from **CHGIS V6** and the **Hartwell China Historical GIS** remain under their original terms: **academic, non-commercial use only; do not redistribute**. They are **not** licensed under GPL-3.0. Do not republish them from this repository; if you need prefecture boundaries, obtain them from the official CHGIS / Harvard Dataverse distribution. `scripts/export_geojson.js` leaves this layer out unless run with `--with-prefectures`.
@@ -40,3 +48,5 @@ The original import scripts are not in this repository, so provenance is reconst
 - **Attribution**: when reusing these boundaries, maps or screenshots, credit **江山时序 Jiangshan Atlas** (https://github.com/DeanChensj/jiangshan-map) and the upstream sources above.
 
 源自 CHGIS V6 与 Hartwell China Historical GIS 的边界数据仍受其原始条款约束（仅限学术、非商业用途，不得再分发），不适用 GPL-3.0；请勿从本仓库转载，如需郡州府边界，请从 CHGIS / Harvard Dataverse 官方渠道获取。`scripts/export_geojson.js` 默认不导出该图层，加 `--with-prefectures` 参数才会导出。其余内容遵循仓库的 GPL-3.0 许可。转载或引用这些边界、地图或截图时，请注明「江山时序 Jiangshan Atlas」（https://github.com/DeanChensj/jiangshan-map）及上述原始数据来源。
+
+唐初道制按贞观元年（627）和开元二十一年（733）分期。627—732 年的十道要素只有名称和方位锚点，几何为 `null`，不能用于按坐标判定隶属或导出道界。原图中六个仅用于早期误置道面的要素，以 `period` 和 `dateNote` 存入 `tang/s_tang_0.geojson` 的 `referenceLayers`；其具体制图年代未详。构建时校验引用，运行包不加载这份参考层。[《旧唐书》卷三十八](https://zh.wikisource.org/wiki/舊唐書/卷38) · [《通典》卷一百七十二](https://zh.wikisource.org/wiki/通典/卷172)

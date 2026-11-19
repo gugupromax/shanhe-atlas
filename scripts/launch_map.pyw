@@ -6,6 +6,8 @@ import hashlib,json,os,posixpath,secrets,subprocess,sys,threading,urllib.request
 import socket
 
 class LocalHTTPServer(ThreadingHTTPServer):
+    # Queue concurrent boot scripts and tiles even while a busy desktop delays accept().
+    request_queue_size=64
     # Windows SO_REUSEADDR can bind a port already owned by another project.
     allow_reuse_address=False
     allow_reuse_port=False
