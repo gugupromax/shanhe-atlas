@@ -23,7 +23,6 @@ async function runCartographyUiSuite(ctx) {
     styleCss,
     appCode,
     readmeSrc,
-    readmeZhSrc,
     tangDyn,
     pointInShape,
   } = ctx;
@@ -86,9 +85,17 @@ async function runCartographyUiSuite(ctx) {
       `index.html #milestone-list count (${ssrCount}) must match Warring States milestones (${dynasties[0].milestones.length})`
     );
 
-    const refCorpus = [indexHtml, styleCss, appCode, readmeSrc, readmeZhSrc].join('\n');
+    const refCorpus = [indexHtml, styleCss, appCode, readmeSrc].join('\n');
     for (const assetFile of fs.readdirSync(path.join(ROOT, 'assets'))) {
-      assert(refCorpus.includes(assetFile), `Unreferenced file in assets/: ${assetFile}`);
+      if (/^(hero_demo|preview_[a-z0-9_]+)_en\.webp$/.test(assetFile)) {
+        const chinese = assetFile.replace(/_en\.webp$/, assetFile.startsWith('hero_demo') ? '_zh.webp' : '.webp');
+        assert(readmeSrc.includes('assets/' + chinese), `English preview ${assetFile} needs a documented Chinese counterpart`);
+        const data = fs.readFileSync(path.join(ROOT, 'assets', assetFile));
+        assert(data.subarray(0, 4).toString() === 'RIFF' && data.subarray(8, 12).toString() === 'WEBP',
+          `Invalid English WebP preview: ${assetFile}`);
+      } else {
+        assert(refCorpus.includes(assetFile), `Unreferenced file in assets/: ${assetFile}`);
+      }
     }
 
     // This fork renders with installed system fonts and local CSS, including offline.

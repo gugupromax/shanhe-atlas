@@ -131,11 +131,22 @@ function applyHashesToIndexHtml(indexHtml, hashes) {
   return out;
 }
 
+function replaceExistingIndexHashes(html, hashes) {
+  const byAttribute = new Map(LAZY_ATTR_ASSETS.map(({attr, relPath}) => [attr, hashes[relPath]]));
+  // Older upstream homepages can omit fork-only assets. Keep their tag structure
+  // and unknown attributes so Git can still detect substantive HTML changes.
+  return html.replace(/(["'])([^"'?#\s]+)\?v=([0-9a-zA-Z_.-]+)\1/g, (match, quote, asset) =>
+    Object.hasOwn(hashes, asset) ? quote + asset + '?v=' + hashes[asset] + quote : match
+  ).replace(/\b(data-v-[\w-]+)="[0-9a-zA-Z_.-]+"/g, (match, attr) =>
+    byAttribute.has(attr) ? attr + '="' + byAttribute.get(attr) + '"' : match
+  );
+}
+
 function normalizeIndexHtmlHashes(indexHtml) {
   const zeroHashes = {};
   for (const relPath of STATIC_TAG_ASSETS) zeroHashes[relPath] = '00000000';
   for (const { relPath } of LAZY_ATTR_ASSETS) zeroHashes[relPath] = '00000000';
-  return applyHashesToIndexHtml(indexHtml, zeroHashes);
+  return replaceExistingIndexHashes(indexHtml, zeroHashes);
 }
 
 function runIndexHtmlMergeDriver(ancestorPath, currentPath, otherPath, rootDir = ROOT) {
@@ -150,9 +161,9 @@ function runIndexHtmlMergeDriver(ancestorPath, currentPath, otherPath, rootDir =
   const merged = fs.readFileSync(currentPath, 'utf8');
   const hashes = computeAssetHashes(rootDir);
   if (mergeRes.status === 0) {
-    fs.writeFileSync(currentPath, applyHashesToIndexHtml(merged, hashes), 'utf8');
+    fs.writeFileSync(currentPath, replaceExistingIndexHashes(merged, hashes), 'utf8');
   }
-  return mergeRes.status || 0;
+  return mergeRes.status ?? 1;
 }
 
 function ensureGitMergeDriverConfig(rootDir = ROOT) {

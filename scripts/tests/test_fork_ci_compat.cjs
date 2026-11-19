@@ -11,6 +11,14 @@ const versions = require('../sync_version');
 const { measureBundle, extractSyncScriptPaths } = require('../perf_budget');
 const ROOT = path.resolve(__dirname, '..', '..');
 
+test('upstream merges normalize only present asset hashes and preserve fork and upstream attributes', () => {
+  const older = '<script async src="js/app.js?v=1234" data-v-lore="abcd" data-v-new="5678"></script>';
+  assert.equal(versions.normalizeIndexHtmlHashes(older),
+    '<script async src="js/app.js?v=00000000" data-v-lore="00000000" data-v-new="5678"></script>');
+  const nested = '<a href="../?year=741">Home</a>';
+  assert.equal(versions.normalizeIndexHtmlHashes(nested), nested);
+});
+
 test('public staging excludes local-only generated map layers', () => {
   const docker = fs.readFileSync(path.join(ROOT,'.dockerignore'),'utf8').split(/\r?\n/);
   const pages = fs.readFileSync(path.join(ROOT,'.github/workflows/deploy-pages.yml'),'utf8');

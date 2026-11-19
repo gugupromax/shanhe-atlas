@@ -295,7 +295,6 @@ function createValidationContext({ fastMode = false } = {}) {
   const skillPyPath = path.join(ROOT, 'skills', 'jiangshan-atlas', 'scripts', 'jiangshan.py');
   const llmsTxt = fs.readFileSync(llmsTxtPath, 'utf8');
   const readmeSrc = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
-  const readmeZhSrc = fs.readFileSync(path.join(ROOT, 'README_ZH.md'), 'utf8');
   const contributingSrc = fs.readFileSync(path.join(ROOT, 'CONTRIBUTING.md'), 'utf8');
   const contributingZhSrc = fs.readFileSync(path.join(ROOT, 'CONTRIBUTING_ZH.md'), 'utf8');
 
@@ -354,7 +353,6 @@ function createValidationContext({ fastMode = false } = {}) {
     llmsTxt,
     llmsSrc: llmsTxt,
     readmeSrc,
-    readmeZhSrc,
     contributingSrc,
     contributingZhSrc,
     zgDyn,

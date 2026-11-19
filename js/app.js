@@ -3993,8 +3993,7 @@
         this.activeMilestone &&
         !this.activeMilestone.isAuto &&
         this.activeMilestone.dynastyKey === dynasty.key &&
-        this.activeMilestone.year === this.year &&
-        this.activeMilestone.idx >= 0
+        this.activeMilestone.year === this.year
       ) {
         return this.activeMilestone.idx;
       }
@@ -6195,7 +6194,8 @@
             }
             return;
           }
-          if (activeIdx <= 0) {
+          if (activeIdx < 0) return;
+          if (activeIdx === 0) {
             if (pane.scrollTop > 0) {
               pane.scrollTo({ top: 0, behavior: 'smooth' });
             }

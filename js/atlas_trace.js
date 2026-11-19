@@ -69,7 +69,7 @@
         this.grpJourney.innerHTML = '';
       }
       const vf = this._id('viewport-frame');
-      if (vf) vf.classList.remove('has-active-person');
+      if (vf) vf.classList.remove('has-active-person', 'has-person-overview-lines');
       const kickerEl = this._id('txt-genealogy-kicker');
       if (kickerEl) {
         kickerEl.textContent = this.uiStr('trace_kicker', '点地溯源 · 古今政区沿革');
@@ -1730,7 +1730,11 @@
     _renderPersonPinsOverlay() {
       if (!this.grpJourney) return;
       this.grpJourney.innerHTML = '';
-      if (!this.activePerson) return;
+      const vf = this._id('viewport-frame');
+      if (!this.activePerson) {
+        if (vf) vf.classList.remove('has-person-overview-lines');
+        return;
+      }
 
       const { events, tracks, isMulti, profile } = this.activePerson;
       const isStory = Boolean(profile && profile.isStory);
@@ -1880,6 +1884,7 @@
             ox: 0,
             oy: 0,
             ringR: 0,
+            canonicalIdx: i,
             isPrimary: true,
             isMultiCanonical: true,
             isSoloCanonical: true,
@@ -1898,6 +1903,7 @@
             ox: 0,
             oy: 0,
             ringR: 0,
+            canonicalIdx: canonicalSolo,
             isPrimary: i === canonicalSolo,
             isMultiCanonical: true,
             isSoloCanonical: i === canonicalSolo,
@@ -1936,8 +1942,8 @@
       });
 
       // 1. Render understated cartographic trajectory arcs + directional chevrons below pins
-      // - Overview (curIdx < 0): render pins only (no crisscrossing full-life cobweb)
-      // - Single step (curIdx >= 0): render ONLY that step's movement vector(s) (prevStop ──► curStop)
+      // - Curated journeys and relics connect overview pins; ordinary profiles keep the pins-only view.
+      // - A selected step draws its movement vector(s). Stories with a full route retain their background path.
       const unnumberedOriginCoords = [];
       const renderOriginBead = (coord, labelZh, labelEn, color) => {
         unnumberedOriginCoords.push(coord);
@@ -1971,7 +1977,68 @@
           this.locale === 'en' ? labelEn || this.trTerm(labelZh) : this._zh(labelZh)
         );
       };
-      if (!isMulti) {
+      const getSoloPinCoord = (idx) => {
+        const cl = clusters[idx];
+        return cl && typeof cl.canonicalIdx === 'number' && events[cl.canonicalIdx]
+          ? events[cl.canonicalIdx].coord
+          : events[idx].coord;
+      };
+      const isCuratedJourney = Boolean(profile && (profile.journeyKey || profile.isRelic));
+      let hasOverviewLines = false;
+      if (curIdx < 0 && !isMulti && !isStory && isCuratedJourney) {
+        const segments = [];
+        let prevIdx = -1;
+        let legCount = 0;
+        for (let i = 0; i < events.length; i++) {
+          const nextEv = events[i];
+          if (!nextEv || !Array.isArray(nextEv.coord)) continue;
+          if (prevIdx < 0) {
+            prevIdx = i;
+            continue;
+          }
+          const prevEv = events[prevIdx];
+          const fromPinCoord = getSoloPinCoord(prevIdx);
+          const toPinCoord = getSoloPinCoord(i);
+          if (
+            Math.hypot(fromPinCoord[0] - toPinCoord[0], fromPinCoord[1] - toPinCoord[1]) <= 0.08
+          ) {
+            prevIdx = i;
+            continue;
+          }
+          const keepsCuratedLeg =
+            Boolean(nextEv.via || nextEv.fromCoord) &&
+            nextEv.prevStopCoord &&
+            Math.hypot(
+              prevEv.coord[0] - nextEv.prevStopCoord[0],
+              prevEv.coord[1] - nextEv.prevStopCoord[1]
+            ) < 1.2;
+          let viaPts = keepsCuratedLeg && Array.isArray(nextEv.via) ? nextEv.via.slice() : null;
+          if (
+            keepsCuratedLeg &&
+            Array.isArray(nextEv.fromCoord) &&
+            Math.hypot(nextEv.fromCoord[0] - fromPinCoord[0], nextEv.fromCoord[1] - fromPinCoord[1]) >
+              0.45
+          ) {
+            viaPts = [nextEv.fromCoord, ...(viaPts || [])];
+          }
+          const segBias = legCount % 2 === 0 ? 1.8 : -1.8;
+          const segInfo = this._buildJourneySegmentInfo(
+            fromPinCoord,
+            toPinCoord,
+            viaPts && viaPts.length ? viaPts : null,
+            segBias
+          );
+          if (segInfo) {
+            segments.push({ ...segInfo, toIdx: i });
+            legCount++;
+          }
+          prevIdx = i;
+        }
+        if (segments.length) {
+          hasOverviewLines = true;
+          this._renderCartographicTrajectory(segments, -1, '#ad3422', false);
+        }
+      } else if (!isMulti) {
         if (isStory && profile.routeOverview) {
           let d = '', prev = null;
           for (const ev of events) {
@@ -2069,6 +2136,7 @@
           }
         }
       }
+      if (vf) vf.classList.toggle('has-person-overview-lines', hasOverviewLines);
 
       // Deduplicate city labels so repeated visits to the same city only print its name once
       const labelOwnerByIdx = new Set();
@@ -4420,20 +4488,26 @@
 
       if (curIdx < 0) {
         const fullD = segments.map((s) => s.d).join(' ');
-        applyDim(this._svgNode('path', { d: fullD, class: 'journey-track-halo' }, this.grpJourney));
         applyDim(
           this._svgNode(
             'path',
-            { d: fullD, class: 'journey-track-thread', stroke: accentColor },
+            { d: fullD, class: 'journey-track-halo is-overview' },
+            this.grpJourney
+          )
+        );
+        applyDim(
+          this._svgNode(
+            'path',
+            { d: fullD, class: 'journey-track-thread is-overview', stroke: accentColor },
             this.grpJourney
           )
         );
         const placedMarks = [];
         for (const seg of segments) {
-          if (seg.chord < 20) continue;
-          if (placedMarks.some(([px, py]) => Math.hypot(px - seg.mx, py - seg.my) < 15)) continue;
+          if (seg.chord < 28) continue;
+          if (placedMarks.some(([px, py]) => Math.hypot(px - seg.mx, py - seg.my) < 22)) continue;
           placedMarks.push([seg.mx, seg.my]);
-          appendChevron(seg, '');
+          appendChevron(seg, 'is-muted');
         }
         return;
       }

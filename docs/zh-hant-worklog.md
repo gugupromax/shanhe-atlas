@@ -282,7 +282,7 @@
 
 ## 5. 文件繁體化
 
-- 新增 [`README_ZH_HANT.md`](../README_ZH_HANT.md)：以修正後轉換器轉出，再人工校對並改用臺灣技術用語（專案、程式、建置、映像、匯出、預設、本機、內建、支援、執行、伺服器、腳本、檔案、連接埠、向量、唯讀、範例、空白鍵……）。
+- 新增 [`README_ZH_HANT.md`](https://github.com/DeanChensj/jiangshan-map/blob/1a73bee6c94e1eae93ceee44dcc1ac60cebc429b/README_ZH_HANT.md)：以修正後轉換器轉出，再人工校對並改用臺灣技術用語（專案、程式、建置、映像、匯出、預設、本機、內建、支援、執行、伺服器、腳本、檔案、連接埠、向量、唯讀、範例、空白鍵……）。
 - `README.md`、`README_ZH.md`、`README_JA.md` 語言列加上「繁體中文」連結。
 
 ## 6. 待決與已知限制

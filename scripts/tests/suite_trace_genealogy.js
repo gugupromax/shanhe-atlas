@@ -22,7 +22,6 @@ async function runTraceGenealogySuite(ctx) {
     styleCss,
     appCode,
     readmeSrc,
-    readmeZhSrc,
     mingPol,
     pointInShape,
   } = ctx;
@@ -1211,7 +1210,7 @@ async function runTraceGenealogySuite(ctx) {
     }
   }
 
-  // 23o. Verify Ming Dynasty (s_ming*) natural curved polity borders & bilingual README preview asset parity
+  // 23o. Verify Ming Dynasty (s_ming*) natural curved polity borders & Chinese README previews and both preview asset sets
   if (!FAST_MODE) {
     for (const mingKey of ['s_ming_a0', 's_ming_a', 's_ming_a2', 's_ming_b', 's_ming_c']) {
       const mingSnap = snapshots[mingKey];
@@ -1242,8 +1241,7 @@ async function runTraceGenealogySuite(ctx) {
     ['assets/preview_journey_sushi_en.webp', 'assets/preview_journey_sushi.webp'],
     ['assets/preview_quiz_challenge_en.webp', 'assets/preview_quiz_challenge.webp'],
   ]) {
-    assert(readmeSrc.includes(enAsset), `README.md must reference English preview ${enAsset}`);
-    assert(readmeZhSrc.includes(zhAsset), `README_ZH.md must reference Chinese preview ${zhAsset}`);
+    assert(readmeSrc.includes(zhAsset), `README.md must reference Chinese preview ${zhAsset}`);
     assert(fs.existsSync(path.join(ROOT, enAsset)), `Missing preview asset file ${enAsset}`);
     assert(fs.existsSync(path.join(ROOT, zhAsset)), `Missing preview asset file ${zhAsset}`);
   }

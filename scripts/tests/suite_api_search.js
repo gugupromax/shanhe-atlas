@@ -25,7 +25,6 @@ async function runApiSearchSuite(ctx) {
     llmsSrc,
     skillPyPath,
     readmeSrc,
-    readmeZhSrc,
     contributingSrc,
     contributingZhSrc,
     qingDyn,
@@ -847,26 +846,21 @@ async function runApiSearchSuite(ctx) {
   // Verify index.html, README.md, and llms.txt metadata sync and removal of unused diag-hatch pattern
   assert(!htmlSrc.includes('id="diag-hatch"'), 'index.html must not contain unused #diag-hatch pattern');
   assert(
-    !readmeZhSrc.includes('点右上角的 **「开始挑战」**') &&
-      !readmeZhSrc.includes('青史行迹 ▾') &&
-      readmeZhSrc.includes('点人溯事') &&
-      readmeZhSrc.includes('舆图寻址 · 古地名小试') &&
-      readmeZhSrc.includes('href="README.md"') &&
-      !readmeSrc.includes('Journeys ▾') &&
-      readmeSrc.includes('Person Chronicles') &&
-      readmeSrc.includes('Map Pinpoint · Ancient Place Quiz') &&
-      readmeSrc.includes('href="README_ZH.md"') &&
-      contributingSrc.includes('href="CONTRIBUTING_ZH.md"') &&
-      contributingSrc.includes('lore_core.js') &&
-      contributingSrc.includes('lore_detail.js') &&
-      contributingZhSrc.includes('href="CONTRIBUTING.md"') &&
-      contributingZhSrc.includes('lore_core.js') &&
-      contributingZhSrc.includes('lore_detail.js') &&
+    !readmeSrc.includes('点右上角的 **「开始挑战」**') &&
+      !readmeSrc.includes('青史行迹 ▾') &&
+      readmeSrc.includes('点人溯事') &&
+      readmeSrc.includes('舆图寻址 · 古地名小试') &&
+      readmeSrc.includes('](CONTRIBUTING_ZH.md)') &&
       !readmeSrc.includes('&event=') &&
-      !readmeZhSrc.includes('&event=') &&
       appCode.includes("q.has('event')") &&
-      !/\b\d{3}\s*(幅|座|处|条|桩|段)/.test(readmeZhSrc),
-    'README.md, README_ZH.md, CONTRIBUTING.md, CONTRIBUTING_ZH.md, and app.js must cross-link between English and Chinese docs, reference lore_core.js & lore_detail.js, document unified Person Chronicles & search-box Quiz entry point, avoid redundant &event= query params, and avoid hardcoded 3-digit entity counts'
+      !/\b\d{3}\s*(幅|座|处|条|桩|段)/.test(readmeSrc),
+    'The Chinese README must document the map controls, link to the contribution guide and use current deep links'
+  );
+  assert(
+    contributingSrc.includes('href="CONTRIBUTING_ZH.md"') &&
+      contributingZhSrc.includes('href="CONTRIBUTING.md"') &&
+      [contributingSrc, contributingZhSrc].every(text => text.includes('lore_core.js') && text.includes('lore_detail.js')),
+    'The two contribution guides must cross-link and document both lore files'
   );
   for (const d of dynasties) {
     assert(
@@ -1839,7 +1833,7 @@ async function runApiSearchSuite(ctx) {
       return [...new Set(ctrl._matchPrefectureNames(query, titles).map((i) => titles[i]))];
     };
     for (const [year, query, want] of [
-      [1415, 'Yingtian Prefecture', ['应天府']], // README.md, README_JA.md
+      [1415, 'Yingtian Prefecture', ['应天府']], // English alias for the Ming example
       [1415, 'Yingtian Fu', ['应天府']], // llms.txt; as displayed in the English UI
       [1415, 'Yingtian', ['应天府']],
       [1415, 'Yingtian Pref.', ['应天府']],
@@ -1862,20 +1856,17 @@ async function runApiSearchSuite(ctx) {
       );
     }
 
-    let readmeHoverLinks = 0;
-    for (const file of ['README.md', 'README_ZH.md', 'README_JA.md', 'README_ZH_HANT.md']) {
-      const src = fs.readFileSync(path.join(ROOT, file), 'utf8');
-      for (const m of src.matchAll(/\?year=(-?\d+)[^)\s"]*?[&?]hover=([^&)\s"]+)/g)) {
-        readmeHoverLinks++;
-        const query = decodeURIComponent(m[2]);
-        const titles = prefTitlesIn(Number(m[1]));
-        assert(
-          titles.includes(query) || hoverHits(Number(m[1]), query).length === 1,
-          `${file} links to ?year=${m[1]}&hover=${query}, which must name exactly one prefecture of that year`
-        );
-      }
+    const readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+    const hoverLinks = [...readme.matchAll(/\?year=(-?\d+)[^)\s"]*?[&?]hover=([^&)\s"]+)/g)];
+    assert(hoverLinks.length > 0, 'The README must link to a map with a selected prefecture');
+    for (const match of hoverLinks) {
+      const year = Number(match[1]);
+      const query = decodeURIComponent(match[2]);
+      assert(
+        prefTitlesIn(year).includes(query) || hoverHits(year, query).length === 1,
+        `README.md links to ?year=${year}&hover=${query}, which must name exactly one prefecture of that year`
+      );
     }
-    assert(readmeHoverLinks >= 4, 'README hover deep links must be covered by this check');
   }
 
   ctx.stats.sweptYears = sweptYears;

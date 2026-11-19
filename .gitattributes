@@ -5,4 +5,4 @@ js/event_pinyin.js linguist-generated=true
 topics/*.html linguist-generated=true
 
 # Auto-resolve ?v= / data-v-* cache-busting hash conflicts in index.html
-index.html merge=sync-version
+/index.html merge=sync-version

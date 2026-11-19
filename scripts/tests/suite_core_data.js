@@ -509,6 +509,7 @@ async function runCoreDataSuite(ctx) {
   const expectedTopicFiles = [
     'index.html',
     ...dynasties.map((d) => `${d.key}.html`),
+    ...(loreData.PERSON_PROFILES || []).filter((p) => p && p.isStory).map((s) => `story-${s.key}.html`),
     ...loreData.HISTORICAL_JOURNEYS.map((j) => `journey-${j.key}.html`),
     'dufu-763.html',
     'sushi-exile.html',
@@ -529,13 +530,14 @@ async function runCoreDataSuite(ctx) {
     assert(
       tfHtml.includes(`rel="canonical" href="${expectedCanon}"`) &&
         tfHtml.includes('application/ld+json') &&
+        (tf === 'index.html' || tfHtml.includes('../?embed=1&')) &&
         !tfHtml.toLowerCase().includes('deanchensj.github.io') &&
         !tfHtml.includes('undefined') &&
         !tfHtml.includes('NaN') &&
         !/\b(zhanguo|xihan|donghan|sanguo|xijin|dongjin|nanbei|wudai|beisong|nansong|roc|prc)\s+Historical/i.test(tfHtml) &&
         sitemapXml.includes(`<loc>${expectedPath}</loc>`) &&
         indexHtml.includes(expectedPath),
-      `Static topic page topics/${tf} must have canonical ${expectedCanon}, JSON-LD, zero undefined/NaN, clean English naming, and be linked in sitemap.xml and index.html`
+      `Static topic page topics/${tf} must have canonical ${expectedCanon}, JSON-LD, an embedded preview (except the directory), zero undefined/NaN, clean English naming, and be linked in sitemap.xml and index.html`
     );
   }
   verifyIndexHtmlAssetHashes(ROOT, indexHtml, appCode);

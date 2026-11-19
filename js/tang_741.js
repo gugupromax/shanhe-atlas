@@ -194,7 +194,7 @@
   }
 
   // Rough graticule readings of continuous portions of the 741 map lines.
-  // The lines are intentionally open. See the attribution in README_ZH.md.
+  // The lines are intentionally open. See the attribution in README.md.
   const membershipStudy = ['杨远《唐代的人口》412–413 页', 'https://www.cuhk.edu.hk/ics/journal/articles/v19p389.pdf#page=24'];
   const circuitGuides = [
     {

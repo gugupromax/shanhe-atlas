@@ -23,6 +23,7 @@ async function runSearchRuntimeSuite(ctx) {
     loreData,
     enLocale,
     indexHtml,
+    readmeSrc,
     cssSrc: rawCssSrc,
     appCode: rawAppCode,
     zgDyn,
@@ -504,10 +505,8 @@ async function runSearchRuntimeSuite(ctx) {
           const openUrl = ctrl._embedOpenUrl();
           assert(openUrl.endsWith('?year=1104&trace=101.778,36.617'), `The "open in atlas" link must carry the view without embed params, got ${openUrl}`);
 
-          for (const readme of ['README.md', 'README_ZH.md']) {
-            const text = require('fs').readFileSync(path.join(ROOT, readme), 'utf8');
-            assert(text.includes('embed=1') && text.includes('from=1072&to=1126'), `${readme} must document embed mode`);
-          }
+          assert(readmeSrc.includes('embed=1') && readmeSrc.includes('from=1072&to=1126'),
+            'README.md must document embed mode and its example year range');
         } finally {
           Object.assign(ctrl, {
             embed: embedSaved.embed,
@@ -2313,7 +2312,7 @@ async function runSearchRuntimeSuite(ctx) {
         const jpOccSet = new Set([
           's_qing_g0', 's_qing_g',
           's_roc_a0', 's_roc_w1', 's_roc_w2', 's_roc_w3', 's_roc_w3b', 's_roc_w4',
-          's_roc_a', 's_roc_b0', 's_roc',
+          's_roc_a', 's_roc_b0', 's_roc', 's_roc_1938',
         ]);
         const rocPost45Set = new Set(['s_roc_c', 's_roc_d']);
         const ptInShape = sandbox.window.MercatorProjector.pointInShape;
@@ -2695,6 +2694,24 @@ async function runSearchRuntimeSuite(ctx) {
         ctrl.activePolity = { key: 'nantang' };
         ctrl._syncMilestoneSource(xijin);
         assert.deepStrictEqual(linesAt(), [], 'polity focus lists related events, not milestones: no line');
+
+        // Discussion #438 regression: an explicitly opened non-chronicle landmark event (idx === -1)
+        // must not fall back to highlighting the preceding chronicle milestone.
+        ctrl.activePolity = null;
+        const tang = dynasties.find((d) => d.key === 'tang');
+        ctrl.year = 646;
+        ctrl.activeMilestone = {
+          dynastyKey: 'tang',
+          milestone: { year: 646, headline: '参天可汗道', site: '回鹘' },
+          idx: -1,
+          year: 646,
+          isAuto: false,
+        };
+        assert.strictEqual(
+          ctrl._activeMilestoneIndex(tang),
+          -1,
+          'Explicit non-chronicle landmark event (idx === -1) must not highlight an earlier chronicle milestone (#438)'
+        );
       } finally {
         ctrl._id = saved._id;
         ctrl.locale = saved.locale;
@@ -3118,7 +3135,129 @@ async function runSearchRuntimeSuite(ctx) {
             ) === null,
           'Non-journey scraped solo events separated by >6 years must suppress misleading cross-country trajectory arrows'
         );
+        const wudiOvThreads = recordedSvg.filter(
+          (n) =>
+            n.tag === 'path' &&
+            String(n.attrs.class || '').includes('journey-track-thread is-overview')
+        );
+        assert.strictEqual(
+          wudiOvThreads.length,
+          0,
+          'Scraped non-journey solo profiles (e.g. hanwudi, caocao) must stay pins-only in overview mode to prevent decree fly-lines and warlord cobwebs'
+        );
         ctrl.closeGenealogyCard();
+
+        // Curated journeys & relics (journeyKey || isRelic):
+        // 1. Co-located same-city stops must not use manual coordinate jitter (>= 0.08 deg)
+        // 2. Overview mode must render a continuous .journey-track-thread.is-overview path
+        // 3. Every overview segment start/end point must snap within < 0.35px of a visible .journey-node pin center
+        // 4. Region-line dimming (.has-person-overview-lines) must never dim .region-caption labels
+        assert(
+          cssSrc.includes('#viewport-frame.has-person-overview-lines .region-shape') &&
+            !/#viewport-frame\.has-(?:active-person|person-overview-lines)[^{]*\.region-caption/.test(
+              cssSrc
+            ),
+          'Overview region-border softening (.has-person-overview-lines) must not dim .region-caption text'
+        );
+        const curatedProfiles = ControllerClass.PERSON_PROFILES.filter(
+          (p) => !p.isStory && (p.journeyKey || p.isRelic)
+        );
+        assert(
+          curatedProfiles.length >= 7,
+          'Expected at least 7 curated journey/relic profiles'
+        );
+        for (const cp of curatedProfiles) {
+          const jStops = Array.isArray(cp.stops)
+            ? cp.stops
+            : (
+                ControllerClass.HISTORICAL_JOURNEYS.find((j) => j.key === cp.journeyKey) || {}
+              ).stops || [];
+          for (let i = 0; i < jStops.length; i++) {
+            const baseA = String(jStops[i].ancientZh || '')
+              .replace(/\s*[（(][^）)]*[）)]\s*/g, '')
+              .trim();
+            for (let j = i + 1; j < jStops.length; j++) {
+              const baseB = String(jStops[j].ancientZh || '')
+                .replace(/\s*[（(][^）)]*[）)]\s*/g, '')
+                .trim();
+              if (baseA && baseA === baseB) {
+                const dist = Math.hypot(
+                  jStops[i].coord[0] - jStops[j].coord[0],
+                  jStops[i].coord[1] - jStops[j].coord[1]
+                );
+                assert(
+                  dist < 0.08,
+                  `Curated journey "${cp.key}" co-city stops "${baseA}" (#${i + 1} vs #${j + 1}) must share canonical coordinates (<0.08 deg, got ${dist.toFixed(3)}) so concentric stack rings and trajectory endpoints stay aligned`
+                );
+              }
+            }
+            if (Array.isArray(jStops[i].via)) {
+              for (const wp of jStops[i].via) {
+                assert(
+                  Array.isArray(wp) &&
+                    wp.length === 2 &&
+                    wp[0] >= 60 &&
+                    wp[0] <= 135 &&
+                    wp[1] >= 15 &&
+                    wp[1] <= 55,
+                  `Curated journey "${cp.key}" stop #${i + 1} has invalid via waypoint [${wp}]`
+                );
+              }
+            }
+          }
+          // Closed-loop Western Regions journeys returning to Chang'an (zhangqian, xuanzang) must separate outbound & inbound corridors
+          if (
+            jStops.length >= 4 &&
+            Math.hypot(
+              jStops[0].coord[0] - jStops[jStops.length - 1].coord[0],
+              jStops[0].coord[1] - jStops[jStops.length - 1].coord[1]
+            ) < 0.08
+          ) {
+            const retVia = jStops[jStops.length - 1].via || [];
+            assert(
+              retVia.length >= 2 && retVia[retVia.length - 1][1] < jStops[1].coord[1] - 0.5,
+              `Closed-loop journey "${cp.key}" final return leg must define >=2 via waypoints separated south of outbound stop #2`
+            );
+          }
+
+          recordedSvg.length = 0;
+          ctrl.openPersonChronicle(cp.key, -1);
+          const ovThreads = recordedSvg.filter(
+            (n) =>
+              n.tag === 'path' &&
+              String(n.attrs.class || '').includes('journey-track-thread is-overview')
+          );
+          assert.strictEqual(
+            ovThreads.length,
+            1,
+            `Curated journey "${cp.key}" in overview mode must render a continuous .journey-track-thread.is-overview path`
+          );
+          const pinPts = recordedSvg
+            .filter((n) => n.tag === 'g' && String(n.attrs.class || '').includes('journey-node'))
+            .map((n) => [parseFloat(n.attrs['data-x']), parseFloat(n.attrs['data-y'])]);
+          const dStr = String(ovThreads[0].attrs.d || '');
+          const moveMatches = [...dStr.matchAll(/M(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)/g)];
+          assert(moveMatches.length >= 3, `Curated journey "${cp.key}" must have >= 3 overview trajectory legs`);
+          for (const m of moveMatches) {
+            const mx = parseFloat(m[1]);
+            const my = parseFloat(m[2]);
+            assert(
+              pinPts.some(([px, py]) => Math.hypot(px - mx, py - my) < 0.35),
+              `Curated journey "${cp.key}" overview segment start (${mx},${my}) must snap to a visible .journey-node center`
+            );
+          }
+          const subSegs = dStr.split(/(?=M-?\d)/).filter(Boolean);
+          for (const segD of subSegs) {
+            const nums = [...segD.matchAll(/-?\d+(?:\.\d+)?/g)].map((x) => parseFloat(x[0]));
+            const ex = nums[nums.length - 2];
+            const ey = nums[nums.length - 1];
+            assert(
+              pinPts.some(([px, py]) => Math.hypot(px - ex, py - ey) < 0.35),
+              `Curated journey "${cp.key}" overview segment end (${ex},${ey}) must snap to a visible .journey-node center (no dangling arrowhead)`
+            );
+          }
+          ctrl.closeGenealogyCard();
+        }
       } finally {
         ctrl.locale = prevLoc;
         ctrl._svgNode = prevSvgNode;
