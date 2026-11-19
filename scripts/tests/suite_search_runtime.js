@@ -2872,7 +2872,12 @@ async function runSearchRuntimeSuite(ctx) {
       assert.strictEqual(zunyiHit.rawYear, 1935);
       const topics = ctrl._queryQuickSearch('专题');
       assert(topics.some((hit) => hit.storyKey === 'changzheng'));
-      assert(topics.some((hit) => hit.personKey === 'sushi'));
+      for (const journey of loreData.HISTORICAL_JOURNEYS) {
+        assert(topics.some(hit => hit.personKey === journey.key), 'Topic search must expose ' + journey.key);
+        const [name] = loreData.FEATURED_JOURNEYS[journey.key];
+        assert.strictEqual(ctrl._queryQuickSearch(name)[0].personKey, journey.key);
+      }
+      assert.strictEqual(ctrl._queryQuickSearch('玄奘西行')[0].personKey, 'xuanzang');
       assert.strictEqual(ctrl._queryQuickSearch('苏轼行迹')[0].personKey, 'sushi');
       ctrl.openPersonChronicle('changzheng');
       assert.strictEqual(ctrl.activePerson?.profile.key, 'changzheng');

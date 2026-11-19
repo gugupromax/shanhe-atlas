@@ -2,6 +2,11 @@ window.ATLAS_LORE_DATA = Object.assign(window.ATLAS_LORE_DATA || {}, {
   FEATURED_JOURNEYS: {
     changzheng: ['中央红军长征', 'Central Red Army Long March'],
     sushi: ['苏轼行迹', 'Su Shi’s Journey', 'su shi journey'],
+    xuanzang: ['玄奘西行求法', 'Xuanzang’s Pilgrimage', '玄奘西行'],
+    zhangqian: ['张骞凿空西域', 'Zhang Qian’s Mission to the Western Regions', '张骞出使西域'],
+    zhugeliang: ['诸葛亮出山北伐', 'Zhuge Liang’s Southern and Northern Campaigns', '诸葛亮北伐'],
+    libai: ['李白仗剑壮游', 'Li Bai’s Grand Travels'],
+    wangyangming: ['王阳明知行悟道', 'Wang Yangming’s Journey'],
   },
   "CHINESE_ERA_SPANS": [
     [-403,"周威烈王",23,"周威烈王","King Weilie"],
