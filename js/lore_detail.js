@@ -3841,7 +3841,7 @@
     }
   },
   "PASS_DETAILS": {
-    "hanguguan": {"chokepointZh":"西据关中高原，东临绝涧，南接秦岭，北塞黄河，因关在谷中深险如函得名，为战国秦汉“一夫当关，万夫莫开”之东大门。","chokepointEn":"Set deep in a canyon between Mount Xiao, the Qinling Mountains, and the Yellow River; the impregnable eastern gateway of Qin and Western Han."},
+    "hanguguan": {"chokepointZh":"战国秦关在今河南灵宝。汉武帝元鼎三年（前114），函谷关东徙新安，故关改置弘农县。新关守洛阳以西的崤函通道。","chokepointEn":"The Warring States pass of Qin stood near modern Lingbao. In 114 BCE Emperor Wu moved Hangu Pass east to Xin'an. Hongnong County occupied the former site, while the new pass controlled the road west of Luoyang."},
     "tongguan": {"chokepointZh":"东汉建安年间代函谷关而兴，北临黄河、渭水、洛水三河交汇，南依秦岭绝壁，扼长安与洛阳两京咽喉，为汉唐以降关中第一锁钥。","chokepointEn":"Established in the late Eastern Han at the confluence of the Yellow, Wei, and Luo rivers against the Qinling cliffs; the primary lock between Chang’an and Luoyang."},
     "wuguan": {"chokepointZh":"居秦岭东段少习山峡谷，控丹江水陆通道，与函谷关、萧关、大散关并称“秦之四塞”，为江汉、南阳盆地入关中之南大门。","chokepointEn":"One of the \"Four Fortresses of Qin\" guarding the Dan River gorge through the eastern Qinling Mountains, linking the Nanyang Basin with Guanzhong."},
     "dasanguan": {"chokepointZh":"扼秦岭北麓清姜河谷与嘉陵江源头，为关中经陈仓道、故道出入汉中与巴蜀之咽喉，“楼船夜雪瓜洲渡，铁马秋风大散关”。","chokepointEn":"Guards the northern entrance of the Chencang trail across the Qinling Mountains, the strategic hinge between Guanzhong, Hanzhong, and Sichuan."},

@@ -3612,6 +3612,24 @@
       return item.capitalPeriods.some(([y0, y1]) => year >= y0 && year <= y1);
     }
 
+    *_knownPassSites() {
+      for (const pass of HistoricalAtlasController.STRATEGIC_PASSES) {
+        if (pass.sites) {
+          for (const site of pass.sites) yield {...pass, ...site};
+        } else yield pass;
+      }
+    }
+
+    _passAtYear(pass, year, explicitName) {
+      if (!pass?.sites) return pass;
+      // An explicitly named historic site can also be located outside its active period.
+      const site = (explicitName && pass.sites.find(site =>
+        site.aliases.some(name => name.toLowerCase() === explicitName))) ||
+        pass.sites.find(site => (site.from === undefined || year >= site.from) &&
+          (site.until === undefined || year < site.until));
+      return site ? {...pass, ...site} : pass;
+    }
+
     _passName(p, year = this.year, locale = this.locale) {
       if (!p) return '';
       if (Array.isArray(p.eraNames)) {
@@ -3659,7 +3677,7 @@
         (p.appear !== undefined && year < p.appear) ||
         (p.vanish !== undefined && year >= p.vanish)
           ? '0'
-          : this._passName(p, year, 'zh')
+          : this._passName(p, year, 'zh') + (p.sites ? '/' + this._passAtYear(p, year).coord.join(',') : '')
       ).join('|');
       return `${sMask}:${pMask}:${year === 741}:${this._adminSettlementRevision?.(dynasty) || ''}`;
     }
@@ -3816,7 +3834,8 @@
             (p.appear === undefined || this.year >= p.appear) &&
             (p.vanish === undefined || this.year < p.vanish)
         );
-        for (const p of activePasses) {
+        for (const pass of activePasses) {
+          const p = this._passAtYear(pass, this.year);
           const [px, py] = this.projector.toScreen(p.coord[0], p.coord[1]);
           const hasNearMilestone = (dynasty.milestones || []).some(
             (m) =>
@@ -6912,7 +6931,7 @@
       if (boxEl) boxEl.classList.remove('is-expanded');
     }
 
-    jumpToYear(targetYear) {
+    jumpToYear(targetYear, showTransition = true) {
       if (!this._inPersonSync && this.activePerson?.profile?.key === 'changzheng') {
         this.closeGenealogyCard();
       }
@@ -6932,12 +6951,12 @@
           if (prevIdx !== this.dynastyIdx) {
             this._clearQuickSearchInput();
           }
-          const prevSnap = this.lastRenderedSnap;
+          const prevSnap = showTransition ? this.lastRenderedSnap : null;
           this._renderDynasty(cur, prevSnap);
           this._renderChroniclePane(cur);
         } else {
           if (nextSnapKey !== this.activeSnapKey) {
-            const prevSnap = this.lastRenderedSnap;
+            const prevSnap = showTransition ? this.lastRenderedSnap : null;
             this.activeSnapKey = nextSnapKey;
             this._markAwaitingSnapshot(nextSnapKey);
             this._withSnapshot(nextSnapKey, (snap) => {
@@ -10909,7 +10928,7 @@
   if (Array.isArray(window.__ATLAS_MIXINS)) {
     for (const install of window.__ATLAS_MIXINS.splice(0)) install(HistoricalAtlasController);
   }
-  window.addEventListener('DOMContentLoaded', () => {
+  function startAtlas() {
     const app = new HistoricalAtlasController();
     window.atlasApp = app;
     window.atlasAPI = {
@@ -10920,5 +10939,8 @@
       search: (q) => app._queryQuickSearch(q),
     };
     app._registerWebMcpTools();
-  });
+    window.dispatchEvent?.(new Event('atlas-controller-ready'));
+  }
+  if (window.ATLAS_SCRIPTS_READY) window.ATLAS_SCRIPTS_READY.then(ready => { if (ready) startAtlas(); });
+  else window.addEventListener('DOMContentLoaded', startAtlas);
 })();

@@ -78,7 +78,7 @@
     const viewport = doc.getElementById('viewport-frame');
     if (!app || !viewport || !app.svg || root.atlasFusion) return;
     let active = false;
-    let ready = false, surfaceBitmaps = false;
+    let ready = false, surfaceBitmaps = false, baseDrawAck = false, detailTextureLimit = 3072;
     let applyingChild = false;
     let queued = false;
     let sequence = 0;
@@ -145,13 +145,16 @@
     }
     function armTerrainStartup(stage) {
       clearTimeout(startupTimer);
-      const loadingMap = stage === 'map';
-      announce(loadingMap ? '正在同步当前年份的地图…' : '正在载入三维地形…', true);
+      const terrainStage = stage === 'terrain';
+      const applying = stage === 'apply';
+      const sceneKey = lastSceneKey, renderId = surfaceBasePendingId;
+      if (!presented) announce(terrainStage ? '正在载入三维地形…' :
+        applying ? '正在显示当前年份的三维地图…' : '正在同步当前年份的地图…', true);
       startupTimer = setTimeout(() => {
-        if (!active || presented) return;
-        failTerrain(loadingMap ? '当前年份的三维地图加载超时，已返回平面地图。'
-          : '三维地形初始化超时，已返回平面地图。');
-      }, loadingMap ? 45000 : 60000);
+        if (!active || (applying ? lastSceneKey !== sceneKey || surfaceBasePendingId !== renderId : presented)) return;
+        failTerrain(terrainStage ? '三维地形初始化超时，已返回平面地图。' :
+          applying ? '当前年份的三维首图未能显示，已返回平面地图。' : '当前年份的三维地图加载超时，已返回平面地图。');
+      }, terrainStage ? 60000 : 45000);
     }
     function presentTerrain(show) {
       presented = show;
@@ -166,13 +169,14 @@
       }
     }
     function failTerrain(message) {
-      if (!active) return;
+      // Losing the WebGL context can also happen while the user is viewing the flat map.
+      // Discard the broken frame now so the next 3D request creates a working context.
       ready = false;
       surfaceBaseKey = '';
       surfaceBasePendingId = -1;
       surfaceRenderJob = null;
       frame.removeAttribute('src');
-      setMode(false, message);
+      if (active) setMode(false, message);
     }
     function post(message) {
       if (message.type === 'surface') {
@@ -227,17 +231,21 @@
           if (!mapSurface) throw new Error('Missing original map surface');
           if (surfaceBaseKey !== sceneKey && surfaceBasePendingId < 0) {
             const started = root.performance.now();
-            const base = await mapSurface.render({ bounds: surfaceBounds, width: 1024, height: 1024,
+            const size = Math.min(1024, detailTextureLimit);
+            const base = await mapSurface.render({ bounds: surfaceBounds, width: size, height: size,
               bitmap: surfaceBitmaps, screenPasses: true, screenAdmin: true, screenLabels: app.year === 741 });
             if (!currentScene()) { base.bitmap?.close(); return; }
             surfaceBasePendingId = request * 2;
             post({ type: 'surface', quality: 'base', sceneKey, renderId: request * 2, renderMs: root.performance.now() - started, ...base });
+            if (baseDrawAck) armTerrainStartup('apply');
           }
+          // Give the embedded view a frame to upload and draw the base before the costly detail capture.
+          if (baseDrawAck && surfaceBasePendingId >= 0) return;
           if (!currentScene() || request !== surfaceRequest) return;
           const bounds = detailBounds(cameraView);
           if (!bounds) return;
           const started = root.performance.now();
-          const detail = await mapSurface.render({ bounds, width: 3072, height: 3072,
+          const detail = await mapSurface.render({ bounds, width: detailTextureLimit, height: detailTextureLimit,
             bitmap: surfaceBitmaps, screenPasses: true, screenAdmin: true, screenLabels: app.year === 741 });
           if (!currentScene() || request !== surfaceRequest) { detail.bitmap?.close(); return; }
           post({ type: 'surface', quality: 'detail', sceneKey, renderId: request * 2 + 1, renderMs: root.performance.now() - started, ...detail });
@@ -329,6 +337,7 @@
       lastSignature = signature;
       const fullScene = active && (force || sceneKey !== lastSceneKey);
       if (sceneKey !== lastSceneKey) {
+        if (active && !presented && lastSceneKey && baseDrawAck) armTerrainStartup('map');
         surfaceGeneration++; surfaceBaseKey = ''; surfaceBasePendingId = -1;
         surfaceKey = ''; detailAcknowledged = false;
       }
@@ -469,6 +478,9 @@
       if (message.type === 'ready') {
         ready = true;
         surfaceBitmaps = message.surfaceBitmaps === true && typeof root.createImageBitmap === 'function';
+        baseDrawAck = message.baseDrawAck === true;
+        detailTextureLimit = Number.isSafeInteger(message.maxTextureSize) && message.maxTextureSize > 0
+          ? Math.min(3072, message.maxTextureSize) : 3072;
         if (active && !presented) armTerrainStartup('map');
         tilesFailed = false;
         surfaceBaseKey = ''; surfaceBasePendingId = -1; surfaceKey = ''; surfaceRequest++; surfaceGeneration++;
@@ -477,6 +489,13 @@
       } else if (message.type === 'surface-applied' && message.quality === 'base' && message.sceneKey === lastSceneKey && message.renderId === surfaceBasePendingId) {
         surfaceBaseKey = message.sceneKey;
         if (active && !presented) presentTerrain(true);
+        if (active && baseDrawAck) armTerrainStartup('apply');
+      } else if (message.type === 'surface-drawn' && active && baseDrawAck && message.sceneKey === lastSceneKey &&
+                 surfaceBaseKey === lastSceneKey && message.renderId === surfaceBasePendingId) {
+        clearTimeout(startupTimer);
+        surfaceBasePendingId = -1;
+        surfaceKey = '';
+        requestSurface(lastSceneKey, readView(app, app.svg.getBoundingClientRect()));
       } else if (message.type === 'surface-applied' && message.quality === 'detail' && active &&
                  message.sceneKey === lastSceneKey && message.renderId === surfaceRequest * 2 + 1) {
         detailAcknowledged = true;
@@ -562,6 +581,7 @@
   }
   // Deferred scripts run at readyState=interactive before app.js's earlier
   // DOMContentLoaded listener creates the controller. Wait for that listener.
-  if (!root.atlasApp && root.document.readyState !== 'complete') root.addEventListener('DOMContentLoaded', install);
+  if (!root.atlasApp && root.ATLAS_SCRIPTS_READY) root.addEventListener('atlas-controller-ready', install, {once:true});
+  else if (!root.atlasApp && root.document.readyState !== 'complete') root.addEventListener('DOMContentLoaded', install);
   else install();
 })(typeof window !== 'undefined' ? window : null);

@@ -607,7 +607,13 @@ window.ATLAS_LORE_DATA = Object.assign(window.ATLAS_LORE_DATA || {}, {
     {"zh":"酒狂","en":"Wine Madness","mp3":"assets/audio/jiu_kuang.mp3","ogg":"https://upload.wikimedia.org/wikipedia/commons/8/8f/Jiu_Kuang.ogg"}
   ],
   "STRATEGIC_PASSES": [
-    {"key":"hanguguan","ancientZh":"函谷关","ancientEn":"Hangu Pass","modernZh":"河南灵宝","modernEn":"Lingbao, Henan","coord":[110.92,34.63],"appear":-403,"vanish":200,"focusYear":-241,"align":"b","rangeZh":"崤山 · 黄河大曲南岸","rangeEn":"Mount Xiao & Yellow River Gorge"},
+    // Relocation: Hanshu, Wudi ji, Yuanding 3 (https://zh.wikisource.org/wiki/漢書/卷006).
+    // Han site: UNESCO 1442-018, N34°43′14″ E112°09′57″, rounded to 0.01° (https://whc.unesco.org/en/list/1442/maps/).
+    // appear/vanish bound the atlas display period, not the foundation or abolition of either site.
+    {"key":"hanguguan","ancientZh":"函谷关","ancientEn":"Hangu Pass","modernZh":"河南灵宝","modernEn":"Lingbao, Henan","coord":[110.92,34.63],"appear":-403,"vanish":200,"focusYear":-241,"align":"b","rangeZh":"崤山 · 黄河大曲南岸","rangeEn":"Mount Xiao & Yellow River Gorge","sites":[
+      {"until":-114,"aliases":["秦函谷关","灵宝函谷关","Qin Hangu Pass","Lingbao Hangu Pass"]},
+      {"from":-114,"focusYear":-114,"aliases":["汉函谷关","新安函谷关","Han Hangu Pass","Xin'an Hangu Pass"],"coord":[112.17,34.72],"modernZh":"河南新安","modernEn":"Xin'an, Henan","rangeZh":"崤函古道 · 洛阳西","rangeEn":"Xiaohan road, west of Luoyang"}
+    ]},
     {"key":"tongguan","ancientZh":"潼关","ancientEn":"Tongguan Pass","modernZh":"陕西潼关","modernEn":"Tongguan, Shaanxi","coord":[110.25,34.54],"appear":196,"focusYear":756,"align":"b","rangeZh":"秦岭北麓 · 黄河风陵渡南","rangeEn":"Qinling Foothills & Yellow River Bend"},
     {"key":"wuguan","ancientZh":"武关","ancientEn":"Wuguan Pass","modernZh":"陕西丹凤","modernEn":"Danfeng, Shaanxi","coord":[110.33,33.62],"appear":-403,"focusYear":-206,"align":"r","rangeZh":"秦岭东段 · 丹江峡谷","rangeEn":"Eastern Qinling & Dan River Gorge"},
     {"key":"dasanguan","ancientZh":"大散关","ancientEn":"Dasan Pass","modernZh":"陕西宝鸡西南","modernEn":"Baoji SW, Shaanxi","coord":[106.95,34.28],"appear":-403,"focusYear":228,"align":"l","rangeZh":"秦岭北麓 · 陈仓故道","rangeEn":"Qinling North Slope & Chencang Road"},

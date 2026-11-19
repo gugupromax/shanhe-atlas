@@ -71,7 +71,7 @@
         handlers.onConfig(config);
       }
     });
-    return {send,get latest(){return latest;},ready(){if(!ready){ready=true;send('ready',{surfaceBitmaps:typeof root.ImageBitmap==='function'});}},applied(seq,year,supported=true){send('applied',{seq,year,supported});}};
+    return {send,get latest(){return latest;},ready(maxTextureSize){if(!ready){ready=true;send('ready',{surfaceBitmaps:typeof root.ImageBitmap==='function',baseDrawAck:true,maxTextureSize});}},applied(seq,year,supported=true){send('applied',{seq,year,supported});}};
   }
   return {CHANNEL,validCoord,validateState,createChild};
 });

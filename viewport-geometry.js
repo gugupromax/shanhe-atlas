@@ -44,8 +44,8 @@
     return {constrain,footprint};
   }
 
-  // Tiles share the same vertex and normal buffers. Only their index ranges differ.
-  function meshIndices(width,height,tileSize=Math.max(width,height),step=1){
+  // Another consumer generates draw indices only when a visible patch is first needed.
+  function meshTiles(width,height,tileSize=Math.max(width,height),step=1){
     const tiles=[];
     let length=0;
     for(let row=0;row<height-1;row+=tileSize){
@@ -57,7 +57,12 @@
         length+=count;
       }
     }
-    const indices=new Uint32Array(length);
+    return tiles;
+  }
+  function meshIndices(width,height,tileSize=Math.max(width,height),step=1){
+    const tiles=meshTiles(width,height,tileSize,step);
+    const last=tiles.at(-1);
+    const indices=new Uint32Array(last?last.start+last.count:0);
     let i=0;
     for(const tile of tiles){
       for(let row=tile.row;row<tile.lastRow;row+=step){
@@ -72,5 +77,31 @@
     }
     return {indices,tiles};
   }
-  return {createFrame,createGuard,mercatorY,meshIndices};
+  // Positions form a regular rectangular grid in plan. Sum the two upward-facing
+  // triangle cross products at their three corners, then normalize as THREE does.
+  function gridNormals(width,height,positions,normals=new Float32Array(positions.length)){
+    normals.fill(0);
+    const stride=width*3;
+    function add(i,nx,ny,nz){
+      normals[i]+=nx;normals[i+1]+=ny;normals[i+2]+=nz;
+    }
+    for(let row=0;row<height-1;row++)for(let col=0;col<width-1;col++){
+      const a=row*stride+3*col,b=a+3,c=a+stride,d=c+3;
+      const dx=positions[b]-positions[a],dz=positions[c+2]-positions[a+2];
+      const ny=dx*dz;
+      const nxA=dz*(positions[a+1]-positions[b+1]),nzA=dx*(positions[a+1]-positions[c+1]);
+      const nxD=dz*(positions[c+1]-positions[d+1]),nzD=dx*(positions[b+1]-positions[d+1]);
+      add(a,nxA,ny,nzA);
+      add(b,nxA+nxD,2*ny,nzA+nzD);
+      add(c,nxA+nxD,2*ny,nzA+nzD);
+      add(d,nxD,ny,nzD);
+    }
+    for(let i=0;i<normals.length;i+=3){
+      const nx=normals[i],ny=normals[i+1],nz=normals[i+2];
+      const length=Math.sqrt(nx*nx+ny*ny+nz*nz);
+      if(length){normals[i]=nx/length;normals[i+1]=ny/length;normals[i+2]=nz/length;}
+    }
+    return normals;
+  }
+  return {createFrame,createGuard,mercatorY,meshTiles,meshIndices,gridNormals};
 });

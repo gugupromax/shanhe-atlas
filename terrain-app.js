@@ -4,7 +4,7 @@
   const $ = id => document.getElementById(id);
   const embedded=new URLSearchParams(location.search).get('embedded')==='1';
   let fusion=null,fusionState=null,fusionActive=!embedded,fusionLocations=[],fusionLayers={},fusionPaintedKey=null,fusionViewKey='',fusionHeightTimer=null,fusionViewTimer=null,fusionStarted=false;
-  let atlasSurface=null,surfaceSceneKey='',surfaceBaseId=-1,surfaceDetailId=-1,surfaceLoads=0,pendingSurfaceDetail=null;
+  let atlasSurface=null,surfaceSceneKey='',surfaceBaseId=-1,surfaceDetailId=-1,surfaceLoads=0,pendingSurfaceDetail=null,pendingBaseDraw=null;
   let tangTiles=null,tangTileJob=0,tangTilePlanKey='',tangBaseApplied=false,tangAppliedTier='far';
   let areaOverlay=null,areaOverlayId=0;
   let adminLabelData=[],passLabelData=[],screenLabels=[],passGates=null;
@@ -160,12 +160,12 @@
     }
   }
 
-  function buildEmbeddedMeshes(d,indexData,positions){
+  function buildEmbeddedMeshes(d,positions){
     const result=new THREE.Group();
     const material=atlasSurface.material;
     const verticalRange=120/exaggeration; // Box must also enclose later height-slider changes.
     terrainDetail=new THREE.Group();
-    for(const tile of indexData.tiles){
+    for(const tile of viewportGeometry.meshTiles(d.width,d.height,64)){
       const {row,col,lastRow,lastCol}=tile;
       let low=0,high=0;
       for(let r=row;r<=lastRow;r++)for(let c=col;c<=lastCol;c++){
@@ -220,15 +220,20 @@
       if(colors){const c=seaMask?.[i]?seaColor:terrainColor(heights[i]);colors.set([c.r,c.g,c.b],i*3);}
       uv[i*2]=col/(d.width-1);uv[i*2+1]=embedded?.5-rowInfo[row].z/depthKm:1-row/(d.height-1);
     }
-    const indexData=viewportGeometry.meshIndices(d.width,d.height,embedded?64:Math.max(d.width,d.height));
     geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
     if(colors)geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
-    geometry.setIndex(new THREE.BufferAttribute(indexData.indices,1));geometry.computeVertexNormals();
+    if(embedded){
+      const normals=viewportGeometry.gridNormals(d.width,d.height,positions);
+      geometry.setAttribute('normal',new THREE.BufferAttribute(normals,3));
+    }else{
+      geometry.setIndex(new THREE.BufferAttribute(viewportGeometry.meshIndices(d.width,d.height).indices,1));
+      geometry.computeVertexNormals();
+    }
     geometry.setAttribute('uv',new THREE.BufferAttribute(uv,2));
     geometry.computeBoundingBox();
     if(embedded){
       atlasSurface=window.JiangshanSurfaceMaterial.create(THREE);
-      terrain=buildEmbeddedMeshes(d,indexData,positions);
+      terrain=buildEmbeddedMeshes(d,positions);
     }else terrain=new THREE.Mesh(geometry,new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide}));
     scene.add(terrain);
     if(embedded)terrain.visible=false;
@@ -389,7 +394,7 @@
       build(d);updateRoutePanel();$('load-state').hidden=true;
       if(embedded) performance.mark('atlas-3d:terrain-ready');
       if(key==='national'){
-        if(embedded){$('load-state').hidden=false;$('load-state').textContent='正在同步原版地图…';fusion?.ready();if(fusionState)applyFusionState(fusionState);}
+        if(embedded){$('load-state').hidden=false;$('load-state').textContent='正在同步原版地图…';fusion?.ready(renderer.capabilities.maxTextureSize);if(fusionState)applyFusionState(fusionState);}
         else setHistoryYear(historyYear);
       }
       document.querySelector('.workspace').scrollTop=0;
@@ -397,13 +402,22 @@
   }
   function updateHeight() {
     if(!geometry)return;exaggeration=Number($('exaggeration').value);$('height-value').textContent=exaggeration+'×';
-    const a=geometry.attributes.position;for(let i=0;i<a.count;i++){const row=Math.floor(i/dataset.width),lat=dataset.bounds[3]-(dataset.bounds[3]-dataset.bounds[1])*row/(dataset.height-1);a.setY(i,(seaMask?.[i]?0:heights[i])/1000*exaggeration*mapFrame.heightScale(lat));}
-    a.needsUpdate=true;geometry.computeVertexNormals();geometry.computeBoundingSphere();geometry.computeBoundingBox();
+    const positions=geometry.attributes.position;
+    const {width,height,bounds}=dataset;
+    for(let row=0;row<height;row++){
+      const lat=bounds[3]-(bounds[3]-bounds[1])*row/(height-1);
+      const scale=mapFrame.heightScale(lat);
+      for(let i=row*width,end=i+width;i<end;i++)positions.setY(i,(seaMask?.[i]?0:heights[i])/1000*exaggeration*scale);
+    }
+    positions.needsUpdate=true;geometry.computeBoundingBox();
     if(embedded){
+      const normals=geometry.attributes.normal;
+      viewportGeometry.gridNormals(width,height,positions.array,normals.array);
+      normals.needsUpdate=true;
       for(const mesh of [terrainOverview,...terrainDetail.children]){
         if(mesh.geometry.index)fillTerrainPatch(mesh);
       }
-    }
+    }else{geometry.computeVertexNormals();geometry.computeBoundingSphere();}
     buildBase();rebuildMarkers();
     if(profileEndpoints)drawProfileLine();dirty=true;
   }
@@ -695,6 +709,7 @@
       if(surface.quality==='base'){
         if(surfaceSceneKey!==surface.sceneKey)atlasSurface.clearDetail();
         atlasSurface.base(texture);surfaceBaseId=surface.renderId;
+        pendingBaseDraw={sceneKey:surface.sceneKey,renderId:surface.renderId};
         tangBaseApplied=false;tangAppliedTier='far';
         delete document.body.dataset.tileTier;
         delete document.body.dataset.tileBaseWidth;
@@ -719,7 +734,7 @@
   function applyFusionState(state){
     fusionActive=state.active;
     if(!fusionActive){
-      surfaceLoads++;
+      surfaceLoads++;pendingBaseDraw=null;
       pendingSurfaceDetail?.bitmap?.close();pendingSurfaceDetail=null;
       clearTimeout(fusionViewTimer);fusionViewTimer=null;
       if(tangTilePlanKey){tangTileJob++;tangTilePlanKey='';}
@@ -976,6 +991,10 @@
     const sample=frameMetric&&!performance.getEntriesByName(frameMetric,'measure').length;
     const drawStart=sample?performance.now():0;
     renderer.render(scene,camera);
+    if(pendingBaseDraw && terrain.visible && pendingBaseDraw.sceneKey===fusionState?.sceneKey){
+      fusion.send('surface-drawn',pendingBaseDraw);
+      pendingBaseDraw=null;
+    }
     const drawEnd=sample?performance.now():0;
     areaOverlay?.render(camera);
     // Read the viewport before placing labels. Measuring after each label write forces layout.

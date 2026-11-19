@@ -332,7 +332,7 @@
       const snapFull = this.snapshots && this.snapshots.s_prc ? 1 : 0;
       const hasEn = this._hasEnDict() ? 1 : 0;
       const hasHant = this._hasZhHant() ? 1 : 0;
-      const cacheKey = `${rawInput}\0${targetDyn ? targetDyn.key : ''}\0${targetSnapKey}\0${snapFull}\0${hasEn}\0${hasHant}`;
+      const cacheKey = `${rawInput}\0${yr}\0${targetDyn ? targetDyn.key : ''}\0${targetSnapKey}\0${snapFull}\0${hasEn}\0${hasHant}`;
       if (this._resolvePlaceCache.has(cacheKey)) {
         const cached = this._resolvePlaceCache.get(cacheKey);
         return cached ? { ...cached } : null;
@@ -414,7 +414,8 @@
 
         // 1. Strategic passes (名关雄隘)
         for (const allowStrip of isExact ? [false, true] : [true]) {
-          for (const p of HistoricalAtlasController.STRATEGIC_PASSES) {
+          for (const pass of HistoricalAtlasController.STRATEGIC_PASSES) {
+            const p = this._passAtYear(pass, yr, qApos);
             const cleanZh = stripParens(p.ancientZh || '');
             const cleanEn = stripParens(p.ancientEn || '');
             const bareZh = cleanZh.replace(/关$/, '').trim();
@@ -1558,7 +1559,7 @@
       };
     }
 
-    locate(opts = {}) {
+    locate(opts = {}, showTransition = true) {
       const { year, place, lng, lat } = opts || {};
       const request = {};
       this._latestLocateRequest = request;
@@ -1580,7 +1581,7 @@
           ? yearList[0]
           : undefined;
       if (initialYear !== undefined) {
-        this.jumpToYear(initialYear);
+        this.jumpToYear(initialYear, showTransition);
       }
 
       const pending = [];
@@ -1760,7 +1761,6 @@
         q.has('event') ||
         q.has('journey')
       ) {
-        this.lastRenderedSnap = null;
         if (this.grpGhostDiff) this.grpGhostDiff.innerHTML = '';
       }
       const queryBag = `${q.get('place') || ''} ${q.get('hover') || ''} ${q.get('q') || ''} ${q.get('person') || ''} ${q.get('event') || ''} ${q.get('journey') || ''} ${q.get('year') || ''}`;
@@ -1820,7 +1820,7 @@
           lng: q.has('lng') ? Number(q.get('lng')) : undefined,
           lat: q.has('lat') ? Number(q.get('lat')) : undefined,
           zoom: q.has('zoom') ? Number(q.get('zoom')) : undefined,
-        });
+        }, false);
       } else {
         let traceParts = null;
         if (q.has('trace')) {
@@ -1834,11 +1834,11 @@
           const rawYr = q.get('year') || '';
           const yList = this._parseYearList(rawYr);
           if (yList.length) {
-            this.jumpToYear(yList[0]);
+            this.jumpToYear(yList[0], false);
           } else if (/[\u4e00-\u9fff]/.test(rawYr) && !this._hasZhHant()) {
             this._ensureZhHant().then(() => {
               const retryList = this._parseYearList(rawYr);
-              if (retryList.length) this.jumpToYear(retryList[0]);
+              if (retryList.length) this.jumpToYear(retryList[0], false);
             });
           }
         }

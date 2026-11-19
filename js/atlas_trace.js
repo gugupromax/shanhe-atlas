@@ -3287,7 +3287,7 @@
     _findNearbyPass(lng, lat, maxKm = 32) {
       let best = null;
       let bestKm = maxKm;
-      for (const p of HistoricalAtlasController.STRATEGIC_PASSES) {
+      for (const p of this._knownPassSites()) {
         const km = this.projector.greatCircleKm([lng, lat], p.coord);
         if (km <= bestKm) {
           bestKm = km;
@@ -3395,7 +3395,7 @@
           const dup = results.some((r) =>
             r.fromLandmark
               ? r.year === lm.year && sharesCjkBigram(r.milestone && r.milestone.headline, lm.zh)
-              : Math.abs(r.year - lm.year) <= 3
+              : r.year === lm.year && r.milestone?.headline === lm.zh
           );
           if (!dup) {
             results.push({

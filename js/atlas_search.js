@@ -356,7 +356,7 @@
       }
 
       // 1b. Strategic Historical Passes (名关雄隘 · 天下锁钥)
-      for (const p of HistoricalAtlasController.STRATEGIC_PASSES) {
+      for (const p of this._knownPassSites()) {
         const dIdx = this._findDynastyIndex(p.focusYear || -200);
         const d = this.dynasties[dIdx] || this.dynasties[0];
         const aliases = (p.aliases || []).map((a) => a.toLowerCase());
@@ -364,6 +364,7 @@
         entries.push({
           kind: 'pass',
           passKey: p.key,
+          ...(p.sites ? {siteFrom:p.from ?? p.appear, siteUntil:p.until ?? p.vanish} : {}),
           dynasty: d,
           year: p.focusYear || d.focusYear,
           coord: p.coord,
@@ -1016,6 +1017,12 @@
           } else {
             if (resItem.dynasty === this.dynasties[this.dynastyIdx]) score += 10;
             if (resItem.isCapital) score += 2;
+          }
+          if (item.kind === 'pass' && item.siteFrom != null && item.siteUntil != null &&
+              this.year >= item.siteFrom && this.year < item.siteUntil && (q === tZh || q === tEn)) {
+            // A search for the unsuffixed pass should keep the site and year already on the map.
+            resItem = {...resItem, year:this.year, dynasty:this.dynasties[this.dynastyIdx]};
+            score += 12;
           }
           if ((resItem.tangArea || resItem.adminArea) && score >= 102) score += 6;
           results.push({ ...resItem, score });

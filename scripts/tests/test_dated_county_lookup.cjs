@@ -65,3 +65,20 @@ test('late county or dictionary loads do not replay an older locate request or l
   assert.equal(attempts, 1);
   assert.deepEqual(rendered.slice(1), ['Lantian Pass','Lantian Pass']);
 });
+
+test('restoring a year already drawn by the boot snapshot keeps it selectable', () => {
+  const {ctrl, sandbox, snapshots} = createValidationContext({fastMode:true});
+  sandbox.location = {search:'?year=-402'};
+  sandbox.URLSearchParams = URLSearchParams;
+  const key = ctrl._resolveSnapKey(ctrl.dynasties[0], -402);
+  const drawn = snapshots[key];
+  const jumps = [];
+  Object.assign(ctrl, {year:-402, lastRenderedSnap:drawn, _fullSnapshotsLoaded:true,
+    grpGhostDiff:{innerHTML:'old transition'}, _armUrlSync() {},
+    jumpToYear(year, showTransition) { jumps.push([year, showTransition]); },
+  });
+  ctrl._restoreFromQuery();
+  assert.equal(ctrl.lastRenderedSnap, drawn);
+  assert.equal(ctrl.grpGhostDiff.innerHTML, '');
+  assert.deepEqual(jumps, [[-402, false]]);
+});

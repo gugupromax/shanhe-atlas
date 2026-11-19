@@ -556,8 +556,8 @@ window.EN_LOCALE = {
       "Luoyang"
     ],
     "sui:610": [
-      "Emperor Yang completes the Grand Canal linking Jiangnan and the north",
-      "Jiangdu"
+      "Emperor Yang orders work on the Jiangnan Canal from Jingkou to Yuhang",
+      "Jingkou (Zhenjiang)"
     ],
     "sui:618": [
       "Yuwen Huaji mutinies at Jiangdu and kills Emperor Yang, ending the Sui",
@@ -760,8 +760,8 @@ window.EN_LOCALE = {
       "Sakya"
     ],
     "yuan:1293": [
-      "Kublai Khan and Guo Shoujing open the Tonghui Canal, completing the Beijing–Hangzhou Grand Canal",
-      "Huitong Canal (Linqing)"
+      "Guo Shoujing completes the Tonghui Canal from Tongzhou to Jishuitan in Dadu",
+      "Jishuitan (Dadu)"
     ],
     "yuan:1351": [
       "Han Shantong and Liu Futong launch the Red Turban Rebellion at Yingzhou",
@@ -2315,11 +2315,15 @@ window.EN_LOCALE = {
     ],
     "canal_tongji": [
       "Sui–Tang Grand Canal · Tongji",
-      "Opened in 605 CE to link Luoyang with the Huai River, connecting onward to Yangzhou and Hangzhou."
+      "Opened in 605, the Tongji linked Luoyang and the Yellow River to the Huai near present-day Xuyi. This Northern Song grain route gradually silted up after the Song–Jin partition. The line traces its former course."
     ],
     "canal_hangou": [
-      "Hangou & Jiangnan Canal",
-      "Dredged under Emperor Yang of Sui (605–610 CE) to link the Huai River at Shanyang with Jiangdu (Yangzhou) and across the Yangtze via Jingkou and Suzhou to Yuhang (Hangzhou)."
+      "Hangou (Shanyang Canal)",
+      "Dredged in 605, the Sui-era Hangou linked the Huai at Shanyang to the Yangtze near Yangzhou. Earlier versions followed different courses."
+    ],
+    "canal_jiangnan": [
+      "Jiangnan Canal",
+      "Local gazetteers date the Sui works on the waterways from Jingkou through Suzhou to Yuhang to 610. Earlier local channels formed part of the route."
     ],
     "canal_yongji": [
       "Sui–Tang Grand Canal · Yongji",
@@ -2327,7 +2331,7 @@ window.EN_LOCALE = {
     ],
     "canal_jinghang": [
       "Beijing–Hangzhou Grand Canal",
-      "Re-routed straight through Shandong under Kublai Khan to Dadu (~1,800 km)."
+      "The Yuan Huitong Canal joined the grain route through Shandong. In 1293 the Tonghui Canal linked Tongzhou to Jishuitan in Dadu. This line shows the Tongzhou–Hangzhou trunk; navigability varied over time."
     ],
     "sea_silk": [
       "Maritime Silk Road",

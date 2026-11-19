@@ -19,15 +19,15 @@ function parentFixture(useTangTiles = false, tilesPackaged = true) {
   const context = { console, useTangTiles, tilesPackaged, isCurrentMapPick };
   vm.runInNewContext(`
     const CHANNEL='jiangshan-fusion',KM_PER_DEGREE=1;
-    let active=true,ready=true,surfaceBitmaps=false,applyingChild=false,lastSignature='',lastSceneKey='',sequence=0;
-    let surfaceTimer,surfaceRequest=0,surfaceKey='',surfaceBaseKey='',surfaceBasePendingId=-1;
+    let active=true,ready=true,surfaceBitmaps=false,baseDrawAck=false,detailTextureLimit=3072,applyingChild=false,lastSignature='',lastSceneKey='',sequence=0;
+    let startupTimer,surfaceTimer,surfaceRequest=0,surfaceKey='',surfaceBaseKey='',surfaceBasePendingId=-1;
     let surfaceGeneration=0,surfaceRenderJob=null,queuedSurface=null,presented=false,detailAcknowledged=false;
     let pendingChildCamera=null;
     let lastTileTier=null,tilesFailed=false;
     const surfaceBounds=[40,-10,165,70],out=[],timers=new Map();let timerId=0,listener;
     const setTimeout=fn=>{timers.set(++timerId,fn);return timerId},clearTimeout=id=>timers.delete(id);
     let failTransfer=false;const bitmaps=[];
-    const frame={dataset:{},contentWindow:{postMessage(packet,origin,transfer) {
+    const frame={src:'terrain.html',dataset:{},removeAttribute(k){delete this[k]},contentWindow:{postMessage(packet,origin,transfer) {
       if(packet.bitmap && transfer[0]!==packet.bitmap)throw Error('bitmap was copied');
       if(packet.bitmap && failTransfer){failTransfer=false;const error=Error('transfer unavailable');error.name='DataCloneError';throw error;}
       out.push(packet);
@@ -68,7 +68,8 @@ function parentFixture(useTangTiles = false, tilesPackaged = true) {
       }
       return {url:'data:image/png;base64,AA==',bounds:request.bounds};
     }};
-    ${section(parentSource, '    function post(message)', '    const checked = name => {')}
+    const setMode=value=>{active=value};
+    ${section(parentSource, '    function failTerrain(message)', '    const checked = name => {')}
     ${section(parentSource, "    function sync(reason = 'controller', force = false) {", "    function schedule(reason = 'controller') {")}
     ${section(parentSource, "    root.addEventListener('message', event => {", "    if (typeof ResizeObserver === 'function')")}
     globalThis.api={
@@ -84,15 +85,39 @@ function parentFixture(useTangTiles = false, tilesPackaged = true) {
       take(){return out.splice(0)},
       holdNextRender(){pause=true},releaseRender(){release()},get renders(){return renders},
       receive(message,valid=true){listener({source:valid?frame.contentWindow:{},origin:root.location.origin,data:{channel:CHANNEL,...message}})},
-      get cache(){return surfaceBaseKey},get scene(){return lastSceneKey},get startupStages(){return startupStages}
+      get ready(){return ready},get frameSrc(){return frame.src},get cache(){return surfaceBaseKey},get scene(){return lastSceneKey},get startupStages(){return startupStages}
     };
   `, context);
   return context.api;
 }
+// Exercise the actual watchdog with simulated job completions. A missing paint ACK
+// must recover even if the base was decoded and the iframe is already visible.
+function checkStartupDeadline() {
+  const context={};
+  vm.runInNewContext(`
+    const failures=[],timers=new Map();let n=0,startupTimer,presented=false,active=true;
+    let lastSceneKey='A',surfaceBasePendingId=12;
+    const setTimeout=(fn,ms)=>{timers.set(++n,{fn,ms});return n},clearTimeout=id=>timers.delete(id);
+    const announce=()=>{},failTerrain=message=>failures.push(message);
+    ${section(parentSource,'    function armTerrainStartup(stage)', '    function presentTerrain(show)')}
+    armTerrainStartup('terrain');const terrainMS=timers.get(startupTimer).ms;
+    armTerrainStartup('map');const mapMS=timers.get(startupTimer).ms;
+    armTerrainStartup('apply');presented=true;
+    const priorDeadline=timers.get(startupTimer).fn;
+    lastSceneKey='B';surfaceBasePendingId=18;priorDeadline();
+    armTerrainStartup('apply');const remaining=timers.size;
+    timers.get(startupTimer).fn();
+    globalThis.result={terrainMS,mapMS,remaining,failures};
+  `,context);
+  assert.equal(context.result.terrainMS,60000);
+  assert.equal(context.result.mapMS,45000);
+  assert.equal(context.result.remaining,1,'only the current stage has an active deadline');
+  assert.equal(context.result.failures.length,1,'a stale expiry is ignored and a missing draw ACK returns to flat');
+}
 function childFixture() {
   const context = {};
   vm.runInNewContext(`
-    let atlasSurface,surfaceSceneKey='',surfaceLoads=0,surfaceBaseId=-1,surfaceDetailId=-1,pendingSurfaceDetail=null;
+    let atlasSurface,surfaceSceneKey='',surfaceLoads=0,surfaceBaseId=-1,surfaceDetailId=-1,pendingSurfaceDetail=null,pendingBaseDraw=null;
     let fusionState=null,fusionPaintedKey=null,fusionLocations=[],fusionLayers={},fusionOverlays={},currentSnapshot=null,selectedEvent=null,historyYear=0;
     let desired={theta:0,phi:.7,distance:10,x:0,z:0},theta,phi,distance,target,fusionViewKey='',fusionStarted=true,fusionActive=true,dirty=false;
     let fusionViewTimer=null;const clearTimeout=()=>{};
@@ -128,6 +153,7 @@ async function request(parent, child, year) {
 function base(packets) { return packets.find(packet => packet.quality === 'base'); }
 
 (async function () {
+  checkStartupDeadline();
   // Merely exporting/posting a base must not be treated as successful GPU application.
   const waiting = parentFixture();
   waiting.receive({type:'ready'});
@@ -239,6 +265,29 @@ function base(packets) { return packets.find(packet => packet.quality === 'base'
   toggle.suspend();toggle.changeFlatYear(961);toggle.changeFlatYear(960);toggle.activate(960,30);
   await toggle.flush();
   assert.ok(base(toggle.take()),'returning to the original year after a flat-mode scene change must not hang waiting for a base');
+  const limited=parentFixture();
+  limited.receive({type:'ready',maxTextureSize:1024});
+  await limited.flush();
+  assert.deepEqual(Array.from(limited.renders),[1024,1024],'do not rasterize more pixels than the renderer can upload');
+  limited.suspend();
+  limited.receive({type:'terrain-error'});
+  assert.equal(limited.ready,false,'context loss invalidates a hidden renderer');
+  assert.equal(limited.frameSrc,undefined,'next activation must recreate the frame');
+  const progress=parentFixture();
+  progress.receive({type:'ready',baseDrawAck:true});
+  progress.activate(741);
+  assert.deepEqual(Array.from(progress.startupStages),['map','map'],'a changed first-load target gets its own preparation stage');
+  await progress.flush();
+  const queuedBase=base(progress.take());
+  assert.deepEqual(Array.from(progress.renders),[1024],'first frame is not competing with an in-flight detail export');
+  progress.receive({...queuedBase,type:'surface-applied'});
+  progress.receive({type:'surface-drawn',sceneKey:queuedBase.sceneKey,renderId:queuedBase.renderId+10});
+  await progress.flush();
+  assert.equal(progress.renders.length,1,'an old draw ACK cannot release a detail capture');
+  progress.receive({type:'surface-drawn',sceneKey:queuedBase.sceneKey,renderId:queuedBase.renderId});
+  await progress.flush();
+  assert.deepEqual(Array.from(progress.renders),[1024,3072]);
+  assert.deepEqual(Array.from(progress.startupStages),['map','map','apply','apply']);
   const transfer=parentFixture();
   transfer.failNextTransfer();
   transfer.receive({type:'ready',surfaceBitmaps:true});

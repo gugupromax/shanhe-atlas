@@ -292,11 +292,18 @@ async function build() {
       return requested.origin === url.origin || ['blob:', 'data:'].includes(requested.protocol)
         ? route.continue() : route.abort();
     });
-    await page.goto(url.href, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    const failures = [];
+    page.on('pageerror', error => failures.push(error.message));
+    page.on('requestfailed', req => {
+      if (!req.failure()?.errorText.includes('ABORTED')) failures.push(req.url() + ' ' + req.failure()?.errorText);
+    });
+    await page.goto(url.href, { waitUntil: 'commit', timeout: 30000 });
     await page.waitForFunction(() => window.atlasApp?.year === 741 && window.TANG_741_ATLAS &&
       window.JiangshanMapSurface && !window.atlasApp.svg.classList.contains('is-awaiting-snapshot') &&
       document.querySelectorAll('#grp-tang741-circuit-guides path').length === 2 &&
-      document.querySelector('#grp-prefectures .prefecture-boundary-mesh'), {}, { timeout: 30000 });
+      document.querySelector('#grp-prefectures .prefecture-boundary-mesh'), {}, { polling:150, timeout:90000 }).catch(error => {
+      throw new Error('741 tile source did not become ready. ' + failures.slice(-4).join(' | '), {cause:error});
+    });
 
     for (const tier of chosen) {
       tier.tileHeight = Math.round(tier.tileWidth * aspectHeight);

@@ -839,16 +839,52 @@
       </section>
     </nav>
 
-  <script src="js/china_geo_data.js?v=b0dfe000"></script>
+  <script>
+    // Retry failed same-origin startup bundles once, in their original order.
+    (() => {
+      const failed = new Set();
+      function noteFailure(event) {
+        const script = event.target;
+        if (script?.tagName === 'SCRIPT' && script.parentElement === document.body &&
+            script.src && new URL(script.src).origin === location.origin) failed.add(script);
+      }
+      document.addEventListener('error', noteFailure, true);
+      window.ATLAS_SCRIPTS_READY = new Promise(resolve => {
+        window.addEventListener('DOMContentLoaded', async () => {
+          document.removeEventListener('error', noteFailure, true);
+          let coreReady = true;
+          for (const old of Array.from(document.scripts).filter(script => failed.has(script))) {
+            const loaded = await new Promise(done => {
+              const next = document.createElement('script');
+              for (const attr of old.attributes) next.setAttribute(attr.name, attr.value);
+              next.async = false;
+              next.onload = () => done(true);
+              next.onerror = () => done(false);
+              old.replaceWith(next);
+            });
+            if (!loaded && old.getAttribute('src').startsWith('js/')) coreReady = false;
+          }
+          if (!coreReady) {
+            const english = new URLSearchParams(location.search).get('lang') === 'en';
+            document.getElementById('map-key').textContent = english
+              ? 'The map could not load. Reload the page to try again.'
+              : '地图资源加载失败，请刷新页面重试。';
+          }
+          resolve(coreReady);
+        }, {once:true});
+      });
+    })();
+  </script>
+  <script src="js/china_geo_data.js?v=ce1aefa6"></script>
   <script src="js/atlas_boot.js?v=cfa92817"></script>
-  <script src="js/map_data.js?v=0059c7b9"></script>
-  <script src="js/lore_core.js?v=6eb8647d"></script>
-  <script id="atlas-app-script" src="js/app.js?v=a8b7efde" data-v-terrain="0310b49d" data-v-tang741="74f11217" data-v-snapshots="923cbbe3" data-v-i18n="d811ed0f" data-v-lore="8139dcce" data-v-pinyin="9969e319" data-v-hant="3afdab47" data-v-quiz="706065c1" data-v-narrator="fe4f4e00" data-v-sources="a78febae"></script>
-  <script src="js/atlas_trace.js?v=8184476a"></script>
-  <script defer src="js/atlas_search.js?v=4067331d"></script>
-  <script src="js/atlas_api.js?v=397ff0fe"></script>
+  <script src="js/map_data.js?v=2dc128cd"></script>
+  <script src="js/lore_core.js?v=b7829a60"></script>
+  <script id="atlas-app-script" src="js/app.js?v=bf3c3b3e" data-v-terrain="9b1324cc" data-v-tang741="74f11217" data-v-snapshots="923cbbe3" data-v-i18n="79a05d3c" data-v-lore="9eae117f" data-v-pinyin="23c42d88" data-v-hant="3afdab47" data-v-quiz="706065c1" data-v-narrator="fe4f4e00" data-v-sources="5030d12e"></script>
+  <script src="js/atlas_trace.js?v=e907ce1c"></script>
+  <script defer src="js/atlas_search.js?v=0f074fae"></script>
+  <script src="js/atlas_api.js?v=20603062"></script>
   <script defer src="js/atlas_area.js?v=d4587a6f"></script>
   <script defer src="map-surface.js?v=081590ab"></script>
-  <script defer src="integration.js?v=360fd86b"></script>
+  <script defer src="integration.js?v=08ec47ba"></script>
 </body>
 </html>

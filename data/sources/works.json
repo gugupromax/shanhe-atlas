@@ -20,6 +20,7 @@
   "songshi": { "zh": "脱脱等《宋史》", "en": "Tuotuo et al., History of Song (Song Shi)", "kind": "primary", "url": "https://zh.wikisource.org/wiki/宋史" },
   "songshu": { "zh": "沈约《宋书》", "en": "Shen Yue, Book of Song (Song Shu)", "kind": "primary", "url": "https://zh.wikisource.org/wiki/宋書" },
   "suishu": { "zh": "魏徵等《隋书》", "en": "Wei Zheng et al., Book of Sui (Sui Shu)", "kind": "primary", "url": "https://zh.wikisource.org/wiki/隋書" },
+  "suzhoucanal": { "zh": "陈其弟《苏州运河·外城河·胥江》，苏州市地方志编纂委员会办公室", "en": "Chen Qidi on the Suzhou Canal, outer moat and Xu River (Suzhou Gazetteer Office)", "kind": "secondary", "url": "https://dfzb.suzhou.gov.cn/dfzb/fzxh/201207/5c5a12842ffb45cc906bbcb5a7c6e47a.shtml" },
   "tanghuiyao": { "zh": "王溥《唐会要》", "en": "Wang Pu, Tang Huiyao", "kind": "primary", "url": "https://zh.wikisource.org/wiki/唐會要" },
   "tangzhiyan": { "zh": "王定保《唐摭言》", "en": "Wang Dingbao, Tang Zhiyan", "kind": "primary", "url": "https://zh.wikisource.org/wiki/唐摭言" },
   "tanjinglueshu": { "zh": "法海《六祖大师法宝坛经略序》", "en": "Fahai, Preface to the Platform Sutra of the Sixth Patriarch", "kind": "primary", "url": "https://zh.wikisource.org/wiki/六祖大師法寶壇經略序" },
@@ -31,6 +32,7 @@
   "xiaogang": { "zh": "《小岗村实行“大包干”回顾》《党史博览》2018年第7期", "en": "Reviewing the household contract in Xiaogang Village, Dangshi Bolan 2018 No.7", "kind": "secondary", "url": "http://zhongguoguoqing.cssn.cn/zt/qzggkf40znzt/lshm/201810/t20181016_5006037.shtml" },
   "xintangshu": { "zh": "欧阳修、宋祁《新唐书》", "en": "Ouyang Xiu and Song Qi, New Book of Tang (Xin Tang Shu)", "kind": "primary", "url": "https://zh.wikisource.org/wiki/新唐書" },
   "yuanhezhi": { "zh": "李吉甫《元和郡县图志》", "en": "Li Jifu, Yuanhe Junxian Tuzhi (Maps and Records of the Commanderies and Counties of the Yuanhe Era)", "kind": "primary", "url": "https://zh.wikisource.org/wiki/元和郡縣圖志" },
+  "yuanshi": { "zh": "宋濂等《元史》", "en": "Song Lian et al., History of Yuan", "kind": "primary", "url": "https://zh.wikisource.org/wiki/元史" },
   "zhmsdsj": { "zh": "韩信夫、刘明逵主编《中华民国史大事记》，中华书局2011年版", "en": "Han Xinfu & Liu Mingkui (eds.), Chronicle of the History of the Republic of China, Zhonghua Book Company, 2011", "kind": "secondary" },
   "zuozhuanzhengyi": { "zh": "孔颖达等《春秋左传正义》", "en": "Kong Yingda et al., Chunqiu Zuozhuan Zhengyi", "kind": "primary", "url": "https://zh.wikisource.org/wiki/春秋左傳正義" },
   "zztj": { "zh": "司马光《资治通鉴》", "en": "Sima Guang, Zizhi Tongjian", "kind": "primary", "url": "https://zh.wikisource.org/wiki/資治通鑑" }

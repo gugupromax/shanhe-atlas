@@ -326,6 +326,25 @@ async function runApiSearchSuite(ctx) {
     `Expected '明神宗' quick search to include 1573 CE Wanli accession era, got ${JSON.stringify(empHit3)}`
   );
   const passSearch = ctrl._queryQuickSearch('函谷关');
+  for (const [query, year, coord] of [
+    ['函谷关', -115, [110.92, 34.63]], ['函谷关', -114, [112.17, 34.72]],
+    ['函谷关', -115, [110.92, 34.63]], ['Hangu Pass', 26, [112.17, 34.72]],
+    ['秦函谷关', 741, [110.92, 34.63]], ['汉函谷关', 741, [112.17, 34.72]],
+    ['Xin’an Hangu Pass', -115, [112.17, 34.72]],
+  ]) {
+    const resolved = ctrl.resolvePlace(query, year);
+    assert(resolved && resolved.kind === 'pass', query);
+    assert.deepStrictEqual(Array.from(resolved.coord), coord, query + ' in ' + year);
+  }
+  for (const [name, representativeYear, coord] of [
+    ['秦函谷关', -241, [110.92, 34.63]], ['汉函谷关', -114, [112.17, 34.72]],
+  ]) {
+    const result = ctrl._queryQuickSearch(name).find(item => item.kind === 'pass');
+    assert(result && result.year === representativeYear);
+    assert.deepStrictEqual(Array.from(result.coord), coord);
+    const site = ctrl._findNearbyPass(...coord, 1);
+    assert.equal(site.pass.modernZh, representativeYear === -114 ? '河南新安' : '河南灵宝');
+  }
   assert(
     passSearch.some((item) => item.kind === 'pass' && item.passKey === 'hanguguan'),
     'Quick search for "函谷关" must return strategic pass entry'

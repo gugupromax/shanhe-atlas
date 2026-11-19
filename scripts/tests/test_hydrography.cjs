@@ -76,6 +76,31 @@ test('Yellow River captions and lower courses agree for every annual frame', () 
   }
 });
 
+test('the Song–Jin reaches turn through the Si and Huai in their documented phases', () => {
+  for (const [y, label, junction, mouth] of [
+    [1127, '北宋北流', [115.22,36.25], [117.52,39.06]],
+    [1128, '经巨野入泗', [116.63,35.38], [119.49,34.08]],
+    [1167, '经巨野入泗', [116.63,35.38], [119.49,34.08]],
+    [1168, '曹、单分流', [117.16,34.22], [119.49,34.08]],
+    [1179, '曹、单分流', [117.16,34.22], [119.49,34.08]],
+    [1180, '经归德入泗', [115.65,34.33], [119.49,34.08]],
+    [1193, '经归德入泗', [115.65,34.33], [119.49,34.08]],
+    [1194, '夺淮故道', [117.16,34.22], [119.95,34.14]],
+  ]) {
+    const route = rivers.filter(r => r.name === 'Huang' && r.rank === 1 && visible(r, y))
+      .flatMap(r => r.lines).filter(line => line[0][0] > 113);
+    assert.equal(route.length, 1, String(y));
+    assert.deepEqual(route[0].at(-1), mouth);
+    assert.ok(route[0].some(point => same(point, junction)), `Expected ${label} in ${y}`);
+    assert.ok(labels.some(l => visible(l, y) && l.zh.includes(label)));
+    if (y >= 1128 && y < 1194) {
+      assert.ok(!rivers.some(r => r.name === 'Huang' && visible(r, y) && r.lines.some(line => line.at(-1)[1] > 37)));
+      const huai = rivers.find(r => r.name === 'Huai' && r.vanish === 1194).lines[0];
+      assert.deepEqual(route[0].slice(-3), huai.slice(-3));
+    }
+  }
+});
+
 function contains(ring, [x, y]) {
   let inside = false;
   for (let i = 0, prev = ring.length - 1; i < ring.length; prev = i++) {

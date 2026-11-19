@@ -24,6 +24,30 @@ assert.deepEqual(triangles(tiled.indices),triangles(whole.indices),'near tiles r
 const overview=geo.meshIndices(12,10,12,4);
 assert.equal(overview.indices.length,54);
 assert.ok(overview.indices.includes(119),'overview reaches the final row and column despite partial steps');
+// Compare the memory-bounded grid lighting to THREE's indexed normals, including
+// boundary vertices, nonuniform row spacing and reusing the same buffer after a height change.
+const normalGrid=new T.BufferGeometry(), normalWidth=13, normalHeight=10;
+const gridPositions=new Float32Array(normalWidth*normalHeight*3);
+normalGrid.setAttribute('position',new T.BufferAttribute(gridPositions,3));
+const topology=geo.meshIndices(normalWidth,normalHeight,4);
+assert.deepEqual(topology.tiles,geo.meshTiles(normalWidth,normalHeight,4));
+normalGrid.setIndex(new T.BufferAttribute(topology.indices,1));
+const reusableNormals=new Float32Array(gridPositions.length);
+for(const scale of [0,1,120]){
+  for(let r=0;r<normalHeight;r++)for(let c=0;c<normalWidth;c++){
+    const i=(r*normalWidth+c)*3;
+    gridPositions[i]=c*2;gridPositions[i+1]=Math.sin(r+c*c)*scale;gridPositions[i+2]=r*(1+r*.15);
+  }
+  normalGrid.computeVertexNormals();
+  assert.equal(geo.gridNormals(normalWidth,normalHeight,gridPositions,reusableNormals),reusableNormals);
+  for(let i=0;i<reusableNormals.length;i++){
+    assert.ok(Math.abs(reusableNormals[i]-normalGrid.attributes.normal.array[i])<2e-6);
+  }
+  for(let i=0;i<reusableNormals.length;i+=3){
+    assert.ok(reusableNormals[i+1]>0,'terrain normals face upwards');
+    assert.ok(Math.abs(Math.hypot(reusableNormals[i],reusableNormals[i+1],reusableNormals[i+2])-1)<1e-6);
+  }
+}
 // Exercise packed production geometry against the original full-grid vertices.
 const terrainSource=fs.readFileSync(path.join(root,'terrain-app.js'),'utf8');
 const sourceGrid=new T.BufferGeometry();
