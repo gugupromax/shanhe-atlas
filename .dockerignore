@@ -7,6 +7,7 @@ workers
 data/atlas
 data/sources
 data/tiles
+assets/tang-741-tiles
 .runtime
 .impeccable
 geojson/demo.html

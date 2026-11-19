@@ -6,6 +6,54 @@
   const sourceMap = 'http://www.guoxue123.com/other/map/pic/10/03.jpg';
   const tangAreaKey = (place) => [place.level, place.parent, place.ancient].join('/');
 
+  // The gazetteer records three different names/intervals at the same seat.
+  // The inherited polygon and the older CHGIS row both collapse that history.
+  const suiyangSource = 'https://tgaz.fudan.edu.cn/tgaz/placename/hvd_82072';
+  const westernLiang = [
+    {ancient:'梁国', from:-126, through:2},
+    {ancient:'梁郡', from:3, through:4},
+    {ancient:'梁国', from:5, through:8},
+  ].map(place => ({
+    ...place, id:'reviewed:suiyang:' + place.from, level:'prefecture', coord:[115.60745,34.38505],
+    seat:'睢阳', modern:'河南商丘',
+    precision:'西汉末期梁地的治所位于睢阳一带（今河南商丘），坐标为近似定位，辖境范围待考。',
+    precisionEn:'Approximate seat near Suiyang (modern Shangqiu). The boundary is still under review.',
+    sources:[
+      ['复旦时空地名库 · 睢阳县建置沿革', suiyangSource],
+      ['班固《汉书》卷十四 · 诸侯王表', 'https://zh.wikisource.org/zh-hans/漢書/卷014'],
+      ['班固《汉书》地理志 · 梁国', 'https://ctext.org/dictionary.pl?chapter=698621&if=en&remap=gb&sid=10650&trid=1112938'],
+    ],
+  }));
+
+  const earlyLiang = {
+    id:'reviewed:liang:23', ancient:'梁国', level:'prefecture', from:23, through:25,
+    coord:[115.61,34.39], seat:'睢阳', modern:'河南商丘',
+    precision:'据《后汉书·刘永传》，更始时刘永封梁王，都睢阳。点位约示今河南商丘一带。',
+    precisionEn:'Liu Yong ruled from Suiyang under the Gengshi regime. Approximate site near modern Shangqiu.',
+    sources:[['《后汉书》卷十二 · 刘永传','https://zh.wikisource.org/wiki/後漢書/卷12'],
+      ['复旦时空地名库 · 睢阳县建置沿革',suiyangSource]],
+  };
+  const easternLiang = [
+    {ancient:'梁郡', from:29, through:78},
+    {ancient:'梁国', from:79, through:219},
+  ].map(place => ({
+    ...place, id:'reviewed:xiayi:' + place.from, level:'prefecture',
+    coord:[116.34,34.43], seat:'下邑（约）', modern:'安徽砀山',
+    precision:'《后汉书·郡国志》列下邑为梁国首县。自睢阳迁治的确年待考，按复旦时空地名库的考释，将建武五年起的治所约标于今安徽砀山一带。辖界待考。',
+    precisionEn:'The Book of the Later Han lists Xiayi first among the counties of Liang. The move from Suiyang is undated. Following the Fudan gazetteer reconstruction, the seat is placed near modern Dangshan from 29 CE. The boundary is uncertain.',
+    sources:[['《后汉书》郡国志二 · 梁国','https://zh.wikisource.org/zh-hans/後漢書/卷110#梁国'],
+      ['复旦时空地名库 · 睢阳县建置沿革',suiyangSource],
+      ['《江南通志》卷三十三 · 下邑故城','https://zh.wikisource.org/wiki/江南通志_(四庫全書本)/卷033']],
+  }));
+
+  function reviewedLiang(dynasty, year) {
+    if (!['xihan', 'donghan'].includes(dynasty?.key)) return;
+    if (year >= earlyLiang.from && year <= earlyLiang.through) return earlyLiang;
+    if (dynasty.key === 'donghan') return easternLiang.find(item => item.from <= year && year <= item.through);
+    const place = westernLiang.find(item => item.from <= year && year <= item.through);
+    if (place) return {...place, parent:year >= -106 ? '豫州（刺史部）' : '西汉'};
+  }
+
   function tangAtlas(year) {
     return year === tangYear ? window.TANG_741_ATLAS : null;
   }
@@ -73,6 +121,228 @@
       return selected;
     }
 
+    _loadPeriodAdminPlaces(userRequest = false) {
+      if (this.year === tangYear || window.ATLAS_PERIOD_ADMIN || typeof document === 'undefined') return;
+      if (this._periodAdminLoad) return this._periodAdminLoad;
+      if (this._periodAdminRetryAfter > Date.now() ||
+          (!userRequest && this._periodAdminFailedYear === this.year)) return;
+
+      const source = 'data/tiles/period-admin.js';
+      this._periodAdminLoad = (async () => {
+        await this._loadScriptOnce(source);
+        if (!window.ATLAS_PERIOD_ADMIN && this.year !== tangYear) {
+          // A transient failure gets one retry, shared by map rendering and search.
+          await new Promise(resolve => setTimeout(resolve, 800));
+          if (this.year === tangYear) return;
+          await this._loadScriptOnce(source);
+        }
+        if (window.ATLAS_PERIOD_ADMIN) {
+          if (this.year !== tangYear) this._renderSettlements(this.dynasties[this.dynastyIdx]);
+        } else if (this.year !== tangYear) {
+          // On public installations the optional file can be absent permanently.
+          this._periodAdminFailedYear = this.year;
+          this._periodAdminRetryAfter = Date.now() + 30000;
+        }
+      })().finally(() => { this._periodAdminLoad = null; });
+      return this._periodAdminLoad;
+    }
+
+    _snapshotForAdmin(dynasty) {
+      const key = this._resolveSnapKey(dynasty, this.year);
+      return this.snapshots?.[key] || (!this.snapshots ? this.lastRenderedSnap : null);
+    }
+
+    _boundAdminLabelLayout(nodes, applyScale) {
+      const {x, y, w, h} = this.camera;
+      if (![x, y, w, h].every(Number.isFinite) || !nodes.some((node) => node.dataset?.areaKey)) {
+        this._adminLayoutBounds = null;
+        return nodes;
+      }
+      // Keep all points positioned for panning, but only run label collision
+      // calculations in an expanded current view.
+      const bounds = [x - w * .4, y - h * .4, x + w * 1.4, y + h * 1.4];
+      this._adminLayoutBounds = bounds;
+      return nodes.filter((node) => {
+        if (!node.dataset?.areaKey) return true;
+        const {x: px, y: py} = node.dataset;
+        if (px >= bounds[0] && py >= bounds[1] && px <= bounds[2] && py <= bounds[3]) return true;
+        applyScale(node, px, py);
+        node.classList.add('is-label-crowded');
+        return false;
+      });
+    }
+
+    _adminLayoutOutdated() {
+      if (!this._adminLayoutBounds) return false;
+      const {x, y, w, h} = this.camera;
+      const [left, top, right, bottom] = this._adminLayoutBounds;
+      return x < left || y < top || x + w > right || y + h > bottom;
+    }
+
+    _adminSettlementRevision(dynasty) {
+      if (this.year === tangYear) return '';
+      const snapshot = this._snapshotForAdmin(dynasty);
+      return [snapshot ? this._resolveSnapKey(dynasty, this.year) : '',
+        window.ATLAS_PERIOD_ADMIN ? this.year : reviewedLiang(dynasty, this.year)?.id || ''].join(':');
+    }
+
+    _periodAdminAreas(dynasty = this.dynasties?.[this.dynastyIdx]) {
+      if (this.year === tangYear || !dynasty) return [];
+      const snapshot = this._snapshotForAdmin(dynasty);
+      const provider = window.ATLAS_PERIOD_ADMIN;
+      const previous = this._periodAdminCatalog;
+      if (previous?.year === this.year && previous.snapshot === snapshot && previous.provider === provider) {
+        return previous.places;
+      }
+      const validCoord = (coord) => Array.isArray(coord) && coord.length === 2 &&
+        coord.every(Number.isFinite) && Math.abs(coord[0]) <= 180 && Math.abs(coord[1]) < 85;
+      const places = [];
+      const seen = new Set();
+      const correction = reviewedLiang(dynasty, this.year);
+      const original = provider?.placesForYear(this.year) || [];
+      const dated = ['xihan', 'donghan'].includes(dynasty.key)
+        ? original.filter(item => item?.id !== 'chgis:0:210768') : original;
+      const records = correction ? [correction, ...dated] : dated;
+      for (const record of records) {
+        if (!record?.id || !record.ancient || !['county', 'prefecture'].includes(record.level) ||
+            !validCoord(record.coord) || (record.from != null && record.from > this.year) ||
+            (record.through != null && record.through < this.year)) continue;
+        const areaKey = record.level + '/' + record.id;
+        if (seen.has(areaKey)) continue;
+        seen.add(areaKey);
+        const sources = (record.sources || []).filter((link) => Array.isArray(link) &&
+          typeof link[0] === 'string' && /^https?:\/\//i.test(link[1]));
+        const shape = record !== correction && record.level === 'prefecture' && (snapshot?.prefectures || []).find((item) =>
+          item.title === record.ancient && item.shape && projector.pointInShape(...record.coord, item.shape))?.shape;
+        const reportsMissingParent = /未附行政隶属|未列上级政区/.test(record.precision || '');
+        const precision = [record.precision, record.parent || reportsMissingParent ? '' : '本条记录未标注上级政区。'].filter(Boolean).join('');
+        const precisionEn = [record.precisionEn || 'Approximate position from the historical dataset.',
+          record.parent ? '' : ' The parent division is not specified in this record.'].join('');
+        places.push({ ...record, tier: 2, areaKey, sources, precision, precisionEn, ...(shape ? {shape} : {}) });
+      }
+
+      // A snapshot's own label anchors identify areas, never historical seats.
+      const byName = new Map();
+      for (const place of places) {
+        if (place.level !== 'prefecture') continue;
+        if (!byName.has(place.ancient)) byName.set(place.ancient, []);
+        byName.get(place.ancient).push(place.coord);
+      }
+      if (snapshot) {
+        if (!this._snapshotAdminAnchors) this._snapshotAdminAnchors = new WeakMap();
+        let anchors = this._snapshotAdminAnchors.get(snapshot);
+        if (!anchors) {
+          anchors = (snapshot.prefectures || []).flatMap((item, index) => {
+            if (!item.title || !item.shape || !validCoord(item.anchor) ||
+                !projector.pointInShape(...item.anchor, item.shape)) return [];
+            return [{
+              areaKey: 'prefecture/snapshot-' + index,
+              ancient: item.title, tier: 2, level: 'prefecture', coord: item.anchor, shape: item.shape,
+              schematic: true, precision: '此处是现有示意边界的名称标注位置。该图层未逐条标注隶属。',
+              precisionEn: 'Label anchor of the approximate prefecture boundary. The layer does not record its parent division.',
+              sources: [['项目图层来源', 'map-sources.html']],
+            }];
+          });
+          this._snapshotAdminAnchors.set(snapshot, anchors);
+        }
+        places.push(...anchors.filter((item) => !byName.get(item.ancient)?.some((coord) =>
+          projector.pointInShape(...coord, item.shape))));
+      }
+      this._periodAdminCatalog = {year: this.year, snapshot, provider, places};
+      return places;
+    }
+
+    _adminVisiblePlaces(settlements, dynasty) {
+      if (this.year === tangYear) return this._tang741VisiblePlaces(settlements);
+      const additions = this._periodAdminAreas(dynasty);
+      if (!additions.length) return settlements;
+      const existing = new Map();
+      for (const item of settlements) {
+        if ((item.appear != null && item.appear > this.year) ||
+            (item.vanish != null && this.year >= item.vanish)) continue;
+        const name = this._settlementAncient(item, this.year);
+        if (!existing.has(name)) existing.set(name, []);
+        existing.get(name).push(item.coord);
+      }
+      return settlements.concat(additions.filter((item) => !item.schematic ||
+        !existing.get(item.ancient)?.some((coord) => projector.pointInShape(...coord, item.shape))));
+    }
+
+    _adminSearchIndex(baseIndex) {
+      if (this.year === tangYear) return this._tang741SearchIndex(baseIndex);
+      const places = this._periodAdminAreas();
+      if (!places.length) return baseIndex;
+      const previous = this._periodAdminIndex;
+      if (previous?.base === baseIndex && previous.places === places && previous.locale === this.locale) {
+        return previous.index;
+      }
+      const dynasty = this.dynasties[this.dynastyIdx];
+      const entries = places.map((place) => {
+        const titleZh = place.ancient;
+        const titleEn = this._enDict(titleZh) || titleZh;
+        const modernZh = place.modern || '';
+        const modernEn = modernZh ? this._enModernCity(modernZh) : '';
+        const subZh = [this.formatYear(this.year), place.parent || modernZh].filter(Boolean).join(' · ');
+        return {
+          kind: place.level === 'county' ? 'city' : 'prefecture', adminArea: place.areaKey,
+          adminLevel: place.level, dynasty, year: this.year, coord: place.coord,
+          titleZh, titleEn, modernZh, modernEn, subZh,
+          subEn: [this.year, this._enDict(place.parent || '') || modernEn].filter(Boolean).join(' · '),
+          keywords: [titleZh, titleEn, place.parent, modernZh, modernEn].join(' ').toLowerCase(),
+        };
+      });
+      const currentTitles = new Set(entries.map((item) => item.kind + '/' + item.titleZh));
+      const index = baseIndex.filter((item) => item.dynasty !== dynasty ||
+        !currentTitles.has(item.kind + '/' + item.titleZh)).concat(entries);
+      this._periodAdminIndex = {base: baseIndex, places, locale: this.locale, index};
+      return index;
+    }
+
+    _selectPeriodAdminArea(key) {
+      const place = this._periodAdminAreas().find((item) => item.areaKey === key);
+      if (!place) return false;
+      const toggle = this._id('chk-settlements');
+      if (toggle) toggle.checked = true;
+      this.grpSettlements.classList.remove('is-hidden');
+      if (place.level === 'prefecture') this._enableAdminBoundaries();
+      this._focusAdminPlace(place.coord, place.level === 'county');
+      return this._showAdminPlace(place);
+    }
+
+    _enableAdminBoundaries() {
+      const toggle = this._id('chk-prefectures');
+      if (toggle) toggle.checked = true;
+      this.grpPrefectures.classList.remove('is-hidden');
+      this.grpRegionLabels.classList.remove('is-hidden');
+      this._materializeDeferredPrefectures();
+    }
+
+    _focusAdminPlace(coord, county) {
+      if (this.challenge) this.stopChallenge(true);
+      const mobile = window.innerWidth <= 900;
+      const zoom = county ? (mobile ? 8 : 6) : 3.8;
+      const [x, y] = this.projector.toScreen(...coord);
+      const w = Math.min(this.camera?.w || Infinity, 1000 / zoom);
+      const h = w * this._getViewportAspect();
+      this._animateCameraTo({ x: x - w * (mobile ? 0.5 : 0.41), y: y - h * (mobile ? 0.31 : 0.5), w, h });
+    }
+
+    _openIndexedAdminArea(item) {
+      const year = this.year;
+      const dynasty = this.dynasties[this.dynastyIdx];
+      const key = this._resolveSnapKey(dynasty, year);
+      this._withSnapshot(key, (snapshot) => {
+        if (this.year !== year || !snapshot) return;
+        const list = item.kind === 'region' ? snapshot.regions : snapshot.prefectures;
+        const matches = (list || []).filter((area) => area.shape && area.title === item.titleZh);
+        const area = matches.find((entry) => entry.anchor &&
+          entry.anchor.every((value, index) => value === item.coord[index])) ||
+          matches.find((entry) => projector.pointInShape(...item.coord, entry.shape));
+        if (area) this._showMapArea(item.kind === 'region' ? 'circuit' : 'prefecture',
+          area.title, area.parents || [area.parent], area);
+      });
+    }
+
     _tang741VisiblePlaces(settlements) {
       const atlas = tangAtlas(this.year);
       if (!atlas) return settlements;
@@ -138,14 +408,18 @@
       const h = w * this._getViewportAspect();
       this._animateCameraTo({ x: x - w * (mobile ? 0.5 : 0.41), y: y - h * (mobile ? 0.31 : 0.5), w, h });
       if (guide) return this._showMapArea('boundary', guide.title, guide.members, guide);
-      return this._showTang741Place(place);
+      return this._showAdminPlace(place);
     }
 
     _syncTang741Detail(zoom) {
-      const mode = this.year !== 741 ? '' : zoom < 2.15 ? 'overview' : zoom < 5.4 ? 'prefectures' : 'counties';
-      this.svg.classList.toggle('is-tang741-overview', mode === 'overview');
-      this.svg.classList.toggle('is-tang741-counties', mode === 'counties');
-      if (mode) {
+      const zoomMode = zoom < 2.15 ? 'overview' : zoom < 5.4 ? 'prefectures' : 'counties';
+      const mode = zoomMode === 'counties' && this._adminLevel === 'prefectures'
+        ? 'prefectures' : zoomMode;
+      this.svg.classList.toggle('is-admin-overview', mode === 'overview');
+      this.svg.classList.toggle('is-admin-counties', mode === 'counties');
+      this.svg.classList.toggle('is-tang741-overview', this.year === tangYear && mode === 'overview');
+      this.svg.classList.toggle('is-tang741-counties', this.year === tangYear && zoomMode === 'counties');
+      if (this.year === tangYear) {
         for (const label of this.grpSettlements.querySelectorAll('[data-overview-label]')) {
           const name = mode === 'overview' ? label.dataset.overviewLabel : label.dataset.detailLabel;
           const display = this._mapText(this.trTerm(name));
@@ -166,24 +440,25 @@
     }
 
     _raiseTangCountyPoints(group) {
-      if (this.year !== 741) return;
       // A capital caption may overlap a nearby county seat on a small screen.
       // Keep the fine-zoom point selectable above it; label layout still culls collisions.
       for (const node of group.querySelectorAll('.settlement-node.is-county')) group.appendChild(node);
     }
 
-    openMapSettlementAt(lng, lat, label) {
+    openMapSettlementAt(lng, lat, label, areaKey) {
       const atlas = tangAtlas(this.year);
-      const place = atlas && atlas.places.find((item) =>
-        item.ancient === label && Math.abs(item.coord[0] - lng) < 0.0001 &&
-        Math.abs(item.coord[1] - lat) < 0.0001
-      );
-      if (place) return this._showTang741Place(place);
+      const places = atlas?.places || this._periodAdminAreas();
+      const place = places.find((item) =>
+        (areaKey ? item.areaKey === areaKey : item.ancient === label) &&
+        Math.abs(item.coord[0] - lng) < 0.0001 && Math.abs(item.coord[1] - lat) < 0.0001) ||
+        (!areaKey && places.find((item) => item.schematic && item.ancient === label &&
+          projector.pointInShape(lng, lat, item.shape)));
+      if (place) return this._showAdminPlace(place);
       this.openGenealogyAt(lng, lat);
     }
 
-    _showTang741Place(place) {
-      const parents = [place.parent];
+    _showAdminPlace(place) {
+      const parents = [...(place.parents || [place.parent])];
       if (place.seat) parents.push(this.locale === 'en' ? `Seat: ${place.seat}` : `治所：${place.seat}`);
       return this._showMapArea(place.level, place.detailTitle || place.ancient, parents, place);
     }
@@ -202,14 +477,14 @@
       const polity = [...polities].reverse().find(hit);
       if (polity && visible(this.grpPrefectures)) {
         const region = (snapshot.regions || []).find(hit);
-        const fine = !this.svg.classList.contains('is-tang741-overview') &&
+        const fine = !this.svg.classList.contains('is-admin-overview') &&
           (!this._isMobileViewport() || this.svg.classList.contains('is-mobile-zoomed-detail') || this.year === 741);
         const prefecture = fine && (snapshot.prefectures || []).find(hit);
         if (prefecture) {
           return this._showMapArea('prefecture', prefecture.title,
-            [region?.title, polity.title], prefecture);
+            prefecture.parents || [prefecture.parent], prefecture, [polity.title, region?.title]);
         }
-        if (region) return this._showMapArea('circuit', region.title, [polity.title], region);
+        if (region) return this._showMapArea('circuit', region.title, region.parents || [region.parent], region, [polity.title]);
       }
       if (polity && visible(this.grpPolities)) {
         return this._showMapArea('polity', polity.title, [], polity);
@@ -226,16 +501,18 @@
       return false;
     }
 
-    _showMapArea(type, title, parents, item) {
+    _showMapArea(type, title, parents, item, clickedLayers = []) {
       const card = this._id('map-area-card');
       if (!card) return false;
       this.stopAutoplay();
       this.closeGenealogyCard();
       this.closeMilestoneBalloon();
       this.closeMapArea();
+      const point = type === 'county' && Array.isArray(item.coord) && item.coord.length === 2 &&
+        item.coord.every(Number.isFinite) ? item.coord : null;
       this.activeMapArea = {
         type, title,
-        highlight: item.shape ? { shape: item.shape } : item.segments ? { segments: item.segments } : null,
+        highlight: item.shape ? { shape: item.shape } : item.segments ? { segments: item.segments } : point ? { point } : null,
       };
       const isEn = this.locale === 'en';
       const types = {
@@ -255,9 +532,13 @@
       const boundaryNote = this.year === 741 && type === 'prefecture'
         ? ['州府边界沿用本项目跨期示意层，可结合 741 年原图查阅。', 'Approximate prefecture boundary from the existing multi-period layer.']
         : ['本项目政区范围为示意。', 'Approximate boundary in the current map.'];
-      this._id('map-area-note').textContent = item.precision
+      const note = item.precision
         ? (isEn ? item.precisionEn || 'Approximate position of the administrative seat.' : format(item.precision))
         : format(boundaryNote[isEn ? 1 : 0]);
+      const location = [...new Set(clickedLayers.filter(name => name && name !== title))].map(format).join(' · ');
+      this._id('map-area-note').textContent = location
+        ? [note, format(isEn ? 'Map layers at the selected point' : '点选位置所在图层'), location].join(' · ')
+        : note;
       const sources = this._id('map-area-sources');
       const links = item.sources || (this.year === 741 ? [['741 年唐时期全图', sourceMap]] : []);
       sources.replaceChildren(...links.map(([label, href]) => {
@@ -273,6 +554,14 @@
         this._svgNode('path', { d: this.projector.shapeToSvgPath(item.shape), class: 'map-area-outline' }, layer);
       } else if (item.segments) {
         this._svgNode('path', { d: this._tangGuidePath(item.segments), class: 'map-area-outline is-boundary-guide' }, layer);
+      } else if (point) {
+        const [x, y] = this.projector.toScreen(...point);
+        const marker = this._svgNode('g', { id: 'map-area-focus', 'aria-hidden': 'true' }, layer);
+        // Round line caps keep the selection readable at every SVG zoom level.
+        for (const [color, width] of [['#fff9e8', 13], ['#963d2a', 9]]) {
+          this._svgNode('path', { d: `M${x} ${y}h0`, stroke: color, 'stroke-width': width,
+            'stroke-linecap': 'round', 'vector-effect': 'non-scaling-stroke' }, marker);
+        }
       }
       card.hidden = false;
       this.viewportFrame.classList.add('has-map-area');

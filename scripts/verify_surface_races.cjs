@@ -6,6 +6,7 @@ const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
 const parentSource = fs.readFileSync(path.join(root, 'integration.js'), 'utf8');
 const childSource = fs.readFileSync(path.join(root, 'terrain-app.js'), 'utf8');
+const {isCurrentMapPick}=require('../integration.js');
 
 // Exercise the owning functions, not a second implementation of their guards.
 // Image decode and postMessage delivery are deliberately separate controlled steps.
@@ -15,7 +16,7 @@ function section(source, start, end) {
   return source.slice(a, b);
 }
 function parentFixture(useTangTiles = false) {
-  const context = { console, useTangTiles };
+  const context = { console, useTangTiles, isCurrentMapPick };
   vm.runInNewContext(`
     const CHANNEL='jiangshan-fusion',KM_PER_DEGREE=1;
     let active=true,ready=true,applyingChild=false,lastSignature='',lastSceneKey='',sequence=0;
@@ -27,12 +28,14 @@ function parentFixture(useTangTiles = false) {
     const setTimeout=fn=>{timers.set(++timerId,fn);return timerId},clearTimeout=id=>timers.delete(id);
     const frame={contentWindow:{}},root={location:{protocol:'http:',origin:'http://127.0.0.1:8772'},
       JiangshanMapSurface:{
-        tangScreenLabels:()=>[{kind:'circuit',name:'关内道',coord:[109,34],opacity:1}],
+        adminScreenLabels:app=>[{kind:'circuit',name:app.year===741?'关内道':'河南路',coord:[109,34],opacity:1}],
         passScreenLabels:(app,getStyle,reveal)=>reveal?[{kind:'pass',name:app.year===741?'临渝关':'山海关',coord:[119.77,40.01],opacity:1}]:[],
       },
       performance:{now:()=>0},addEventListener:(name,fn)=>{listener=fn}};
+    let counties=false;const picks=[];
     const app={year:1080,camera:{w:400},activePerson:null,activeCustomRoute:null,customRouteStopIdx:-1,
-      lastRenderedSnap:{},locale:'zh',svg:{getBoundingClientRect:()=>({width:600,height:400}),classList:{contains:()=>false}},
+      openMapSettlementAt(...args){picks.push(args);},
+      lastRenderedSnap:{},locale:'zh',svg:{getBoundingClientRect:()=>({width:600,height:400}),classList:{contains:name=>counties&&name==='is-admin-counties'}},
       projector:{scale:1,toScreen:(x,y)=>[x,-y],toGeo:(x,y)=>[x,-y]}};
     const cameraView={center:[110,30],widthKm:20},readView=()=>cameraView;
     const identifiers=new WeakMap();let nextIdentifier=0;
@@ -46,10 +49,12 @@ function parentFixture(useTangTiles = false) {
     const tangTileTier=app=>useTangTiles&&app.year===741?'mid':null;
     const locations=()=>[],snapshot=()=>({polities:[]}),overlays=()=>({});
     const configure=()=>{},announce=()=>{},presentTerrain=show=>{presented=show};
+    const startupStages=[];const armTerrainStartup=stage=>startupStages.push(stage);
     const renders=[];
     let pause=false,release;
     const mapSurface={render:async request=>{
       if(request.screenPasses!==true)throw Error('The live texture must remove the original gate artwork');
+      if(request.screenAdmin!==true)throw Error('The live texture must remove screen administrative captions');
       renders.push(request.width);
       if(pause){pause=false;await new Promise(resolve=>{release=resolve})}
       return {url:'data:image/png;base64,AA==',bounds:request.bounds};
@@ -61,12 +66,14 @@ function parentFixture(useTangTiles = false) {
       activate(year,widthKm=20){app.year=year;cameraView.widthKm=widthKm;sync('controller')},
       selectArea(area){app.activeMapArea=area;sync('controller')},
       zoom(width){app.camera.w=width;sync('child-view')},
+      showCounties(){counties=true;sync('child-view')},
+      get picks(){return picks},
       toggleCorridors(on){corridors=on;sync('controller')},
       async flush(){const pending=[...timers.values()];timers.clear();for(const fn of pending)await fn()},
       take(){return out.splice(0)},
       holdNextRender(){pause=true},releaseRender(){release()},get renders(){return renders},
       receive(message,valid=true){listener({source:valid?frame.contentWindow:{},origin:root.location.origin,data:{channel:CHANNEL,...message}})},
-      get cache(){return surfaceBaseKey},get scene(){return lastSceneKey}
+      get cache(){return surfaceBaseKey},get scene(){return lastSceneKey},get startupStages(){return startupStages}
     };
   `, context);
   return context.api;
@@ -78,7 +85,7 @@ function childFixture() {
     let fusionState=null,fusionPaintedKey=null,fusionLocations=[],fusionLayers={},fusionOverlays={},currentSnapshot=null,selectedEvent=null,historyYear=0;
     let desired={theta:0,phi:.7,distance:10,x:0,z:0},theta,phi,distance,target,fusionViewKey='',fusionStarted=true,fusionActive=true,dirty=false;
     let fusionViewTimer=null;const clearTimeout=()=>{};
-    let tangTilePlanKey='',tangBaseApplied=false,tangAppliedTier='far',areaOverlay=null,areaOverlayId=0,tangLabelData=[],passLabelData=[];
+    let tangTilePlanKey='',tangBaseApplied=false,tangAppliedTier='far',areaOverlay=null,areaOverlayId=0,adminLabelData=[],passLabelData=[];
     const images=[],acks=[],applied=[],elements={},$=id=>elements[id]||(elements[id]={dataset:{},querySelector:()=>({})});
     const document={body:{dataset:{}}},dataset={bounds:[40,-10,165,70]},mapFrame={toWorld:(x,z)=>({x,z})},camera={fov:40,aspect:1};
     const terrain={visible:false},renderer={capabilities:{getMaxAnisotropy:()=>1}};
@@ -110,6 +117,9 @@ function base(packets) { return packets.find(packet => packet.quality === 'base'
 
 (async function () {
   // Merely exporting/posting a base must not be treated as successful GPU application.
+  const waiting = parentFixture();
+  waiting.receive({type:'ready'});
+  assert.deepEqual(Array.from(waiting.startupStages), ['map'], 'a ready terrain receives a separate map deadline');
   const p = parentFixture(), c = childFixture();
   const first = await request(p, c, 1081);
   c.surface(base(first));
@@ -162,6 +172,7 @@ function base(packets) { return packets.find(packet => packet.quality === 'base'
   p2.receive({type:'surface-applied',quality:'base',sceneKey:'forged'},false);
   assert.equal(p2.cache, remembered, 'another window cannot acknowledge a surface');
   p2.receive({type:'ready'});
+  assert.equal(p2.startupStages.length, 0, 'an already presented view has no startup deadline');
   assert.equal(p2.cache, '', 'reloaded child must receive a base even for the unchanged scene');
   p2.take();await p2.flush();
   assert.ok(base(p2.take()), 'ready forces a fresh base export');
@@ -185,14 +196,14 @@ function base(packets) { return packets.find(packet => packet.quality === 'base'
   await tang.flush();
   const defaultState=tang.take().find(packet=>packet.type==='state');
   assert.equal(defaultState.tileTier,'mid');
-  assert.equal(defaultState.tangLabels[0].name,'关内道');
+  assert.equal(defaultState.adminLabels[0].name,'关内道');
   assert.equal(defaultState.passLabels[0].name,'临渝关');
   const highlight={segments:[[[109.1,33.7],[109.7,34]]]};
   tang.selectArea({highlight});
   await tang.flush();
   const selectedState=tang.take().find(packet=>packet.type==='state');
   assert.equal(selectedState.sceneKey,defaultState.sceneKey,'selecting a boundary preserves the tile scene');
-  assert.equal(selectedState.tangLabels.length,0,'a highlight-only update reuses the existing labels');
+  assert.equal(selectedState.adminLabels.length,0,'a highlight-only update reuses the existing labels');
   assert.deepEqual(selectedState.areaHighlight,highlight);
   tang.selectArea(null);
   assert.equal(tang.take().find(packet=>packet.type==='state').areaHighlight,undefined);
@@ -202,11 +213,32 @@ function base(packets) { return packets.find(packet => packet.quality === 'base'
   const otherYear=tang.take();
   assert.ok(base(otherYear),'other years still export live artwork');
   const historicState=otherYear.find(packet=>packet.type==='state');
-  assert.equal(historicState.tangLabels.length,0);
+  assert.equal(historicState.adminLabels[0].name,'河南路');
   assert.equal(historicState.passLabels[0].name,'山海关');
+  const rendersBeforeFocus=tang.renders.length;
+  const focus={point:[113.28,33.5]};
+  tang.selectArea({highlight:focus});
+  const focused=tang.take().find(packet=>packet.type==='state');
+  assert.equal(focused.sceneKey,historicState.sceneKey);
+  assert.deepEqual(focused.areaHighlight,focus);
+  assert.ok(focused.areaHighlightId>0);
+  assert.equal(focused.adminLabels.length,0);
+  tang.selectArea(null);
+  const closed=tang.take().find(packet=>packet.type==='state');
+  assert.equal(closed.areaHighlightId,0);
+  assert.equal(closed.sceneKey,historicState.sceneKey);
+  await tang.flush();
+  assert.equal(tang.renders.length,rendersBeforeFocus,'point selection and dismissal reuse the existing live texture');
+  tang.receive({type:'place-pick',sceneKey:historicState.sceneKey,year:1381,coord:[114.3,34.8],label:'开封府',areaKey:'prefecture/kaifeng'});
+  assert.deepEqual(Array.from(tang.picks[0]),[114.3,34.8,'开封府','prefecture/kaifeng']);
+  tang.receive({type:'place-pick',sceneKey:historicState.sceneKey,year:741,coord:[114.3,34.8],label:'开封府'});
+  assert.equal(tang.picks.length,1,'stale-year clicks remain rejected');
+  tang.showCounties();
+  const detailed=tang.take().find(packet=>packet.type==='state');
+  assert.notEqual(detailed.sceneKey,historicState.sceneKey,'a county-level zoom transition invalidates non-741 screen state');
   tang.zoom(501);
   const far=tang.take().find(packet=>packet.type==='state');
-  assert.notEqual(far.sceneKey,historicState.sceneKey,'crossing the gate zoom threshold invalidates the child models');
+  assert.notEqual(far.sceneKey,detailed.sceneKey,'crossing the gate zoom threshold invalidates the child models');
   assert.equal(far.passLabels.length,0);
   tang.zoom(500);
   assert.equal(tang.take().find(packet=>packet.type==='state').passLabels[0].name,'山海关');

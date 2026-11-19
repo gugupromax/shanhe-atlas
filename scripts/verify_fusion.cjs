@@ -6,12 +6,41 @@ assert.equal(protocol.validateState({...good,year:2027}).year,2027);
 for(const patch of [{year:0},{year:Infinity},{center:[NaN,30]},{center:[190,30]},{widthKm:Infinity},{widthKm:-1}])assert.equal(protocol.validateState({...good,...patch}),null);
 assert.equal(protocol.validateState({...good,locations:[{name:'bad',coord:[NaN,0]}]}).locations.length,0);
 const pass={kind:'pass',name:'临渝关',coord:[119.77,40.01],pickName:'临渝关',opacity:0.8};
+const county={kind:'county',name:'祥符县',pickName:'祥符县',coord:[114.35,34.79],opacity:1,areaKey:'county/xiangfu'};
 for(const year of [-250,741,742,1381,1950]){
   const state=protocol.validateState({...good,year,passLabels:[pass,{...pass,kind:'city'},{...pass,coord:[Infinity,40]}],
-    tangLabels:[pass,{...pass,kind:'county'}]});
+    adminLabels:[pass,county,{...county,areaKey:'X'.repeat(241)}]});
   assert.deepEqual(state.passLabels,[pass],'passes have a separate all-year transport');
-  assert.deepEqual(state.tangLabels.map(label=>label.kind),year===741?['county']:[]);
+  assert.deepEqual(state.adminLabels[0],county,'administrative seats retain their record type and ID in all years');
+  assert.equal(state.adminLabels[1].areaKey,undefined);
 }
+const adminLayer={display:'inline',opacity:'0.8'};
+const marker=(cls,name,coord,areaKey,display='inline')=>{
+  const classes=cls.split(' ');
+  return {textContent:name,closest:()=>adminLayer,parentElement:{
+    display,classList:{contains:kind=>classes.includes(kind)},
+    dataset:{ancient:name,lng:coord[0].toString(),lat:coord[1].toString(),areaKey}
+  }};
+};
+const demoUnit=marker('is-admin-prefecture','开封府',[114.3,34.8],'prefecture/kaifeng');
+const demoCounty=marker('is-county','祥符县',[114.4,34.7],'county/xiangfu','none');
+const originalCity=marker('is-city','汴京',[114.32,34.81]);
+const region={textContent:'京畿路',dataset:{x:'114.3',y:'34.9'},closest:()=>adminLayer,
+  display:'inline',opacity:'1'};
+const adminApp={year:1080,projector:{toGeo:(x,y)=>[x,y]},svg:{querySelectorAll(selector){
+  if(selector.includes('grp-region-labels'))return [region];
+  if(selector.includes('is-admin-prefecture'))return [demoUnit];
+  if(selector.includes('is-county'))return [demoCounty];
+  if(selector.includes('settlement-node:not'))return [demoUnit,demoCounty,originalCity];
+  return [];
+}}};
+const adminStyles=node=>({display:node.display,opacity:node.opacity});
+assert.deepEqual(mapSurface.adminScreenLabels(adminApp,adminStyles).map(label=>label.name),['京畿路','开封府']);
+demoCounty.parentElement.display='inline';
+assert.deepEqual(mapSurface.adminScreenLabels(adminApp,adminStyles).map(label=>[label.kind,label.areaKey]),
+  [['circuit',undefined],['prefecture','prefecture/kaifeng'],['county','county/xiangfu']]);
+assert.ok(mapSurface.adminScreenLabels({...adminApp,year:741},adminStyles).some(label=>label.name==='汴京'),
+  '741 retains the complete original screen overlay');
 const defaultLayers={polities:true,settlements:true,prefectures:true,corridors:true,hydro:true,modernProvinces:true,milestones:true,modernProvinceNames:false};
 const stateApp={year:741,locale:'zh',svg:{classList:{contains:(name)=>name==='is-zoomed-cities'}}};
 const tileState={...good,year:741,tileTier:'mid',tileBounds:[100,30,120,40],areaHighlightId:4,areaHighlight:{segments:[[[109,33],[109.4,33.65]]]}};
@@ -23,6 +52,11 @@ assert.deepEqual(protocol.validateState(tileState).tileBounds,[100,30,120,40]);
 assert.equal(protocol.validateState({...tileState,year:742}).tileTier,null);
 assert.equal(protocol.validateState({...tileState,tileBounds:[10,30,120,40]}).tileBounds,null);
 assert.deepEqual(protocol.validateState(tileState).areaHighlight,tileState.areaHighlight);
+const countyFocus={...tileState,year:1102,areaHighlight:{point:[113.28,33.5]}};
+assert.deepEqual(protocol.validateState(countyFocus).areaHighlight,countyFocus.areaHighlight);
+assert.equal(protocol.validateState(countyFocus).areaHighlightId,4);
+assert.equal(protocol.validateState({...countyFocus,areaHighlight:{point:[NaN,33.5]}}).areaHighlightId,0);
+assert.equal(protocol.validateState({...tileState,year:1102}).areaHighlight,null);
 assert.equal(protocol.validateState({...tileState,areaHighlight:{segments:[[[190,10],[109,30]]]}}).areaHighlight,null);
 const pick={sceneKey:'741-regions',year:741,coord:[108.94,34.26]};
 assert.ok(bridge.isCurrentMapPick(pick,'741-regions',741));

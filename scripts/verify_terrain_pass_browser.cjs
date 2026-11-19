@@ -4,6 +4,7 @@
 const assert = require('node:assert/strict');
 const os = require('node:os');
 const path = require('node:path');
+const {clickControl, enableCountyLayer} = require('./tests/terrain_browser_controls.cjs');
 
 function playwright() {
   if (process.env.TERRAIN_TEST_PLAYWRIGHT) return require(process.env.TERRAIN_TEST_PLAYWRIGHT);
@@ -39,7 +40,10 @@ async function main() {
     }
     await page.goto(url.href,{waitUntil:'domcontentloaded'});
     await page.waitForFunction(()=>window.atlasApp?.year===741&&window.TANG_741_ATLAS);
-    await page.click('#fusion-3d');
+    if(withoutTiles){
+      await enableCountyLayer(page);
+    }
+    await clickControl(page, '#fusion-3d');
     const frame = page.frameLocator('#fusion-terrain');
     const wait = (year,source) => frame.locator('body[data-surface-year="'+year+'"][data-map-surface="'+source+'"]')
       .waitFor({state:'attached',timeout:50000});

@@ -141,6 +141,16 @@
       clearTimeout(statusTimer);
       if (!keepVisible) statusTimer = setTimeout(() => status.classList.remove('is-visible'), 4500);
     }
+    function armTerrainStartup(stage) {
+      clearTimeout(startupTimer);
+      const loadingMap = stage === 'map';
+      announce(loadingMap ? '正在同步当前年份的地图…' : '正在载入三维地形…', true);
+      startupTimer = setTimeout(() => {
+        if (!active || presented) return;
+        failTerrain(loadingMap ? '当前年份的三维地图加载超时，已返回平面地图。'
+          : '三维地形初始化超时，已返回平面地图。');
+      }, loadingMap ? 45000 : 60000);
+    }
     function presentTerrain(show) {
       presented = show;
       viewport.classList.toggle('fusion-is-3d', show);
@@ -199,7 +209,7 @@
           if (surfaceBaseKey !== sceneKey && surfaceBasePendingId < 0) {
             const started = root.performance.now();
             const base = await mapSurface.render({ bounds: surfaceBounds, width: 1024, height: 1024,
-              screenPasses: true, screenLabels: app.year === 741 });
+              screenPasses: true, screenAdmin: true, screenLabels: app.year === 741 });
             if (!currentScene()) return;
             surfaceBasePendingId = request * 2;
             post({ type: 'surface', quality: 'base', sceneKey, renderId: request * 2, renderMs: root.performance.now() - started, ...base });
@@ -209,7 +219,7 @@
           if (!bounds) return;
           const started = root.performance.now();
           const detail = await mapSurface.render({ bounds, width: 3072, height: 3072,
-            screenPasses: true, screenLabels: app.year === 741 });
+            screenPasses: true, screenAdmin: true, screenLabels: app.year === 741 });
           if (!currentScene() || request !== surfaceRequest) return;
           post({ type: 'surface', quality: 'detail', sceneKey, renderId: request * 2 + 1, renderMs: root.performance.now() - started, ...detail });
         } catch (error) {
@@ -292,42 +302,43 @@
       const passLayerActive = layerState.corridors && !app.challenge;
       const revealPasses = passLayerActive && app.camera?.w <= 500;
       const area = app.activeMapArea;
+      const screenHighlight = tileTier || area?.highlight?.point;
       const person = app.activePerson;
       const selection = { personKey: person && (person.profiles || [person.profile]).filter(Boolean).map(p => p.key).join(','),
         personTitle: person && person.profile && (person.profile.zh || person.profile.titleZh),
         stopIndex: person ? app.activePersonEventIdx : app.customRouteStopIdx,
         traceCoord: app.activeTrace };
-      const tangDetail = app.year === 741 ? [
+      const adminDetail = [
         id(app.grpSettlements?.firstElementChild),
-        app.svg.classList.contains('is-tang741-overview'),
-        app.svg.classList.contains('is-tang741-counties'),
+        app.svg.classList.contains('is-admin-overview'),
+        app.svg.classList.contains('is-admin-counties'),
         app.svg.classList.contains('is-zoomed-cities'),
         app.svg.classList.contains('is-mobile-zoomed-detail'),
-      ] : null;
+      ];
       // Scene identity excludes raw camera coordinates, activation and transport sequence.
       // The child can retain its textures and labels while applying a view-only update.
       const sceneKey = JSON.stringify([app.year, layerState, selection, app.locale,
-        id(app.lastRenderedSnap), id(person), id(app.activeCustomRoute), tileTier ? '' : id(area), tangDetail, tileTier, revealPasses, app.activeHydroMask,
+        id(app.lastRenderedSnap), id(person), id(app.activeCustomRoute), screenHighlight ? '' : id(area), adminDetail, tileTier, revealPasses, app.activeHydroMask,
         app.activeSettlementMask, app.activeCorridorMask, app.svg.classList.contains('is-awaiting-snapshot')]);
-      const signature = JSON.stringify([active, cameraView, sceneKey, tileTier ? id(area) : '']);
+      const signature = JSON.stringify([active, cameraView, sceneKey, screenHighlight ? id(area) : '']);
       if (!force && signature === lastSignature) {
         if (active && !surfaceKey) requestSurface(sceneKey, cameraView);
         return;
       }
       lastSignature = signature;
-      const fullScene = active && (force || sceneKey !== lastSceneKey || (!tileTier && reason !== 'child-view'));
+      const fullScene = active && (force || sceneKey !== lastSceneKey);
       if (sceneKey !== lastSceneKey) { surfaceGeneration++; surfaceBaseKey = ''; surfaceBasePendingId = -1; }
       lastSceneKey = sceneKey;
       lastTileTier = tileTier;
       post({ type: 'state', active, reason, seq: ++sequence, sceneKey, year: Math.round(app.year),
         ...cameraView, locations: fullScene ? locations() : [], selection,
-        tangLabels: fullScene && app.year === 741
-          ? root.JiangshanMapSurface.tangScreenLabels(app, node => root.getComputedStyle(node)) : [],
+        adminLabels: fullScene
+          ? root.JiangshanMapSurface.adminScreenLabels(app, node => root.getComputedStyle(node)) : [],
         passLabels: fullScene && passLayerActive
           ? root.JiangshanMapSurface.passScreenLabels(app, node => root.getComputedStyle(node), revealPasses) : [],
         tileTier, tileBounds: tileTier ? detailBounds(cameraView, .72) : null,
-        areaHighlight: tileTier ? area?.highlight : null,
-        areaHighlightId: tileTier ? id(area) : 0,
+        areaHighlight: screenHighlight ? area?.highlight : null,
+        areaHighlightId: screenHighlight ? id(area) : 0,
         snapshot: fullScene && !tileTier ? snapshot() : { polities: [] },
         layers: layerState, overlays: fullScene && !tileTier ? overlays() : {} });
       if (active) requestSurface(sceneKey, cameraView);
@@ -382,19 +393,14 @@
         presentTerrain(false);
       }
       // Keep the flat map responsive until the user actually requests WebGL.
-      if (starting && !frame.getAttribute('src')) frame.src = 'terrain.html?embedded=1&v=atlas-20261119-10';
+      if (starting && !frame.getAttribute('src')) frame.src = 'terrain.html?embedded=1&v=atlas-20261119-12';
       doc.getElementById('fusion-flat').setAttribute('aria-pressed', String(!active));
       doc.getElementById('fusion-3d').setAttribute('aria-pressed', String(active));
       if (explanation) announce(explanation);
       sync('activate', true);
       if (starting) {
         if (ready && surfaceBaseKey && surfaceBaseKey === lastSceneKey) presentTerrain(true);
-        else {
-          announce('正在载入三维地形和地图…', true);
-          startupTimer = setTimeout(() => {
-            failTerrain('三维地图载入超时，已保留平面地图。可以再次点击 3D 地形重试。');
-          }, 30000);
-        }
+        else armTerrainStartup(ready ? 'map' : 'terrain');
       }
       if (active) configure();
     }
@@ -451,7 +457,7 @@
     };
     guardQuizStart();
     doc.addEventListener('change', event => {
-      if (event.target.id && event.target.id.startsWith('chk-')) schedule();
+      if (event.target.id?.startsWith('chk-')) schedule();
     });
     root.addEventListener('message', event => {
       const message = event.data;
@@ -460,6 +466,7 @@
       if (root.location.protocol !== 'file:' && event.origin !== root.location.origin) return;
       if (message.type === 'ready') {
         ready = true;
+        if (active && !presented) armTerrainStartup('map');
         tilesFailed = false;
         surfaceBaseKey = ''; surfaceBasePendingId = -1; surfaceKey = ''; surfaceRequest++; surfaceGeneration++;
         configure();
@@ -505,7 +512,9 @@
         app.openMapAreaAt?.(...message.coord);
       } else if (message.type === 'place-pick' && active && isCurrentMapPick(message, lastSceneKey, app.year) &&
         typeof message.label === 'string' && message.label.length <= 200) {
-        if (typeof app.openMapSettlementAt === 'function') app.openMapSettlementAt(...message.coord, message.label);
+        const areaKey = typeof message.areaKey === 'string' && message.areaKey.length <= 240
+          ? message.areaKey : undefined;
+        if (typeof app.openMapSettlementAt === 'function') app.openMapSettlementAt(...message.coord, message.label, areaKey);
         else app.openGenealogyAt(...message.coord);
       } else if (message.type === 'trace' && active && validCoord(message.coord)) {
         app.openGenealogyAt(message.coord[0], message.coord[1]);

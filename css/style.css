@@ -1867,8 +1867,14 @@ html.deeplink-boot #inp-year {
   display: block;
 }
 
-#atlas-svg.is-tang741-overview :is(.prefecture-shape, .prefecture-boundary-mesh),
-#atlas-svg:not(.is-tang741-counties) .settlement-node.is-county {
+#atlas-svg:not(.is-admin-overview) .settlement-node.is-admin-prefecture {
+  display: block;
+}
+
+#atlas-svg.is-admin-overview :is(.prefecture-shape, .prefecture-boundary-mesh, .settlement-node.is-admin-prefecture),
+#atlas-svg:not(.is-admin-counties) .settlement-node.is-county,
+#atlas-svg.is-awaiting-snapshot .settlement-node.is-admin-prefecture,
+#atlas-svg #grp-prefectures.is-hidden ~ #grp-settlements .settlement-node.is-admin-prefecture {
   display: none;
 }
 

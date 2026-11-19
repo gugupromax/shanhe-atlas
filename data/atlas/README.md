@@ -19,6 +19,17 @@ The original import scripts are not in this repository, so provenance is reconst
 
 原始导入脚本不在仓库中，以上来源依据项目早期文档整理：郡 / 州 / 府级边界（`prefectures`）源自 CHGIS V6 与 Hartwell 数据；政权轮廓（`polities`）源自 historical-basemaps（GPL-3.0）；一级政区（`regions`）依据史籍手工绘制，早期版本来源未记录。所有几何此后均经过简化，并依据史籍、参照谭图核对后手工调整；本仓库不包含谭图的任何图像或数据。
 
+## 校核记录
+
+西汉共享示意层原收录「砀郡」旧面，继承到西汉晚期会跨出梁国所在范围。已停止在西汉层引用这块面。西汉晚期梁国、梁郡使用据[复旦时空地名库睢阳条](https://tgaz.fudan.edu.cn/tgaz/placename/hvd_82072)和[《汉书》诸侯王表](https://zh.wikisource.org/zh-hans/漢書/卷014)切换的治所点。
+
+东汉的两份郡级图层也已移除同一旧面，依赖它们的快照随之更新。详细点位包中的 `chgis:0:210768` 跨越多个更名时段，汉代展示使用以下校核结果。秦代快照仍有其本期的砀郡。
+
+- 23–25 年显示刘永梁国，都睢阳（今河南商丘一带）。26–28 年睢阳数度易手，刘永、刘纡转战多地，这三年暂缺稳定治所点。[《后汉书》卷十二·刘永传](https://zh.wikisource.org/wiki/後漢書/卷12)
+- 29–78 年作梁郡，79–219 年作梁国。《后汉书·郡国志》将下邑列于梁国诸县之首。自睢阳迁治的确年未详，按复旦时空地名库的考释，自 29 年起在今安徽砀山一带约标下邑。两阶段均无可据以绘制的辖界。[复旦时空地名库·睢阳县](https://tgaz.fudan.edu.cn/tgaz/placename/hvd_82072) · [《后汉书》郡国志二](https://zh.wikisource.org/zh-hans/後漢書/卷110#梁国) · [《江南通志》下邑故城](https://zh.wikisource.org/wiki/江南通志_(四庫全書本)/卷033)
+
+政区资料卡的隶属栏采用记录自带的上级。点击示意边界时，资料卡另列点选位置落入的图层；郡界与手绘州界相交处可能随点选位置显示不同的图层名称。
+
 ## License · 许可
 
 - Boundaries derived from **CHGIS V6** and the **Hartwell China Historical GIS** remain under their original terms: **academic, non-commercial use only; do not redistribute**. They are **not** licensed under GPL-3.0. Do not republish them from this repository; if you need prefecture boundaries, obtain them from the official CHGIS / Harvard Dataverse distribution. `scripts/export_geojson.js` leaves this layer out unless run with `--with-prefectures`.

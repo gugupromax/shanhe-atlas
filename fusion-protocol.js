@@ -4,6 +4,7 @@
   const validCoord=c=>Array.isArray(c)&&c.length>=2&&Number.isFinite(c[0])&&Number.isFinite(c[1])&&Math.abs(c[0])<=180&&Math.abs(c[1])<=85;
   function validateHighlight(value){
     if(!value)return null;
+    if(validCoord(value.point))return {point:value.point.slice(0,2)};
     let points=0;
     const validLines=(lines,min)=>Array.isArray(lines)&&lines.length>0&&lines.every(line=>
       Array.isArray(line)&&line.length>=min&&(points+=line.length)<=50000&&line.every(validCoord));
@@ -14,17 +15,19 @@
       shape.coordinates.every(polygon=>validLines(polygon,4)))return {shape};
     return null;
   }
-  const tangLabelKinds = new Set(['polity','circuit','capital','prefecture','county','route','water','reference']);
+  const adminLabelKinds = new Set(['polity','circuit','capital','prefecture','county','route','water','reference']);
   const passLabelKinds = new Set(['pass']);
   function validateScreenLabels(labels, kinds, limit) {
     if (!Array.isArray(labels)) return [];
     return labels.slice(0, limit).filter(label => label && kinds.has(label.kind) &&
       typeof label.name === 'string' && label.name.trim() && validCoord(label.coord) &&
       Number.isFinite(label.opacity) && label.opacity > 0 && label.opacity <= 1)
-      .map(({kind, name, coord, opacity, pickName}) => ({
+      .map(({kind, name, coord, opacity, pickName, areaKey}) => ({
         kind, name: name.slice(0, 200), coord: coord.slice(0, 2), opacity,
         pickName: ['capital','prefecture','county','pass'].includes(kind) && typeof pickName === 'string'
           ? pickName.slice(0, 200) : '',
+        ...((kind === 'prefecture' || kind === 'county') && typeof areaKey === 'string' && areaKey.length <= 240
+          ? {areaKey} : {}),
       }));
   }
   function validateState(value){
@@ -35,7 +38,9 @@
     const bounds=value.tileBounds;
     const tileBounds=tileTier&&Array.isArray(bounds)&&bounds.length===4&&bounds.every(Number.isFinite)&&
       bounds[0]>=40&&bounds[1]>=-10&&bounds[2]<=165&&bounds[3]<=70&&bounds[0]<bounds[2]&&bounds[1]<bounds[3]?bounds.slice():null;
-    return {active:value.active===true,reason:value.reason||'controller',sceneKey:typeof value.sceneKey==='string'?value.sceneKey:'',seq:Number.isInteger(value.seq)?value.seq:0,year:value.year,center:value.center.slice(0,2),widthKm:value.widthKm,locations,selection,tangLabels:value.year===741?validateScreenLabels(value.tangLabels,tangLabelKinds,1500):[],passLabels:validateScreenLabels(value.passLabels,passLabelKinds,100),tileTier,tileBounds,areaHighlight:tileTier?validateHighlight(value.areaHighlight):null,areaHighlightId:tileTier&&Number.isSafeInteger(value.areaHighlightId)?value.areaHighlightId:0,snapshot:value.snapshot&&Array.isArray(value.snapshot.polities)?value.snapshot:{polities:[],regions:[],prefectures:[]},layers:value.layers||{},overlays:value.overlays||{}};
+    const areaHighlight=tileTier||validCoord(value.areaHighlight?.point)?validateHighlight(value.areaHighlight):null;
+    const areaHighlightId=areaHighlight&&Number.isSafeInteger(value.areaHighlightId)?value.areaHighlightId:0;
+    return {active:value.active===true,reason:value.reason||'controller',sceneKey:typeof value.sceneKey==='string'?value.sceneKey:'',seq:Number.isInteger(value.seq)?value.seq:0,year:value.year,center:value.center.slice(0,2),widthKm:value.widthKm,locations,selection,adminLabels:validateScreenLabels(value.adminLabels,adminLabelKinds,6000),passLabels:validateScreenLabels(value.passLabels,passLabelKinds,100),tileTier,tileBounds,areaHighlight,areaHighlightId,snapshot:value.snapshot&&Array.isArray(value.snapshot.polities)?value.snapshot:{polities:[],regions:[],prefectures:[]},layers:value.layers||{},overlays:value.overlays||{}};
   }
   function createChild(root,handlers){
     let latest=null,lastSeq=-1,ready=false;

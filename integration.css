@@ -10,6 +10,7 @@
 .fusion-mode-switch button[aria-pressed="true"],.fusion-view-options button[aria-pressed="true"] { background:#65583e; color:#fffaf0; }
 .fusion-mode-switch button:focus-visible,.fusion-view-options button:focus-visible { outline:2px solid #a44632; outline-offset:2px; }
 .fusion-view-options { display:flex; gap:3px; flex-wrap:wrap; }
+.admin-level-picker .layer-chip:has(input:focus-visible) { outline:2px solid #a44632; outline-offset:2px; }
 .fusion-height { display:flex; align-items:center; gap:8px; margin:12px 0 6px; font-size:12px; }
 .fusion-height input { min-width:0; flex:1; accent-color:#65583e; }
 .fusion-height output { min-width:35px; font-variant-numeric:tabular-nums; }

@@ -11,6 +11,15 @@ const versions = require('../sync_version');
 const { measureBundle, extractSyncScriptPaths } = require('../perf_budget');
 const ROOT = path.resolve(__dirname, '..', '..');
 
+test('public staging excludes local-only generated map layers', () => {
+  const docker = fs.readFileSync(path.join(ROOT,'.dockerignore'),'utf8').split(/\r?\n/);
+  const pages = fs.readFileSync(path.join(ROOT,'.github/workflows/deploy-pages.yml'),'utf8');
+  for (const directory of ['data/tiles','assets/tang-741-tiles']) {
+    assert.ok(docker.includes(directory), directory);
+    assert.ok(pages.includes("--exclude='" + directory + "/'"), directory);
+  }
+});
+
 function fixture(t, newline = '\n') {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'atlas-fork-ci-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));

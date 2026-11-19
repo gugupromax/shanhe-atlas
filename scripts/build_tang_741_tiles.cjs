@@ -121,6 +121,9 @@ async function configureSource(page, tier) {
     atlasApp.closeMilestoneBalloon();
     atlasApp.closeMapArea();
     atlasApp._cancelCameraAnimation();
+    const adminLevel = document.getElementById('chk-admin-counties');
+    adminLevel.checked = true;
+    adminLevel.dispatchEvent(new Event('change', { bubbles: true }));
 
     // A viewport-specific hillshade tile would create a patch on an otherwise
     // global render. Keep the existing global hillshade for all three tiers.

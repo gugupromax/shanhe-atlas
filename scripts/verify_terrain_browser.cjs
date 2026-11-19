@@ -1,10 +1,12 @@
 'use strict';
 
 // Run against a local atlas server. Uses the existing Playwright installation.
-// Options: --software selects SwiftShader, --failure tests retry, and --profile reports upload timings.
+// Options: --software selects SwiftShader, --failure tests retry, --profile reports upload timings,
+// and --period-data requires a local all-period county index.
 const assert = require('node:assert/strict');
 const os = require('node:os');
 const path = require('node:path');
+const {clickControl, enableCountyLayer} = require('./tests/terrain_browser_controls.cjs');
 
 function playwright() {
   if (process.env.TERRAIN_TEST_PLAYWRIGHT) return require(process.env.TERRAIN_TEST_PLAYWRIGHT);
@@ -76,19 +78,20 @@ async function main() {
     await page.goto(url.href, {waitUntil:'domcontentloaded'});
     await page.waitForFunction(() => window.atlasApp?.year === 741 && window.TANG_741_ATLAS &&
       document.querySelector('#grp-prefectures path'));
+    await enableCountyLayer(page);
     const frame = page.frameLocator('#fusion-terrain');
     const wait = selector => frame.locator(selector).waitFor({state:'attached', timeout:60000});
     const visibleMap = '#viewport-frame.fusion-is-3d';
     const near = 'body[data-surface-year="741"][data-tile-tier="near"]';
     const complete = near + '[data-tile-progress="complete"]';
     try {
-      await page.click('#fusion-3d');
-      await page.locator(visibleMap).waitFor({state:'attached', timeout:60000});
+      await clickControl(page, '#fusion-3d');
+      await page.locator(visibleMap).waitFor({state:'attached', timeout:110000});
       await wait(simulateFailure ? near + '[data-tile-progress="degraded"]' : complete);
       const childFrame = page.frames().find(child => child.url().includes('terrain.html'));
       const phases = simulateFailure ? ['center','degraded'] : ['complete'];
       const sampledPhase = await childFrame.waitForFunction(phases => phases.find(phase =>
-        performance.getEntriesByName('atlas-3d:draw-' + phase, 'measure').length), phases);
+        performance.getEntriesByName('atlas-3d:draw-' + phase, 'measure').length), phases, {polling:100, timeout:30000});
       const phase = await sampledPhase.jsonValue();
       assert.ok(await frame.locator('.tang-label[data-kind="county"]').count() > 0);
       const parentTiming = await page.evaluate(() => Object.fromEntries(performance.getEntriesByType('mark')
@@ -117,12 +120,16 @@ async function main() {
         await wait(complete);
         console.log('Single-tile failure and recovery passed.');
       } else {
-        await page.click('#fusion-flat');
-        await page.click('#fusion-3d');
+        await clickControl(page, '#fusion-flat');
+        await clickControl(page, '#fusion-3d');
         await wait(complete);
         await page.evaluate(() => window.atlasApp.jumpToYear(742));
         await wait('body[data-surface-year="742"][data-map-surface="original-svg"]');
-        assert.equal(await frame.locator('.tang-label:not([data-kind="pass"])').count(), 0);
+        assert.ok(await frame.locator('.tang-label[data-kind="circuit"]').count() > 0);
+        assert.ok(await frame.locator('.tang-label[data-kind="prefecture"]').count() > 0);
+        if (process.argv.includes('--period-data')) {
+          await frame.locator('.tang-label[data-kind="county"]').first().waitFor({state:'attached', timeout:45000});
+        }
         assert.ok(await frame.locator('.tang-label[data-kind="pass"]').count() > 0);
         await page.evaluate(() => window.atlasApp.jumpToYear(741));
         await wait(complete);

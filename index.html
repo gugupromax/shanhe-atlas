@@ -25,7 +25,7 @@
       link.rel = 'preload';
       link.as = 'script';
       link.fetchPriority = 'low'; // after the first-paint scripts, not competing with them
-      link.href = 'js/atlas_snapshots.js?v=12ad4a8d';
+      link.href = 'js/atlas_snapshots.js?v=b9164a1c';
       document.head.appendChild(link);
     })();
   </script>
@@ -332,9 +332,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <!-- Webfonts must not block rendering: where Google Fonts is slow or unreachable the page would
        stay blank until the request times out. The system fonts in css/style.css show first. -->
-  <link rel="stylesheet" href="css/style.css?v=5de99cb1" />
+  <link rel="stylesheet" href="css/style.css?v=c8ac3f0d" />
   <!-- Analytics: Vercount, anonymous click counter (workers/stats) & Cloudflare Web Analytics -->
-  <link rel="stylesheet" href="integration.css?v=307637b8" />
+  <link rel="stylesheet" href="integration.css?v=d829ce3d" />
 </head>
 <body>
   <div id="atlas-shell">
@@ -393,6 +393,13 @@
       </div>
 
       <div id="layers-popover" class="layers-popover is-hidden" role="dialog" aria-label="地图图层开关">
+        <div class="layers-pop-section">
+          <div class="layers-pop-heading" id="lbl-admin-level">政区层级</div>
+          <div class="layers-pop-grid admin-level-picker" id="admin-level-picker" role="radiogroup" aria-labelledby="lbl-admin-level">
+            <label class="layer-chip"><input type="radio" id="chk-admin-prefectures" name="admin-level" value="prefectures" checked /><span id="lbl-admin-prefectures">郡州府</span></label>
+            <label class="layer-chip"><input type="radio" id="chk-admin-counties" name="admin-level" value="counties" /><span id="lbl-admin-counties">郡州府＋县治</span></label>
+          </div>
+        </div>
         <div class="layers-pop-section">
           <div class="layers-pop-heading" id="txt-layer-grp-hist">历史舆图要素</div>
           <div class="layers-pop-grid">
@@ -831,12 +838,12 @@
   <script src="js/atlas_boot.js?v=cfa92817"></script>
   <script src="js/map_data.js?v=0654ae26"></script>
   <script src="js/lore_core.js?v=42c51874"></script>
-  <script id="atlas-app-script" src="js/app.js?v=58c2d0af" data-v-tang741="9438673a" data-v-snapshots="12ad4a8d" data-v-i18n="c2522a06" data-v-lore="3a31af0e" data-v-pinyin="e42b58c5" data-v-hant="3afdab47" data-v-quiz="706065c1" data-v-narrator="fe4f4e00" data-v-sources="fa2af0b5"></script>
+  <script id="atlas-app-script" src="js/app.js?v=06f4baf2" data-v-tang741="9438673a" data-v-snapshots="b9164a1c" data-v-i18n="c2522a06" data-v-lore="3a31af0e" data-v-pinyin="e42b58c5" data-v-hant="3afdab47" data-v-quiz="706065c1" data-v-narrator="fe4f4e00" data-v-sources="fa2af0b5"></script>
   <script src="js/atlas_trace.js?v=b21eb26c"></script>
-  <script defer src="js/atlas_search.js?v=522c04f2"></script>
+  <script defer src="js/atlas_search.js?v=423f6130"></script>
   <script src="js/atlas_api.js?v=68e59f35"></script>
-  <script defer src="js/atlas_area.js?v=650af837"></script>
-  <script defer src="map-surface.js?v=143a4cb9"></script>
-  <script defer src="integration.js?v=e9a17367"></script>
+  <script defer src="js/atlas_area.js?v=9cac09ee"></script>
+  <script defer src="map-surface.js?v=21140f10"></script>
+  <script defer src="integration.js?v=530698d5"></script>
 </body>
 </html>

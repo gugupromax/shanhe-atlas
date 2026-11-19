@@ -325,6 +325,12 @@ hit.prefecture;                  // 默认为 null；加 --with-prefectures 导�
 
 2026-11-18 从原站 HTTP 目录提取。维护时可运行 `python -X utf8 scripts/import_historical_map_refs.py`，复核输出后更新 `data/historical-map-references.json`。
 
+**历代政区细节**。平面与 3D 共用三档显示，远景查看一级政区，中景看郡、州、府或同时代同级政区，近景可显示有来源的县级治所。在「图层 → 政区层级」选择「郡州府＋县治」可开启县治，默认显示郡州府。搜索和点选使用同一条政区记录。快照中的示意区划名称锚点和可考治所分别标注，缺少的隶属信息保留为未知。
+
+本地数据包以 [CHGIS V6 府级治所](https://doi.org/10.7910/DVN/WW1PD6) 和[县级治所](https://doi.org/10.7910/DVN/Q9VOF5)的起止年补充各历史时期，并接入[郑伊辰、武廷海发布的数据](https://doi.org/10.6084/m9.figshare.30518417.v2)中已核对的公元 2、742、1102 和 1820 年治所。前三组依据《中国历史地图集》数字化，1820 年为研究者校核的 CHGIS 年层。清末另有带原表隶属的[1911 年治所年层](https://doi.org/10.7910/DVN/HHVVHX)，民国时段另有[1931 年县治年层](https://doi.org/10.5281/zenodo.5721459)。[图集同名索引](https://doi.org/10.7910/DVN/3KAHBT)与国学导航的分期目录从资料卡打开。索引同名条目用于查图，点位年代则由各自的点数据确定。
+
+本地数据放在 `data/tiles/period-admin-sources/`，运行 `python scripts/build_period_admin.py` 生成应用按需加载的 `data/tiles/period-admin.js`。未安装本地数据包时，地图仍可使用内置政区快照。时间序列点位空间覆盖各期有差异，图集与其他单年层按其原年份显示。县治是点位资料，已有州府边界为示意。CHGIS, Version: 6. © Fairbank Center for Chinese Studies of Harvard University and the Center for Historical Geographical Studies at Fudan University, 2016.
+
 **唐朝 741 年试版**：进入 [开元二十九年](?year=741)，拉近地图可从道级范围看到州府，再看到已核对的县治。平面与 3D 可单击区域、地名或两畿的紫色道界段，打开详情。州府面沿用项目的跨期示意层，补充的县治显示为约略点位。同城州府和附郭县共用一个治所标记。
 
 名称与隶属依据[唐时期全图（二）](http://www.guoxue123.com/other/map/pic/10/03.jpg)、同期分幅及[《旧唐书》地理志](https://zh.wikisource.org/zh-hans/旧唐书/卷38)核对。县治坐标采用郑伊辰、武廷海公开研究数据的 742 年图幅配准点，经转为经纬度、取至 0.01°，逐项核对 741 年的称谓和隶属，仅用于近似定位。[县治点数据和 CC BY 4.0 许可](https://doi.org/10.6084/m9.figshare.30518417.v2)

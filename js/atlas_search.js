@@ -864,7 +864,7 @@
       // Additional event fallback only; existing query normalization and scores stay intact.
       const pinyinQuery = this._eventPinyinQuery(q);
       const base = this._ensureSearchIndex();
-      const index = this._tang741SearchIndex?.(base) || base;
+      const index = this._adminSearchIndex?.(base) || base;
       const eraResults = this._matchEraResults(normQ);
       const hasEraMatch = eraResults.length > 0;
       const results = [...eraResults];
@@ -1016,7 +1016,7 @@
             if (resItem.dynasty === this.dynasties[this.dynastyIdx]) score += 10;
             if (resItem.isCapital) score += 2;
           }
-          if (resItem.tangArea && score >= 102) score += 6;
+          if ((resItem.tangArea || resItem.adminArea) && score >= 102) score += 6;
           results.push({ ...resItem, score });
         }
       }
@@ -1139,7 +1139,7 @@
       const deduped = [];
       const seenAdminTitle = new Map();
       for (const item of results) {
-        if (item.tangArea) {
+        if (item.tangArea || item.adminArea) {
           deduped.push(item);
           continue;
         }
@@ -1290,6 +1290,11 @@
         return;
       }
 
+      if (item.adminArea) {
+        if (this.year === item.year) this._selectPeriodAdminArea?.(item.adminArea);
+        return;
+      }
+
       if (item.tangArea) {
         if (this.year === item.year) this._selectTang741Area?.(item.tangArea);
         return;
@@ -1333,10 +1338,11 @@
           this._rescaleSvgTypography();
         }
         const [tx, ty] = this.projector.toScreen(item.coord[0], item.coord[1]);
-        const w = Math.min(this.camera.w, 1000 / 1.95);
+        const w = Math.min(this.camera.w, 1000 / (this._openIndexedAdminArea ? 3.8 : 1.95));
         const h = w * this._getViewportAspect();
         this._animateCameraTo({ x: tx - w * 0.5, y: ty - h * 0.48, w, h });
-        if (item.prefTitle) {
+        if (this._openIndexedAdminArea) this._openIndexedAdminArea(item);
+        else if (item.prefTitle) {
           setTimeout(() => {
             const el = this.grpPrefectures.querySelector(
               `.prefecture-shape[data-pref-title="${CSS.escape(item.prefTitle)}"]`

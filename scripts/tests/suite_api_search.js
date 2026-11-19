@@ -1427,7 +1427,9 @@ async function runApiSearchSuite(ctx) {
       snapshots.s_qin_b.prefectures.length === 37 &&
       snapshots.s_qin.prefectures.length === 41 &&
       snapshots.s_xihan_b.prefectures.length >= 50 &&
-      snapshots.s_donghan.prefectures.length >= 48,
+      snapshots.s_donghan.prefectures.length >= 47 &&
+      snapshots.s_donghan.prefectures.some(p => p.title === '太原郡') &&
+      !snapshots.s_donghan.prefectures.some(p => p.title === '砀郡'),
     'Warring States, Qin, and Han snapshots must reflect chronological commandery (郡) progression including 薛郡'
   );
   // Regression guard: Early Warring States (-403..-317 BCE) only has 关中（内史）, 上郡, 上党郡; later commanderies appear at historical establishment phases

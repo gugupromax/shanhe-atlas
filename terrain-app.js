@@ -7,7 +7,7 @@
   let atlasSurface=null,surfaceSceneKey='',surfaceBaseId=-1,surfaceDetailId=-1,surfaceLoads=0,pendingSurfaceDetail=null;
   let tangTiles=null,tangTileJob=0,tangTilePlanKey='',tangBaseApplied=false,tangAppliedTier='far';
   let areaOverlay=null,areaOverlayId=0;
-  let tangLabelData=[],passLabelData=[],screenLabels=[],passGates=null;
+  let adminLabelData=[],passLabelData=[],screenLabels=[],passGates=null;
   let areaClickTimer;
   const passes = [
     ['zhiguan','轵关陉',112.38,35.16,'济源—垣曲一带','看王屋山南侧与黄河以北的山间通道。'],
@@ -721,7 +721,7 @@
     $('load-state').hidden=surfaceSceneKey===state.sceneKey||cameraRefresh;
     if(!$('load-state').hidden)$('load-state').textContent='正在将原版地图铺到真实地形…';
     if(!supported){fusion.applied(state.seq,state.year,false);return;}
-    const highlightId=state.tileTier?state.areaHighlightId:0;
+    const highlightId=state.areaHighlightId||0;
     if(areaOverlay&&areaOverlayId!==highlightId){
       areaOverlayId=highlightId;areaOverlay.set(highlightId?state.areaHighlight:null);
     }
@@ -730,7 +730,7 @@
     if(sceneKey!==fusionPaintedKey){
       if(surfaceSceneKey!==sceneKey){surfaceLoads++;surfaceBaseId=-1;surfaceDetailId=-1;pendingSurfaceDetail=null;}
       fusionPaintedKey=sceneKey;fusionLocations=state.locations;fusionLayers=state.layers;fusionOverlays=state.overlays;currentSnapshot=state.snapshot;selectedEvent=null;
-      tangLabelData=state.tangLabels;
+      adminLabelData=state.adminLabels||[];
       passLabelData=state.passLabels||[];
       if(state.selection.traceCoord&&!fusionLocations.some(p=>p.kind==='selected'))fusionLocations=[{name:'沿革地点',coord:state.selection.traceCoord,kind:'selected'},...fusionLocations];
       $('polity-toggle').checked=state.layers.polities===true;paintHistory(currentSnapshot);rebuildMarkers();
@@ -751,10 +751,12 @@
     if(!fusionState)return;
     const [w,s,e,n]=dataset.bounds,stop=fusionState.selection.stopIndex;
     const priority=p=>p.kind==='selected'||(p.kind==='journey'&&p.index===stop)?0:p.kind==='journey'?1:p.kind==='event'&&p.year===historyYear?2:p.kind==='city'?3:4;
-    const points=[...fusionLocations].filter(p=>!(historyYear===741&&p.kind==='city')&&p.coord[0]>=w&&p.coord[0]<=e&&p.coord[1]>=s&&p.coord[1]<=n&&(p.kind!=='city'||fusionLayers.settlements===true)&&(p.kind!=='event'||fusionLayers.milestones===true)).sort((a,b)=>priority(a)-priority(b));
+    const locationKey=p=>p.coord.map(v=>v.toFixed(3)).join(',');
+    const adminLocations=new Set(adminLabelData.filter(label=>label.pickName).map(locationKey));
+    const points=[...fusionLocations].filter(p=>!(p.kind==='city'&&(historyYear===741||adminLocations.has(locationKey(p))))&&p.coord[0]>=w&&p.coord[0]<=e&&p.coord[1]>=s&&p.coord[1]<=n&&(p.kind!=='city'||fusionLayers.settlements===true)&&(p.kind!=='event'||fusionLayers.milestones===true)).sort((a,b)=>priority(a)-priority(b));
     const occupied=new Set();
     for(const p of points){
-      const key=p.coord.map(v=>v.toFixed(3)).join(',');if(occupied.has(key))continue;occupied.add(key);
+      const key=locationKey(p);if(occupied.has(key))continue;occupied.add(key);
       const active=priority(p)===0,el=document.createElement('button');el.className='map-label fusion-place '+p.kind+(active?' selected':'');
       el.textContent=p.kind==='event'?(p.year<0?'前'+Math.abs(p.year):p.year)+' · 史事':(p.kind==='journey'&&Number.isInteger(p.index)?(p.index+1)+' ':'')+(p.name.length>18?p.name.slice(0,18)+'…':p.name);
       el.title=(Number.isInteger(p.year)?timeCore.yearLabel(p.year)+' · ':'')+p.name+(p.kind==='journey'?' · 跳到此站':p.kind==='event'?' · 查看事件':' · 查看城市沿革');
@@ -807,15 +809,15 @@
   }
   function sendScreenPlace(place) {
     fusion.send('place-pick',{coord:place.coord,label:place.pickName,
-      sceneKey:fusionState.sceneKey,year:fusionState.year});
+      sceneKey:fusionState.sceneKey,year:fusionState.year,...(place.areaKey?{areaKey:place.areaKey}:{})});
   }
   function rebuildScreenLabels() {
     const [west,south,east,north]=dataset.bounds;
-    const near=fusionState?.tileTier==='near'||tangLabelData.some(label=>label.kind==='county');
+    const near=fusionState?.tileTier==='near'||adminLabelData.some(label=>label.kind==='county');
     const priority=['polity','capital',...(near?['county','prefecture']:['circuit','prefecture','county']),
       ...(near?['circuit']:[]),'pass','route','water','reference'];
     const fragment=document.createDocumentFragment();
-    const captions=tangLabelData.concat(passLabelData).sort((a,b)=>priority.indexOf(a.kind)-priority.indexOf(b.kind));
+    const captions=adminLabelData.concat(passLabelData).sort((a,b)=>priority.indexOf(a.kind)-priority.indexOf(b.kind));
     const gates=[];
     for(const label of captions){
       const [lon,lat]=label.coord;
@@ -825,18 +827,17 @@
       el.dataset.kind=label.kind;
       el.textContent=label.name;
       el.style.opacity=label.opacity;
-      if(label.pickName){
-        el.type='button';
-        el.onclick=event=>{
-          if(event.isTrusted&&performance.now()<(el._fusionSuppressUntil||0))return;
-          sendScreenPlace(label);
-        };
-      }
+      const choose=event=>{
+        if(event.isTrusted&&performance.now()<(event.currentTarget._fusionSuppressUntil||0))return;
+        sendScreenPlace(label);
+      };
+      if(label.pickName){el.type='button';el.onclick=choose;}
       const dot=label.kind==='county'?document.createElement('span'):null;
       if(dot){
         dot.className='tang-county-dot';
         dot.setAttribute('aria-hidden','true');
         dot.style.opacity=label.opacity;
+        if(label.pickName)dot.onclick=choose;
         fragment.append(dot);
       }
       fragment.append(el);
@@ -869,14 +870,15 @@
       }
       boxes.push(...gateBoxes);
     }
-    // Measure all text before writing positions, once per set of place names.
+    // Batch reads only for labels in view; an entire period may contain thousands of seats.
     for(const label of screenLabels){
-      if(label.width===undefined){label.width=label.el.offsetWidth;label.height=label.el.offsetHeight;}
+      point.copy(label.point).project(camera);
+      label.screenX=Math.round((point.x*.5+.5)*width);
+      label.screenY=Math.round((.5-point.y*.5)*height);
+      label.onScreen=Math.abs(point.z)<1&&label.screenX>=0&&label.screenX<=width&&label.screenY>=0&&label.screenY<=height;
+      if(label.onScreen&&label.width===undefined){label.width=label.el.offsetWidth;label.height=label.el.offsetHeight;}
     }
-    for(const {el,dot,point:world,gateIndex,seat,width:w,height:h} of screenLabels){
-      point.copy(world).project(camera);
-      const x=Math.round((point.x*.5+.5)*width),y=Math.round((.5-point.y*.5)*height);
-      const onScreen=Math.abs(point.z)<1&&x>=0&&x<=width&&y>=0&&y<=height;
+    for(const {el,dot,gateIndex,seat,width:w,height:h,onScreen,screenX:x,screenY:y} of screenLabels){
       if(dot){
         const shown=onScreen&&!gateBoxes.some(([l,t,r,b])=>x>l&&x<r&&y>t&&y<b);
         dot.style.visibility=shown?'visible':'hidden';
@@ -1009,7 +1011,7 @@
     const inputSurface=embedded?$('stage'):canvas;
     inputSurface.addEventListener('contextmenu',e=>e.preventDefault());
     inputSurface.addEventListener('pointerdown',e=>{
-      const label=embedded?e.target.closest('.fusion-place'):null;
+      const label=embedded?e.target.closest('.fusion-place,.tang-county-dot'):null;
       if(embedded&&e.target.closest('button')&&!label)return;
       clearTimeout(areaClickTimer);
       $('stage').focus({preventScroll:true});canvas.setPointerCapture(e.pointerId);touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
@@ -1039,7 +1041,7 @@
     inputSurface.addEventListener('wheel',e=>{clearTimeout(areaClickTimer);e.preventDefault();zoom(Math.exp(Math.max(-200,Math.min(200,e.deltaY))*.0015),e);},{passive:false});
     inputSurface.addEventListener('dblclick',e=>{
       clearTimeout(areaClickTimer);
-      if(embedded&&terrain?.visible&&!lastClickWasPlace&&!e.target.closest('.fusion-place')){
+      if(embedded&&terrain?.visible&&!lastClickWasPlace&&!e.target.closest('.fusion-place,.tang-county-dot')){
         const hit=hitAt(e);
         if(hit)fusion.send('trace',{coord:lonlat(hit.point)});
       }

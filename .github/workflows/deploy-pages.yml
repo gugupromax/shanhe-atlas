@@ -36,6 +36,7 @@ jobs:
             --exclude='data/atlas/' \
             --exclude='data/sources/' \
             --exclude='data/tiles/' \
+            --exclude='assets/tang-741-tiles/' \
             --exclude='.runtime/' \
             --exclude='.impeccable/' \
             --exclude='docs/' \
@@ -53,6 +54,8 @@ jobs:
             --exclude='/.gitattributes' \
             --exclude='.DS_Store' \
             ./ _site/
+          test ! -e _site/assets/tang-741-tiles
+          test ! -e _site/data/tiles
           du -sh _site
           echo "Staged file count: $(find _site -type f | wc -l)"
 

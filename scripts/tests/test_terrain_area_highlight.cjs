@@ -79,6 +79,29 @@ test('area outlines close rings individually and draw no quad or fill', () => {
   assert.equal(stroke.attributes.get('fill'), 'none');
 });
 
+test('county focus stays on its terrain coordinate, clips outside the view and clears on a new selection', () => {
+  const { highlight, stage, camera } = fixture();
+  const marker = stage.overlay.children[2];
+  highlight.set({ point: [0.25, 0] });
+  highlight.render(camera);
+  assert.equal(stage.overlay.style.display, 'block');
+  assert.equal(marker.attributes.get('cx'), 125);
+  assert.equal(marker.attributes.get('cy'), 50);
+  camera.zoom = 2;
+  camera.updateProjectionMatrix();
+  highlight.render(camera);
+  assert.equal(marker.attributes.get('cx'), 150);
+  assert.equal(marker.attributes.get('r'), '5.5');
+  camera.position.x = 5;
+  camera.updateMatrixWorld();
+  highlight.render(camera);
+  assert.equal(stage.overlay.style.display, 'none');
+  highlight.set({ segments: [[[0, 0], [0.25, 0]]] });
+  assert.equal(marker.style.display, 'none');
+  highlight.clear();
+  assert.equal(stage.overlay.style.display, 'none');
+});
+
 test('segments are clipped at the visible frustum and then cleared for an invalid selection', () => {
   const { highlight, stage, camera, path } = fixture((lon, lat) =>
     new THREE.Vector3(lon, 0, lat));

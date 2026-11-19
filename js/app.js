@@ -1920,6 +1920,13 @@
       if (lblTerrainChk) {
         lblTerrainChk.textContent = this.uiStr('toggle_terrain', '山川水系');
       }
+      const adminLevelLabel = this._id('lbl-admin-level');
+      if (adminLevelLabel) {
+        const english = this.locale === 'en';
+        adminLevelLabel.textContent = english ? 'Administrative detail' : this._zh('政区层级');
+        this._id('lbl-admin-prefectures').textContent = english ? 'Prefectures' : this._zh('郡州府');
+        this._id('lbl-admin-counties').textContent = english ? 'Prefectures + county seats' : this._zh('郡州府＋县治');
+      }
       const grpHist = this._id('txt-layer-grp-hist');
       if (grpHist) {
         grpHist.textContent = this.uiStr('layer_grp_hist', '历史舆图要素');
@@ -3335,7 +3342,10 @@
       if (this.activePolity || this.eraFocus) this._setPolityFocus(null);
       this._renderLegendBox(snap);
       if (!prefHidden) this._syncTracedPrefecture();
-      this._rescaleSvgTypography();
+      if (this.grpSettlements && this._adminSettlementRevision?.(dynasty) &&
+          this.activeSettlementMask !== this._settlementMask(dynasty, this.year)) {
+        this._renderSettlements(dynasty);
+      } else this._rescaleSvgTypography();
     }
 
     _buildRegionBoundaryPath(snap) {
@@ -3638,7 +3648,7 @@
           ? '0'
           : this._passName(p, year, 'zh')
       ).join('|');
-      return `${sMask}:${pMask}:${year === 741}`;
+      return `${sMask}:${pMask}:${year === 741}:${this._adminSettlementRevision?.(dynasty) || ''}`;
     }
 
     _renderSettlements(dynasty) {
@@ -3647,7 +3657,7 @@
       const group = this._svgNode('g', {}, this.grpSettlements);
       // Paint order: Tier-2 secondary cities first (bottom), Tier-1 cities second, Capitals last (top)
       const settlements = dynasty.settlements || [];
-      const activeList = (this._tang741VisiblePlaces?.(settlements) || settlements)
+      const activeList = (this._adminVisiblePlaces?.(settlements, dynasty) || settlements)
         .filter(
           (item) =>
             (item.appear === undefined || this.year >= item.appear) &&
@@ -3695,7 +3705,8 @@
         const node = this._svgNode(
           'g',
           {
-            class: item.level === 'county' ? `${cls} is-county` : cls,
+            class: item.level === 'county' ? `${cls} is-county` :
+              item.areaKey && item.level === 'prefecture' ? `${cls} is-admin-prefecture` : cls,
             'data-x': x.toFixed(1),
             'data-y': y.toFixed(1),
           },
@@ -3704,7 +3715,9 @@
         node.dataset.ancient = ancientZh;
         node.dataset.modern = item.modern || '';
         node.dataset.remark = item.remark || '';
-        if (item.level) node.dataset.areaParent = item.parent;
+        if (item.level && item.parent) node.dataset.areaParent = item.parent;
+        if (item.areaKey) node.dataset.areaKey = item.areaKey;
+        if (item.schematic) node.dataset.schematic = '1';
         node.dataset.lng = String(item.coord[0]);
         node.dataset.lat = String(item.coord[1]);
         node.dataset.prefAlign = item.align || 'r';
@@ -3718,9 +3731,9 @@
           }
           this._svgNode('circle', { class: 'cap-ring', r: 4.5 }, node);
           this._svgNode('polygon', { class: 'dot', points: '0,-3.2 3.2,0 0,3.2 -3.2,0' }, node);
-        } else if (isTier2) {
+        } else if (isTier2 && !item.schematic) {
           this._svgNode('circle', { class: 'dot', r: 1.55 }, node);
-        } else {
+        } else if (!item.schematic) {
           this._svgNode('circle', { class: 'dot', r: 2.2 }, node);
         }
 
@@ -3740,7 +3753,7 @@
           nameEl.dataset.detailLabel = item.detailTitle;
         }
         nameEl.textContent = this._mapText(
-          dynasty.key === 'roc' || dynasty.key === 'prc'
+          !item.areaKey && (dynasty.key === 'roc' || dynasty.key === 'prc')
             ? this.trModernCity(ancientZh)
             : this.trTerm(item.displayName || ancientZh)
         );
@@ -7408,12 +7421,13 @@
       if (this.viewportFrame && this.viewportFrame.classList) {
         this.viewportFrame.classList.remove('is-camera-moving');
       }
+      const adminLayoutOutdated = this._adminLayoutOutdated?.();
       if (
-        this._typoDirty ||
+        this._typoDirty || adminLayoutOutdated ||
         this._lastTypographyWidth === undefined ||
         Math.abs(this.camera.w - this._lastTypographyWidth) > 0.05
       ) {
-        const zoomOnly = !this._typoDirty && this._lastTypographyWidth !== undefined;
+        const zoomOnly = !adminLayoutOutdated && !this._typoDirty && this._lastTypographyWidth !== undefined;
         this._rescaleSvgTypography({ zoomOnly });
       }
       this._updateScaleBar(rect);
@@ -7468,7 +7482,8 @@
         this._lastTypographyWidth === undefined ||
         zoomChanged;
       if (needsTypography) {
-        const zoomOnly = !this._typoDirty && this._lastTypographyWidth !== undefined;
+        const zoomOnly = !(forceTypography && this._adminLayoutOutdated?.()) &&
+          !this._typoDirty && this._lastTypographyWidth !== undefined;
         this._rescaleSvgTypography({ zoomOnly });
       }
       this._updateScaleBar(rect);
@@ -7888,7 +7903,8 @@
       const showPasses = z >= passMinZoom;
       const showMobilePrefDetail = !isMobile || z >= 3.55;
       const effZ = z / (isNarrowMobile ? 1.42 : isMobile ? 1.18 : 1.0);
-      const tang741Detail = this._syncTang741Detail?.(effZ);
+      const adminDetail = this._syncTang741Detail?.(effZ);
+      if (adminDetail && adminDetail !== 'overview') this._loadPeriodAdminPlaces?.();
       const tier2Decay = showTier2
         ? Math.pow(Math.max(0, Math.min(1, (5.8 - effZ) / (5.8 - 2.22))), 1.15)
         : 1;
@@ -7929,7 +7945,7 @@
           (!this.grpProvNames.classList || !this.grpProvNames.classList.contains('is-hidden'))
       );
       const narrowMobileCull = isNarrowMobile && z < 3.4;
-      const zoomStateKey = `${showTier2 ? 1 : 0}|${tier2Bucket}|${showPasses ? 1 : 0}|${showMobilePrefDetail ? 1 : 0}|${narrowMobileCull ? 1 : 0}|${showCorridors ? 1 : 0}|${showSettlements ? 1 : 0}|${showPrefectures ? 1 : 0}|${showPolities ? 1 : 0}|${showMilestones ? 1 : 0}|${showRivers ? 1 : 0}|${showProvNames ? 1 : 0}|${tang741Detail || ''}`;
+      const zoomStateKey = `${showTier2 ? 1 : 0}|${tier2Bucket}|${showPasses ? 1 : 0}|${showMobilePrefDetail ? 1 : 0}|${narrowMobileCull ? 1 : 0}|${showCorridors ? 1 : 0}|${showSettlements ? 1 : 0}|${showPrefectures ? 1 : 0}|${showPolities ? 1 : 0}|${showMilestones ? 1 : 0}|${showRivers ? 1 : 0}|${showProvNames ? 1 : 0}|${adminDetail || ''}`;
 
       // Fast path for pure zoom frames when no visibility tier threshold crossed:
       // only update scale(invScale) on visible nodes without re-querying DOM or flipping labels.
@@ -8046,8 +8062,9 @@
         }
       };
 
-      const settlementNodes = Array.from(this.svg.querySelectorAll('.settlement-node'));
-      if (showSettlements && tang741Detail === 'counties') {
+      const allSettlementNodes = Array.from(this.svg.querySelectorAll('.settlement-node'));
+      const settlementNodes = this._boundAdminLabelLayout?.(allSettlementNodes, applyNodeScale) || allSettlementNodes;
+      if (showSettlements && adminDetail === 'counties') {
         this._reserveTangCountyDots(settlementNodes, occupied, s);
       }
 
@@ -8538,7 +8555,7 @@
       // Reserve Tier-2 city dots now so pass/Tier-2 labels avoid them while primary cities and polities are not displaced by minor dots
       for (const node of settlementNodes) {
         if (!node.classList.contains('is-tier2')) continue;
-        if (node.classList.contains('is-county')) continue;
+        if (node.classList.contains('is-county') || node.dataset.schematic) continue;
         if (!showSettlements || (!showTier2 && !node.classList.contains('is-trace-city'))) {
           node._dotBox = null;
           continue;
@@ -8791,8 +8808,10 @@
         .filter((n) => n.classList.contains('is-tier2'))
         .sort((a, b) => tier2Rank(b) - tier2Rank(a));
       for (const node of tier2SettlementNodes) {
-        if (node.classList.contains('is-county') && tang741Detail !== 'counties') continue;
-        if (showTier2 || node.classList.contains('is-trace-city')) {
+        if (node.classList.contains('is-county') && adminDetail !== 'counties') continue;
+        const adminPrefecture = node.classList.contains('is-admin-prefecture');
+        if (adminPrefecture && (adminDetail === 'overview' || !showPrefectures)) continue;
+        if (showTier2 || adminPrefecture || node.classList.contains('is-trace-city')) {
           layoutSettlementLabel(node, !node.classList.contains('is-trace-city'), tier2MaxOv);
         } else if (!zoomOnly) {
           delete node.dataset.chosenDir;
@@ -9498,8 +9517,8 @@
         const pinyinQuery = this._eventPinyinQuery(q);
         currentResults = this._queryQuickSearch(q);
         const pendingSearchData = [];
-        const tangSearch = this._loadTang741Places?.();
-        if (tangSearch) pendingSearchData.push(tangSearch);
+        const adminSearch = this.year === 741 ? this._loadTang741Places?.() : this._loadPeriodAdminPlaces?.(true);
+        if (adminSearch) pendingSearchData.push(adminSearch);
         if (/[a-z]/i.test(q) && !this._hasEnDict()) {
           pendingSearchData.push(this._ensureEnglishLocale());
         }
@@ -9511,7 +9530,7 @@
           pendingSearchData.push(this._ensureEventPinyin());
         }
         if (pendingSearchData.length) {
-          const signature = (r) => r.tangArea || `${r.kind}:${r.titleZh}:${r.subZh}`;
+          const signature = (r) => r.tangArea || r.adminArea || `${r.kind}:${r.titleZh}:${r.subZh}`;
           const prevSig = currentResults.map(signature).join('|');
           Promise.all(pendingSearchData).then(() => {
             if (searchList.classList.contains('is-hidden') || searchInp.value.trim() !== q) return;
@@ -9545,7 +9564,7 @@
               ? this.locale === 'en'
                 ? 'Warring–5 Dyn · Relic'
                 : this._zh('战国—五代 · 国器')
-              : `${this.dynastyBadge(item.dynasty)} · ${this._zh(kindLabel[item.tangArea?.startsWith('county/') ? 'county' : item.kind] || '')}`;
+              : `${this.dynastyBadge(item.dynasty)} · ${this._zh(kindLabel[item.adminLevel === 'county' || item.tangArea?.startsWith('county/') ? 'county' : item.kind] || '')}`;
           const bucketAttr = item.bucket ? ` data-bucket="${escHtml(item.bucket)}"` : '';
           li.innerHTML =
             `<div><span class="sr-main">${escHtml(mainText)}</span>${subText ? `<span class="sr-sub">${escHtml(subText)}</span>` : ''}</div>` +
@@ -9716,6 +9735,14 @@
       if (chkTerrain) {
         chkTerrain.addEventListener('change', (e) => {
           this.toggleTerrainMode(e.target.checked);
+        });
+      }
+      const adminLevel = this._id('admin-level-picker');
+      if (adminLevel) {
+        this._adminLevel = this._id('chk-admin-counties').checked ? 'counties' : 'prefectures';
+        adminLevel.addEventListener('change', (event) => {
+          this._adminLevel = event.target.value;
+          this._rescaleSvgTypography();
         });
       }
       bindToggle('chk-provinces', this.grpProvinces);
@@ -10456,7 +10483,7 @@
                   ? ` · ${formatAdminLabel(reg.title, reg.category)}`
                   : '';
               lines.push(
-                `<div class="tt-sub">${this.uiStr('belongs_to', '属 ')}${this.trTerm(pol.polityTitle)}${regSuffix}</div>`
+                `<div class="tt-sub">${this.locale === 'en' ? 'Map location · ' : this._zh('位置参考 · ')}${this.trTerm(pol.polityTitle)}${regSuffix}</div>`
               );
             }
           } else if (reg) {
@@ -10655,7 +10682,7 @@
           ) {
             const lng = Number(settlementEl.dataset.lng);
             const lat = Number(settlementEl.dataset.lat);
-            if (this.openMapSettlementAt) this.openMapSettlementAt(lng, lat, settlementEl.dataset.ancient);
+            if (this.openMapSettlementAt) this.openMapSettlementAt(lng, lat, settlementEl.dataset.ancient, settlementEl.dataset.areaKey);
             else this.openGenealogyAt(lng, lat);
             return;
           }

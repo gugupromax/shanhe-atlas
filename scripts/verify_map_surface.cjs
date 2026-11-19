@@ -91,6 +91,10 @@ class Node {
       if (t === '#grp-settlements .settlement-node:not(.is-pass) > text.name') {
         return n.tagName === 'text' && hasClass(n, 'name') && hasClass(n.parentNode, 'settlement-node') && !hasClass(n.parentNode, 'is-pass');
       }
+      if (t === '#grp-region-labels text') return n.tagName === 'text' && n.parentNode?.attrs.id === 'grp-region-labels';
+      if (t === '#grp-settlements .is-admin-prefecture > text.name' || t === '#grp-settlements .is-county > text.name') {
+        return n.tagName === 'text' && hasClass(n, 'name') && hasClass(n.parentNode, t.includes('is-county') ? 'is-county' : 'is-admin-prefecture');
+      }
       if (t === '#grp-settlements .is-county .dot') {
         return hasClass(n, 'dot') && hasClass(n.parentNode, 'is-county');
       }
@@ -167,7 +171,14 @@ function fixture() {
       new Node('image', { id: 'deferred', 'data-href': 'assets/not-loaded.webp' }),
       new Node('g', { id: 'grp-rivers', class: 'is-hidden' }, [new Node('path', { d: 'M1 2L3 4' })]),
       new Node('g', { id: 'grp-polities' }, [new Node('path', { class: 'polity-shape is-hovered', d: 'M0 0L1 1Z', onclick: 'bad()' })]),
+      new Node('g', { id: 'grp-region-labels' }, [new Node('text', {id:'region-label'})]),
+      new Node('g', { id: 'grp-map-area' }, [new Node('g', { id: 'map-area-focus' })]),
       new Node('g', { id: 'grp-settlements' }, [
+        new Node('g', { class: 'settlement-node is-admin-prefecture' }, [
+          new Node('circle', { id: 'prefecture-dot', class: 'dot' }),
+          new Node('text', { id: 'prefecture-label', class: 'name' }),
+        ]),
+        new Node('g', { class: 'settlement-node' }, [new Node('text', { id: 'city-label', class: 'name' })]),
         new Node('g', { class: 'settlement-node is-pass' }, [
           new Node('path', { id: 'pass-icon', class: 'pass-gate-icon' }),
           new Node('text', { id: 'pass-label', class: 'name pass-name' }),
@@ -204,6 +215,8 @@ function fixture() {
   assert.equal(JSON.stringify(f.svg.attrs), before, 'source SVG must stay unchanged');
   assert.equal(f.svg.querySelector('#camera-rig').getAttribute('transform'), 'translate(30 20) scale(2)');
   assert.equal(f.clone.querySelector('#camera-rig').getAttribute('transform'), null);
+  assert.ok(f.svg.querySelector('#map-area-focus'));
+  assert.equal(f.clone.querySelector('#map-area-focus'), null, 'temporary county focus must not be baked into the terrain');
   assert.equal(f.clone.querySelector('#grp-rivers').getAttribute('class'), 'is-hidden');
   assert.equal(f.clone.getAttribute('lang'), 'en');
   for (const [id, opacity, display] of [['grp-settlements', '0.25', 'inline'],
@@ -263,6 +276,11 @@ function fixture() {
   assert.equal(f.clone.querySelector('#pass-icon'), null, 'remove the flat gate when the model is drawn independently');
   assert.equal(f.clone.querySelector('#pass-label'), null, 'remove the painted pass caption');
   assert.ok(f.clone.querySelector('#county-dot') && f.clone.querySelector('#county-label'), 'preserve other years’ marker artwork');
+  await f.exporter.render({ ...request, screenPasses: true, screenAdmin: true });
+  for (const id of ['pass-icon','pass-label','county-dot','county-label','prefecture-label','region-label']) {
+    assert.equal(f.clone.querySelector('#' + id), null, id + ' is drawn as part of the screen overlay');
+  }
+  for (const id of ['prefecture-dot','city-label']) assert.ok(f.clone.querySelector('#' + id));
   await f.exporter.render({ ...request, screenLabels: true });
   for (const id of ['pass-icon','pass-label','county-dot','county-label']) assert.equal(f.clone.querySelector('#' + id), null);
   assert.ok(f.svg.querySelector('#pass-icon') && f.svg.querySelector('#pass-label'), 'preserve the original 2D gate');

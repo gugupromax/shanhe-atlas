@@ -83,6 +83,12 @@
     }
     const casing = outline('#fff9e8', '5.5');
     const stroke = outline('#963d2a', '3.5');
+    const marker = stage.ownerDocument.createElementNS(SVG_NS, 'circle');
+    marker.setAttribute('r', '5.5');
+    marker.setAttribute('fill', '#963d2a');
+    marker.setAttribute('stroke', '#fff9e8');
+    marker.setAttribute('stroke-width', '2');
+    svg.appendChild(marker);
     stage.insertBefore(svg, stage.querySelector('#labels'));
 
     const projection = new THREE.Matrix4();
@@ -95,6 +101,7 @@
     function clear() {
       previousSelection = null;
       lines = [];
+      marker.style.display = 'none';
       svg.style.display = 'none';
       casing.removeAttribute('d');
       stroke.removeAttribute('d');
@@ -115,7 +122,8 @@
     }
 
     function render(camera) {
-      if (!lines.length) return;
+      const point = previousSelection?.point;
+      if (!point && !lines.length) return;
       const width = stage.clientWidth;
       const height = stage.clientHeight;
       if (!width || !height) {
@@ -123,6 +131,17 @@
         return;
       }
       projection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+      svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+      if (point) {
+        const visible = project(point, a) && a.w > 0 && clipRange(a, a);
+        svg.style.display = visible ? 'block' : 'none';
+        if (visible) {
+          marker.setAttribute('cx', (a.x / a.w * 0.5 + 0.5) * width);
+          marker.setAttribute('cy', (0.5 - a.y / a.w * 0.5) * height);
+          marker.style.display = '';
+        }
+        return;
+      }
       const screenPoint = (fraction) => {
         clipped.copy(a).lerp(b, fraction);
         if (clipped.w <= 0) return null;
@@ -151,7 +170,6 @@
         }
       }
       svg.style.display = d ? 'block' : 'none';
-      svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
       casing.setAttribute('d', d);
       stroke.setAttribute('d', d);
     }

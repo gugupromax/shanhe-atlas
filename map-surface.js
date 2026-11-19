@@ -11,9 +11,14 @@
   const NS = 'http://www.w3.org/2000/svg';
   const passCaption = '#grp-settlements .settlement-node.is-pass > text.name';
   const passArtwork = '#grp-settlements .pass-gate-icon';
+  const regionCaption = '#grp-region-labels text';
+  const prefectureCaption = '#grp-settlements .is-admin-prefecture > text.name';
+  const countyCaption = '#grp-settlements .is-county > text.name';
+  const countyDot = '#grp-settlements .is-county .dot';
+  const adminCaptionGroups = [['circuit', regionCaption], ['city', prefectureCaption], ['city', countyCaption]];
   const tangCaptionGroups = [
     ['polity', '#grp-polity-labels text'],
-    ['circuit', '#grp-region-labels text'],
+    ['circuit', regionCaption],
     ['city', '#grp-settlements .settlement-node:not(.is-pass) > text.name'],
     ['route', '#grp-corridors text.corridor-caption'],
     ['water', '#grp-rivers text.hydro-label'],
@@ -45,7 +50,10 @@
             ? [Number(seat.dataset.lng), Number(seat.dataset.lat)]
             : app.projector.toGeo(Number(seat.dataset.x), Number(seat.dataset.y));
           const pickName = seat.dataset.ancient;
-          if (coord.every(Number.isFinite)) captions.push({ kind, name, coord, pickName, opacity });
+          const areaKey = seat.dataset.areaKey;
+          if (coord.every(Number.isFinite)) {
+            captions.push({ kind, name, coord, pickName, opacity, ...(areaKey ? { areaKey } : {}) });
+          }
           continue;
         }
 
@@ -61,8 +69,8 @@
     return captions;
   }
 
-  function tangScreenLabels(app, getStyle) {
-    return collectScreenLabels(app, getStyle, tangCaptionGroups);
+  function adminScreenLabels(app, getStyle) {
+    return collectScreenLabels(app, getStyle, app.year === 741 ? tangCaptionGroups : adminCaptionGroups);
   }
 
   function passScreenLabels(app, getStyle, revealPasses) {
@@ -296,14 +304,13 @@
       // handled by the caller's generation token rather than mixed into this SVG.
       const clone = svg.cloneNode(true);
       freezeStrokes(svg, clone);
-      if (request.screenLabels === true || request.screenPasses === true) {
-        const overlays = [passCaption, passArtwork];
-        if (request.screenLabels === true) {
-          overlays.push(...tangCaptionGroups.map(([, selector]) => selector),
-            '#grp-settlements .is-county .dot');
-        }
-        clone.querySelectorAll(overlays.join(',')).forEach(node => node.remove());
+      const overlays = ['#map-area-focus'];
+      if (request.screenPasses === true || request.screenLabels === true) overlays.push(passCaption, passArtwork);
+      if (request.screenLabels === true || request.screenAdmin === true) {
+        const groups = request.screenLabels === true ? tangCaptionGroups : adminCaptionGroups;
+        overlays.push(...groups.map(([, selector]) => selector), countyDot);
       }
+      if (overlays.length) clone.querySelectorAll(overlays.join(',')).forEach(node => node.remove());
       // These three layers are faded by #viewport-frame.has-active-person /
       // .has-active-journey selectors outside the SVG. Freeze only properties
       // actually controlled there; inherited visibility is hidden in 3D mode.
@@ -395,5 +402,5 @@
     return { render };
   }
 
-  return { create, projectedBounds, textureSize, localAssetUrl, splitSelectorList, tangScreenLabels, passScreenLabels };
+  return { create, projectedBounds, textureSize, localAssetUrl, splitSelectorList, adminScreenLabels, passScreenLabels };
 });
