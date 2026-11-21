@@ -23,28 +23,28 @@ footer{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);width:min(
 <header><small>山河图集 · 至德二载（757）</small><div class="battle-heading"><h1>香积寺之战</h1><a class="battle-home" href="../"><span aria-hidden="true">←</span> 返回首页</a></div></header>
 <aside id="info"><button id="toggle" aria-expanded="true" aria-controls="card">收起资料</button><article id="card"><h2 id="phase"></h2><p id="detail"></p><div class="faction-flags" aria-label="战场旗帜">
   <span><b class="faction-flag tang" aria-hidden="true">唐</b>唐军</span>
-  <span><b class="faction-flag yan" aria-hidden="true">燕</b>燕军（叛军）</span>
+  <span><b class="faction-flag yan" aria-hidden="true">燕</b>燕军</span>
   <span><b class="faction-flag uyghur" aria-hidden="true">纥</b>回纥援军</span>
 </div>
-<p class="flag-note">旗色、形制与旗字为沙盘识别标记。</p>
+<p class="flag-note">燕军指安史叛军。旗色、形制与旗字为沙盘识别标记。</p>
 <details id="commanders" class="people">
   <summary>重点人物与双方指挥</summary>
   <h3>唐军</h3>
   <dl>
     <dt>广平王李俶 <span>元帅</span></dt><dd>后来改名李豫，即唐代宗。统率唐军与回纥等援军，自凤翔出发收复长安。</dd>
     <dt>郭子仪 <span>中军</span></dt><dd>建议增调回纥援兵，香积寺交战时统领中军。</dd>
-    <dt>李嗣业 <span>前军</span></dt><dd>唐军前阵被冲乱时，持长刀在阵前力战稳住队列，随后与回纥兵出到叛军阵后。</dd>
+    <dt>李嗣业 <span>前军</span></dt><dd>唐军前阵被冲乱时，持长刀在阵前力战稳住队列，随后与回纥兵出到燕军阵后。</dd>
     <dt>王思礼 <span>后军</span></dt><dd>负责唐军三军编组中的后军。</dd>
   </dl>
   <h3>燕军</h3>
   <dl>
-    <dt>安守忠 <span>参战将领</span></dt><dd>《旧唐书》将他与李归仁列为香积寺交战的叛军将领，具体负责哪一路未详。</dd>
+    <dt>安守忠 <span>参战将领</span></dt><dd>《旧唐书》将他与李归仁列为香积寺交战的燕军将领，具体负责哪一路未详。</dd>
     <dt>李归仁 <span>出阵挑战</span></dt><dd>先出阵挑战。唐军追到燕军阵前时，燕军齐进反冲，使唐军一度阵乱。</dd>
   </dl>
   <h3>回纥援军</h3>
   <dl>
     <dt>叶护 <span>援军领兵者</span></dt><dd>怀仁可汗之子，史书以其官号相称。他与将军帝德等率回纥援兵抵达凤翔。</dd>
-    <dt>仆固怀恩 <span>唐将 · 指挥截击</span></dt><dd>时任朔方左厢兵马使，率回纥兵迎击叛军东侧伏骑。</dd>
+    <dt>仆固怀恩 <span>唐将 · 指挥截击</span></dt><dd>时任朔方左厢兵马使，率回纥兵迎击燕军东侧伏骑。</dd>
   </dl>
   <p class="people-sources"><a href="https://zh.wikisource.org/wiki/舊唐書/卷010" target="_blank" rel="noopener">《旧唐书·肃宗纪》</a> · <a href="https://zh.wikisource.org/wiki/舊唐書/卷011" target="_blank" rel="noopener">《旧唐书·代宗纪》</a></p>
 </details><a href="https://zh.wikisource.org/zh-hans/資治通鑑_(胡三省音注)/卷220" target="_blank" rel="noopener">《资治通鉴》卷二二〇</a></article></aside>
@@ -53,13 +53,13 @@ footer{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);width:min(
 <p id="error" hidden>此浏览器暂时无法显示 3D。下方仍可逐幕阅读战役经过。</p>
 <script src="../vendor/three.min.js"></script><script>'use strict';
 const phases=[
-  [0,'前军受挫','唐军阵于香积寺北、沣水东岸。李归仁引兵挑战，唐军前锋追击后遭叛军反冲，阵势一度动摇。'],
-  [12,'嗣业稳阵','李嗣业在阵前力战，唐军重新整顿队列。正面战线稳住后，逐步向叛军阵地压进。'],
-  [25,'东侧伏兵','叛军在战场东侧布置精兵，准备袭击唐军后方。唐军侦骑发现伏兵，正面交战仍在继续。'],
-  [37,'回纥截击','仆固怀恩率回纥兵迎击东侧伏兵。这支原本准备绕后的叛军被打散。'],
-  [50,'前后夹击','李嗣业与回纥兵转到叛军阵后，与正面大军夹击。叛军由列阵迎战转为全线溃退。']
+  [0,'前军受挫','唐军阵于香积寺北、沣水东岸。李归仁引兵挑战，唐军前锋追击后遭燕军反冲，阵势一度动摇。'],
+  [12,'嗣业稳阵','李嗣业在阵前力战，唐军重新整顿队列。正面战线稳住后，逐步向燕军阵地压进。'],
+  [25,'东侧伏兵','燕军在战场东侧布置精兵，准备袭击唐军后方。唐军侦骑发现伏兵，正面交战仍在继续。'],
+  [37,'回纥截击','仆固怀恩率回纥兵迎击东侧伏兵。这支原本准备绕后的燕军被打散。'],
+  [50,'前后夹击','李嗣业与回纥兵转到燕军阵后，与正面大军夹击。燕军由列阵迎战转为全线溃退。']
 ];
-const cues=[[0,"唐军前锋追出，叛军在正面迎上。"],[6.5,"叛军反冲，唐军各队向后散开。"],[11,"唐军前阵已出现缺口。"],[12,"李嗣业所部从阵中向前，填住中路。"],[17,"左右两侧的唐军重新靠拢。"],[22,"阵线重新接起来，唐军前推。"],[25,"正面仍在交战，东侧出现伏兵。"],[33,"伏兵向唐军侧后移动。"],[37,"仆固怀恩率回纥骑兵迎向东侧。"],[42,"两路在东侧接战，正面仍未分出胜负。"],[46,"东侧伏兵散开，回纥骑兵继续北移。"],[50,"唐军正面继续推进，另一支部队转向叛军阵后。"],[55,"李嗣业所部和回纥骑兵出现在叛军背后。"],[59,"叛军各队转身、分散，整条阵线瓦解。"]];
+const cues=[[0,"唐军前锋追出，燕军在正面迎上。"],[6.5,"燕军反冲，唐军各队向后散开。"],[11,"唐军前阵已出现缺口。"],[12,"李嗣业所部从阵中向前，填住中路。"],[17,"左右两侧的唐军重新靠拢。"],[22,"阵线重新接起来，唐军前推。"],[25,"正面仍在交战，东侧出现伏兵。"],[33,"伏兵向唐军侧后移动。"],[37,"仆固怀恩率回纥骑兵迎向东侧。"],[42,"两路在东侧接战，正面仍未分出胜负。"],[46,"东侧伏兵散开，回纥骑兵继续北移。"],[50,"唐军正面继续推进，另一支部队转向燕军阵后。"],[55,"李嗣业所部和回纥骑兵出现在燕军背后。"],[59,"燕军各队转身、分散，整条阵线瓦解。"]];
 const T=window.THREE, total=65, get=id=>document.getElementById(id);
 const canvas=get('map'), seek=get('seek'), play=get('play'), toggle=get('toggle'), card=get('card');
 let current=0, previous=-1, playing=false, frame=0, world=null;
@@ -278,7 +278,7 @@ function createWorld(){
         [16,column,13,0],[20,column,7,0],[23,column,2,0],
         [38,column,-.8,0],[43,column,1.8,0],[49,column,-2,0],[55,column,-3,0],
         [57+k*.6,column+1,-5,1.1+k*.4],[60,scattered,-13-k*2,2.1+k*.57],[65,scattered+(k===0?-3:6),-28+k*4,2.72+k*.48]
-      ],{name:j===1&&k===0?'叛军正面':''});
+      ],{name:j===1&&k===0?'燕军正面':''});
     }
     unit('tang',5,2,[[0,x,30,3.14],[13,x,30,3.14],[19,x,26,3.14],[23,x,24,3.14],[50,x,16,3.14],[63,x,1,3.14]]);
     unit('yan',5,2,[[0,x,-24,0],[12,x,3,0],[21,x,-6,0],[50,x,-11,0],[56,x,-10,0],[65,x+(j-1)*13,-34,2.6+j*.5]]);
@@ -296,7 +296,7 @@ function createWorld(){
         [25,45+o,dz,-1.45],[31,37+o,7+dz,-1.2],[38,29+o,15+dz,-1.05],
         [42.4+k*.45,27+o,17+dz,-1.6],[44.1+k*.62,32+o,13+dz,.8+k*.8],
         [48+j*.55,40+o+(k===0?1:6),6+dz*4,1.2+k*.53],[57,52+o+(k===0?1:5),-7+dz*8,2.3]
-      ],{name:j===0&&k===0?'叛军东侧伏兵':'',mounted:true,after:25});
+      ],{name:j===0&&k===0?'燕军东侧伏兵':'',mounted:true,after:25});
     }
     unit('uyghur',4,2,[
       [37,27+o,27,3.14],[41.8+j*.4,27+o,19,3.14],[43.3+j*.5,28+o,17,2.98],
