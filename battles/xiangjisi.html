@@ -17,6 +17,12 @@ footer{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);width:min(
 .faction-flag{display:inline-grid;place-items:center;width:19px;height:22px;color:#fff5dc;font:700 12px/1 SimSun,serif;clip-path:polygon(0 0,100% 0,100% 100%,50% 83%,0 100%)}
 .faction-flag.tang{background:#863b2f}.faction-flag.yan{background:#22535d}.faction-flag.uyghur{background:#795511}
 .flag-note{font-size:11px;color:#555e50}.people{margin:10px 0;border-block:1px solid #c4bea8;padding:6px 0}.people summary{cursor:pointer;font-weight:bold}.people h3{margin:11px 0 4px;color:#5c5847;font-size:13px}.people dl{margin:0}.people dt{font-weight:bold;margin-top:7px}.people dt span{font-weight:400;color:#5c5847;font-size:11px;margin-left:3px}.people dd{margin:1px 0 6px;font-size:13px}.people-sources{font-size:12px}
+.sandbox-mode{position:fixed;right:18px;top:15px;display:flex;gap:5px;z-index:4}.sandbox-mode button[aria-pressed=true]{background:#e9d9b3;color:#263a32;font-weight:700}
+#info{top:58px}#command-panel{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);width:min(1040px,calc(100% - 20px));background:#253a34f5;border:1px solid #a59b7d;border-radius:5px;padding:10px;z-index:3}
+#command-units{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}#command-units button{position:relative;text-align:left;overflow:hidden;padding-bottom:9px}#command-units button[aria-pressed=true]{background:#e9d9b3;color:#263a32}#command-units small{display:block;font-size:12px}#command-units i{position:absolute;bottom:0;left:0;height:3px;background:#caa55b}#command-units button:disabled{opacity:.48}
+#command-status{font-weight:bold;color:#f8dfa4}#command-selection{min-height:1.5em}#command-panel p{margin:4px 0}#command-panel button:disabled{opacity:.55;cursor:default}
+.command-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.command-row small{color:#dfd8c5}
+body.commanding #map{cursor:crosshair}body.commanding #hint{bottom:185px}.tag.selected{outline:2px solid #f5df90;outline-offset:2px}
 </style>
 <body>
 <canvas id="map" tabindex="0" aria-label="香积寺之战沙盘，拖动旋转，滚轮缩放"></canvas><div id="labels" aria-hidden="true"></div>
@@ -48,10 +54,20 @@ footer{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);width:min(
   </dl>
   <p class="people-sources"><a href="https://zh.wikisource.org/wiki/舊唐書/卷010" target="_blank" rel="noopener">《旧唐书·肃宗纪》</a> · <a href="https://zh.wikisource.org/wiki/舊唐書/卷011" target="_blank" rel="noopener">《旧唐书·代宗纪》</a></p>
 </details><a href="https://zh.wikisource.org/zh-hans/資治通鑑_(胡三省音注)/卷220" target="_blank" rel="noopener">《资治通鉴》卷二二〇</a></article></aside>
+<div class="sandbox-mode" aria-label="沙盘模式">
+  <button type="button" id="mode-replay" aria-pressed="true">史实回放</button>
+  <button type="button" id="mode-command" aria-pressed="false">代入指挥</button>
+</div>
+<section id="command-panel" aria-label="代入指挥" hidden>
+  <div id="command-units" aria-label="可指挥部队"></div>
+  <div class="command-row"><button type="button" id="command-start">开始战斗</button><button type="button" id="command-hold">坚守</button><button type="button" id="command-reset">重开本局</button><button type="button" id="command-camera">复位视角</button><span id="command-status" role="status"></span></div>
+  <p id="command-selection"></p>
+  <small>左键选方阵 · 右键地面移动、右键敌军攻击 · Shift 拖动旋转 · 兵力为玩法设定</small>
+</section>
 <div id="hint">地形、阵位和兵俑数量为示意</div>
 <footer><p id="caption"></p><div id="playbar"><button id="play">播放战役</button><input id="seek" aria-label="回放进度" type="range" min="0" max="65" step=".01" value="0"><output id="clock" for="seek">0:00 / 1:05</output><button id="reset">复位视角</button></div><nav id="chapters" aria-label="战役阶段"></nav></footer>
 <p id="error" hidden>此浏览器暂时无法显示 3D。下方仍可逐幕阅读战役经过。</p>
-<script src="../vendor/three.min.js"></script><script>'use strict';
+<script src="../vendor/three.min.js"></script><script src="xiangjisi-command.js"></script><script>'use strict';
 const phases=[
   [0,'前军受挫','唐军阵于香积寺北、沣水东岸。李归仁引兵挑战，唐军前锋追击后遭燕军反冲，阵势一度动摇。'],
   [12,'嗣业稳阵','李嗣业在阵前力战，唐军重新整顿队列。正面战线稳住后，逐步向燕军阵地压进。'],
@@ -113,7 +129,33 @@ play.onclick=()=>{
 };
 seek.oninput=()=>{pause();draw(Number(seek.value));pause();};
 get('reset').onclick=()=>world?.reset();
-document.addEventListener('visibilitychange',()=>{if(document.hidden&&playing)pause();});
+const commandPanel=get('command-panel');
+let command=null, inCommand=false;
+function setMode(enabled){
+  if(enabled&&(!world||!window.createXiangjiCommand))return;
+  pause();
+  if(!enabled)command?.pause();
+  inCommand=enabled;
+  document.body.classList.toggle('commanding',enabled);
+  get('mode-replay').setAttribute('aria-pressed',String(!enabled));
+  get('mode-command').setAttribute('aria-pressed',String(enabled));
+  document.querySelector('footer').hidden=enabled;
+  get('info').hidden=enabled;
+  commandPanel.hidden=!enabled;
+  if(enabled){
+    if(!command){command=createXiangjiCommand(world,commandPanel);command.reset();}
+    else command.pause();
+  }else draw(current);
+}
+get('mode-replay').onclick=()=>{if(inCommand)setMode(false);};
+get('mode-command').onclick=()=>{if(!inCommand)setMode(true);};
+get('command-camera').onclick=()=>world?.reset();
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden)return;
+  if(inCommand)command?.pause();
+  else if(playing)pause();
+});
+
 
 function createWorld(){
   const renderer=new T.WebGLRenderer({canvas,antialias:true});
@@ -222,7 +264,7 @@ function createWorld(){
     model.add(standard);
   }
   const actors=[];
-  function unit(side,columns,rows,frames,{name='',mounted=false,after=0,until=Infinity}={}){
+  function unit(side,columns,rows,frames,{name='',mounted=false,after=0,until=Infinity,scenario=false}={}){
     const model=new T.Group();scene.add(model);
     const parts=new Map(), uniform=palettes[side], tmp=new T.Object3D();
     function part(geom,material,x,y,z,w,h,d){
@@ -255,7 +297,9 @@ function createWorld(){
     }
     if(name)addStandard(model,side,mounted,columns,gap);
     const item=name?marker(name,side,0,0,mounted?5.0:4.35):null;
-    actors.push({model,frames,item,after,until});
+    const actor={model,frames,item,after,until};
+    if(!scenario)actors.push(actor);
+    return actor;
   }
   // North is at negative z. All placements are for the illustration.
   for(let j=0;j<3;j++){
@@ -327,6 +371,61 @@ function createWorld(){
   });
   let yaw=-.02,pitch=1.03,zoom=1,width=0,height=0,drag=null;
   const projection=new T.Vector3();
+  const commandModels=[];
+  let commandState=null, commandSelected=-1;
+  const location=new T.Vector2(), raycaster=new T.Raycaster();
+  const ringGeometry=new T.RingGeometry(3.7,3.88,32).rotateX(-Math.PI/2);
+  const selectedRing=new T.Mesh(ringGeometry,new T.MeshBasicMaterial({color:'#faf1a5',side:T.DoubleSide,depthWrite:false}));
+  selectedRing.visible=false;
+  const orderRing=new T.Mesh(ringGeometry,new T.MeshBasicMaterial({
+    color:'#e3b65e',side:T.DoubleSide,depthWrite:false
+  }));
+  orderRing.visible=false;
+  scene.add(selectedRing,orderRing);
+  function commandFrame(units,selected){
+    commandState=units;commandSelected=selected;
+    if(commandModels.length===0){
+      for(const entry of units){
+        const mounted=entry.type==='cavalry';
+        const actor=unit(entry.side,mounted?4:5,3,[],{name:entry.name,mounted,scenario:true});
+        actor.parts=actor.model.children.filter(mesh=>mesh.isInstancedMesh).map(mesh=>[mesh,mesh.count]);
+        commandModels.push(actor);
+      }
+    }
+    if(inCommand)render(current);
+  }
+  function drawCommand(){
+    const order=commandState?.[commandSelected]?.order;
+    const destination=order?.kind==='attack'?commandState[order.target]:order?.kind==='move'?order:null;
+    if(destination&&(destination.hp===undefined||destination.hp>0)){
+      orderRing.position.set(destination.x,elevation(destination.x,destination.z)+.12,destination.z);
+      orderRing.visible=true;
+    }
+    for(const entry of commandState??[]){
+      const {model,item,parts}=commandModels[entry.id];
+      const ratio=entry.hp/(entry.count*entry.stats.hp);
+      model.visible=item.visible=ratio>0;
+      if(!model.visible)continue;
+      model.position.set(entry.x,elevation(entry.x,entry.z),entry.z);
+      model.rotation.set(-entry.flash*.65,entry.yaw,0);
+      item.x=entry.x;item.z=entry.z;
+      item.el.textContent=entry.name+' · '+Math.ceil(entry.hp/entry.stats.hp);
+      item.el.classList.toggle('selected',entry.id===commandSelected);
+      for(const [mesh,max] of parts)mesh.count=Math.max(1,Math.ceil(max*ratio));
+      if(entry.id===commandSelected){
+        selectedRing.position.set(entry.x,elevation(entry.x,entry.z)+.12,entry.z);
+        selectedRing.visible=true;
+      }
+    }
+  }
+  function pointAt(e){
+    const rect=canvas.getBoundingClientRect();
+    location.set((e.clientX-rect.left)/rect.width*2-1,1-(e.clientY-rect.top)/rect.height*2);
+    raycaster.setFromCamera(location,camera);
+    const ground=new T.Plane(new T.Vector3(0,1,0),0);
+    return raycaster.ray.intersectPlane(ground,new T.Vector3());
+  }
+
   function render(t){
     if(width!==canvas.clientWidth||height!==canvas.clientHeight){
       width=canvas.clientWidth;height=canvas.clientHeight;
@@ -339,8 +438,12 @@ function createWorld(){
     const target=new T.Vector3(targetX,0,2);
     camera.position.set(targetX+radius*Math.sin(yaw)*Math.cos(pitch),radius*Math.sin(pitch),2+radius*Math.cos(yaw)*Math.cos(pitch));
     camera.lookAt(target);camera.updateMatrixWorld();
+    selectedRing.visible=false;
+    orderRing.visible=false;
+    for(const {model,item} of commandModels){model.visible=false;item.visible=false;}
+    if(inCommand)drawCommand();
     for(const {model,frames,item,after,until} of actors){
-      model.visible=t>=after&&t<until;
+      model.visible=!inCommand&&t>=after&&t<until;
       if(item)item.visible=model.visible;
       if(!model.visible)continue;
       const end=frames.findIndex(key=>key[0]>t);
@@ -351,10 +454,10 @@ function createWorld(){
       model.rotation.y=a[3]+Math.atan2(Math.sin(b[3]-a[3]),Math.cos(b[3]-a[3]))*f;
       if(item){item.x=x;item.z=z;}
     }
-    breach.visible=t>=8.4&&t<16.6;
+    breach.visible=!inCommand&&t>=8.4&&t<16.6;
     for(const {sprite,start,x,z} of dust){
       const age=(t-start)/1.6;
-      sprite.visible=age>=0&&age<1;
+      sprite.visible=!inCommand&&age>=0&&age<1;
       if(!sprite.visible)continue;
       sprite.position.set(x+age*.8,elevation(x,z)+.56+age,z-age*.5);
       sprite.scale.set(2.9+age*4,1.6+age*2.1,1);
@@ -371,6 +474,11 @@ function createWorld(){
   }
   canvas.onpointerdown=e=>{
     if(e.button!==0)return;
+    if(inCommand&&!e.shiftKey){
+      const point=pointAt(e),unit=point&&command.pick(point);
+      if(unit)command.select(unit.id);
+      return;
+    }
     drag={id:e.pointerId,x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);
   };
   canvas.onpointermove=e=>{
@@ -379,6 +487,12 @@ function createWorld(){
     pitch=T.MathUtils.clamp(pitch+(e.clientY-drag.y)*.004,.29,1.52);
     drag.x=e.clientX;drag.y=e.clientY;render(current);
   };
+  canvas.addEventListener('contextmenu',e=>{
+    if(!inCommand)return;
+    e.preventDefault();
+    const point=pointAt(e);
+    if(point)command.order(point,command.pick(point));
+  });
   canvas.onlostpointercapture=()=>{drag=null;};
   canvas.addEventListener('wheel',e=>{
     e.preventDefault();zoom=T.MathUtils.clamp(zoom*Math.exp(-e.deltaY*.0015),.67,1.85);render(current);
@@ -389,9 +503,9 @@ function createWorld(){
     yaw+=keys[e.key][0];pitch=T.MathUtils.clamp(pitch+keys[e.key][1],.29,1.52);render(current);
   };
   window.addEventListener('resize',()=>render(current));
-  return {render,reset(){yaw=-.02;pitch=1.03;zoom=1;render(current);}};
+  return {render,commandFrame,reset(){yaw=-.02;pitch=1.03;zoom=1;render(current);}};
 }
-function flat(){world=null;get('error').hidden=false;get('labels').hidden=true;get('reset').hidden=true;}
+function flat(){if(inCommand)setMode(false);world=null;get('mode-command').disabled=true;get('error').hidden=false;get('labels').hidden=true;get('reset').hidden=true;}
 try{world=createWorld();document.documentElement.dataset.renderer='webgl';}catch(error){console.warn(error);flat();}
 canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();flat();});
 draw(0);
