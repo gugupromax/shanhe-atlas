@@ -88,10 +88,14 @@ body.battle-view{overflow:hidden;background:#e3dfca}
 @media(max-width:850px){.battle-beat{bottom:calc(100% + 42px);max-width:min(100%,470px)}}
 @media(max-height:480px){.battle-beat{bottom:calc(100% + 34px);max-width:58%;font-size:12px}}
 .label.revealed{box-shadow:0 0 0 3px #f5d399b8,0 3px 16px #46261780}
-@media(max-width:620px){a[aria-label="返回全国地图"]{top:55px!important;left:8px!important;transform:none!important}}
+
+.battle-heading{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.battle-home{pointer-events:auto;display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:5px 12px;border:1px solid #b5a780;border-radius:4px;background:#293f35;color:#fff5df;text-decoration:none;font:600 14px/1.4 "Microsoft YaHei",sans-serif;white-space:nowrap}
+.battle-home:hover{background:#42584a}
+.battle-home:focus-visible{outline:3px solid #dbb973;outline-offset:3px}
 </style>
 </head><body class="battle-view"><main class="wrap"><header class="mast"><div class="brand">山河图集</div><small>楚汉战争　 /　公元前 204 年</small></header>
-<div class="hero"><h1>井陉之战<span>战事推演</span></h1><nav class="switch" aria-label="视图"><button type="button" data-view="stage" aria-pressed="true">兵力示意</button><button type="button" data-view="units" aria-pressed="false">兵种方阵</button><button type="button" data-view="scope" aria-pressed="false">取景范围</button></nav></div>
+<div class="hero"><div class="battle-heading"><h1>井陉之战<span>战事推演</span></h1><a class="battle-home" href="../"><span aria-hidden="true">←</span> 返回首页</a></div><nav class="switch" aria-label="视图"><button type="button" data-view="stage" aria-pressed="true">兵力示意</button><button type="button" data-view="units" aria-pressed="false">兵种方阵</button><button type="button" data-view="scope" aria-pressed="false">取景范围</button></nav></div>
 <section id="battle" aria-label="部署与阶段"><div class="board"><div class="map" id="sceneBox">
 <canvas tabindex="0" id="scene" aria-label="井陉之战 3D 地图，方向键平移，Shift 加方向键旋转"></canvas><img hidden class="fallbackstill" id="still" alt="本阶段的兵俑、营壁和水岸示意"><div class="labels" id="labels" aria-hidden="true"></div>
 </div></div><div class="floating-info">
@@ -1316,4 +1320,4 @@ draw(0,0);
 function openLinkedView() { showView(location.hash === '#units' ? 'units' : 'stage'); }
 window.addEventListener('hashchange', openLinkedView);
 if (location.hash === '#units') openLinkedView();
-</script><a href="../" aria-label="返回全国地图" style="position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:5;padding:4px 8px;border-radius:3px;background:#263b34;color:#fff;font:12px/1.25 sans-serif;text-decoration:none;white-space:nowrap">全国地图</a></body></html>
+</script></body></html>

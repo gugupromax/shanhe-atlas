@@ -8,11 +8,15 @@ header{position:fixed;top:15px;left:18px;display:grid;gap:1px;padding:8px 15px;b
 footer{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);width:min(1040px,calc(100% - 20px));background:#253a34f5;border:1px solid #a59b7d;border-radius:5px;box-shadow:0 6px 27px #192c3055}#caption{margin:0;border-bottom:1px solid #9a907065;padding:7px 13px;font-size:15px}#playbar{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:9px;padding:7px 9px;align-items:center}#seek{min-width:0;width:100%;accent-color:#ddbb79}#clock{font-variant-numeric:tabular-nums;white-space:nowrap}#chapters{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}#chapters button{border:0;border-top:1px solid #9a907065;border-right:1px solid #9a907065;border-radius:0;padding:8px 4px}#chapters button[aria-current=true]{background:#e9d9b3;color:#263a32;font-weight:bold}#hint{position:fixed;left:17px;bottom:155px;color:#f5eedc;background:#253a34eb;padding:3px 7px;border-radius:3px;font-size:11px;pointer-events:none}#error{position:fixed;inset:30% 12% auto;background:#253a34;padding:15px}
 @media(max-width:820px){article{max-width:245px;margin-left:auto}}
 @media(max-width:620px){header{top:8px;left:8px;padding:6px 8px}#info{top:8px;right:8px}#chapters button{font-size:12px;padding:6px 2px}#caption{font-size:13px}#hint{left:9px;bottom:143px}.tag{font-size:10px}}
-@media(max-width:620px){a[aria-label="返回全国地图"]{top:55px!important;left:8px!important;transform:none!important}}
+
+.battle-heading{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.battle-home{pointer-events:auto;display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:5px 12px;border:1px solid #b5a780;border-radius:4px;background:#293f35;color:#fff5df;text-decoration:none;font:600 14px/1.4 "Microsoft YaHei",sans-serif;white-space:nowrap}
+.battle-home:hover{background:#42584a}
+.battle-home:focus-visible{outline:3px solid #dbb973;outline-offset:3px}
 </style>
 <body>
 <canvas id="map" tabindex="0" aria-label="香积寺之战沙盘，拖动旋转，滚轮缩放"></canvas><div id="labels" aria-hidden="true"></div>
-<header><small>山河图集 · 至德二载（757）</small><h1>香积寺之战</h1></header>
+<header><small>山河图集 · 至德二载（757）</small><div class="battle-heading"><h1>香积寺之战</h1><a class="battle-home" href="../"><span aria-hidden="true">←</span> 返回首页</a></div></header>
 <aside id="info"><button id="toggle" aria-expanded="true" aria-controls="card">收起资料</button><article id="card"><h2 id="phase"></h2><p id="detail"></p><p id="legend">朱红：唐军 · 青蓝：叛军 · 赭黄：回纥</p><a href="https://zh.wikisource.org/zh-hans/資治通鑑_(胡三省音注)/卷220" target="_blank" rel="noopener">《资治通鉴》卷二二〇</a></article></aside>
 <div id="hint">地形、阵位和兵俑数量为示意</div>
 <footer><p id="caption"></p><div id="playbar"><button id="play">播放战役</button><input id="seek" aria-label="回放进度" type="range" min="0" max="65" step=".01" value="0"><output id="clock" for="seek">0:00 / 1:05</output><button id="reset">复位视角</button></div><nav id="chapters" aria-label="战役阶段"></nav></footer>
@@ -319,4 +323,4 @@ function flat(){world=null;get('error').hidden=false;get('labels').hidden=true;g
 try{world=createWorld();document.documentElement.dataset.renderer='webgl';}catch(error){console.warn(error);flat();}
 canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();flat();});
 draw(0);
-</script><a href="../" aria-label="返回全国地图" style="position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:5;padding:4px 8px;border-radius:3px;background:#263b34;color:#fff;font:12px/1.25 sans-serif;text-decoration:none;white-space:nowrap">全国地图</a></body></html>
+</script></body></html>
