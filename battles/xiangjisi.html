@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>香积寺之战 · 山河图集</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#253a34;color:#efe8d4;font:14px/1.55 "Microsoft YaHei",sans-serif}button,input{font:inherit}button{cursor:pointer;color:inherit}button:focus-visible,input:focus-visible,canvas:focus-visible{outline:2px solid #ebca83;outline-offset:2px}button{border:1px solid #9f9479;background:#31453a;padding:5px 10px;border-radius:3px}button:hover{background:#495b48}[hidden]{display:none!important}
+#map,#labels{position:fixed;inset:0;width:100%;height:100%}#map{touch-action:none;cursor:grab}#map:active{cursor:grabbing}#labels{pointer-events:none;overflow:hidden}.tag{position:absolute;transform:translate(-50%,-100%);white-space:nowrap;padding:2px 5px;border-radius:2px;background:#263d36e8;color:#f6efdd;font-size:12px}.tag.tang{background:#863b2f}.tag.turning-point{color:#ffebc9;background:#674936;border:1px solid #c4a66d}.tag.yan{background:#22535d}.tag.uyghur{background:#795511}
+header{position:fixed;top:15px;left:18px;display:grid;gap:1px;padding:8px 15px;background:#253a34ed;border:1px solid #9b947b;border-radius:4px;pointer-events:none}header small{color:#d8cba9}h1,h2{font-family:"Songti SC",SimSun,serif;margin:0}h1{font-size:clamp(23px,4vw,37px);line-height:1.15}#info{position:fixed;right:18px;top:15px;max-width:285px;width:calc(100% - 36px)}#toggle{display:block;margin:0 0 6px auto}article{background:#f2eddf;color:#273c34;border:1px solid #a9a087;padding:12px 14px;border-radius:4px;max-height:calc(100dvh - 195px);overflow:auto}article h2{font-size:23px}article p{margin:5px 0 8px}article a{color:inherit;font-size:12px}#legend{color:#4a5547;font-size:12px;border-top:1px solid #c4bea8;padding-top:6px}
+footer{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);width:min(1040px,calc(100% - 20px));background:#253a34f5;border:1px solid #a59b7d;border-radius:5px;box-shadow:0 6px 27px #192c3055}#caption{margin:0;border-bottom:1px solid #9a907065;padding:7px 13px;font-size:15px}#playbar{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:9px;padding:7px 9px;align-items:center}#seek{min-width:0;width:100%;accent-color:#ddbb79}#clock{font-variant-numeric:tabular-nums;white-space:nowrap}#chapters{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}#chapters button{border:0;border-top:1px solid #9a907065;border-right:1px solid #9a907065;border-radius:0;padding:8px 4px}#chapters button[aria-current=true]{background:#e9d9b3;color:#263a32;font-weight:bold}#hint{position:fixed;left:17px;bottom:155px;color:#f5eedc;background:#253a34eb;padding:3px 7px;border-radius:3px;font-size:11px;pointer-events:none}#error{position:fixed;inset:30% 12% auto;background:#253a34;padding:15px}
+@media(max-width:820px){article{max-width:245px;margin-left:auto}}
+@media(max-width:620px){header{top:8px;left:8px;padding:6px 8px}#info{top:8px;right:8px}#chapters button{font-size:12px;padding:6px 2px}#caption{font-size:13px}#hint{left:9px;bottom:143px}.tag{font-size:10px}}
+@media(max-width:620px){a[aria-label="返回全国地图"]{top:55px!important;left:8px!important;transform:none!important}}
+</style>
+<body>
+<canvas id="map" tabindex="0" aria-label="香积寺之战沙盘，拖动旋转，滚轮缩放"></canvas><div id="labels" aria-hidden="true"></div>
+<header><small>山河图集 · 至德二载（757）</small><h1>香积寺之战</h1></header>
+<aside id="info"><button id="toggle" aria-expanded="true" aria-controls="card">收起资料</button><article id="card"><h2 id="phase"></h2><p id="detail"></p><p id="legend">朱红：唐军 · 青蓝：叛军 · 赭黄：回纥</p><a href="https://zh.wikisource.org/zh-hans/資治通鑑_(胡三省音注)/卷220" target="_blank" rel="noopener">《资治通鉴》卷二二〇</a></article></aside>
+<div id="hint">地形、阵位和兵俑数量为示意</div>
+<footer><p id="caption"></p><div id="playbar"><button id="play">播放战役</button><input id="seek" aria-label="回放进度" type="range" min="0" max="65" step=".01" value="0"><output id="clock" for="seek">0:00 / 1:05</output><button id="reset">复位视角</button></div><nav id="chapters" aria-label="战役阶段"></nav></footer>
+<p id="error" hidden>此浏览器暂时无法显示 3D。下方仍可逐幕阅读战役经过。</p>
+<script src="../vendor/three.min.js"></script><script>'use strict';
+const phases=[
+  [0,'前军受挫','唐军阵于香积寺北、沣水东岸。李归仁引兵挑战，唐军前锋追击后遭叛军反冲，阵势一度动摇。'],
+  [12,'嗣业稳阵','李嗣业在阵前力战，唐军重新整顿队列。正面战线稳住后，逐步向叛军阵地压进。'],
+  [25,'东侧伏兵','叛军在战场东侧布置精兵，准备袭击唐军后方。唐军侦骑发现伏兵，正面交战仍在继续。'],
+  [37,'回纥截击','仆固怀恩率回纥兵迎击东侧伏兵。这支原本准备绕后的叛军被打散。'],
+  [50,'前后夹击','李嗣业与回纥兵转到叛军阵后，与正面大军夹击。叛军由列阵迎战转为全线溃退。']
+];
+const cues=[[0,"唐军前锋追出，叛军在正面迎上。"],[6.5,"叛军反冲，唐军各队向后散开。"],[11,"唐军前阵已出现缺口。"],[12,"李嗣业所部从阵中向前，填住中路。"],[17,"左右两侧的唐军重新靠拢。"],[22,"阵线重新接起来，唐军前推。"],[25,"正面仍在交战，东侧出现伏兵。"],[33,"伏兵向唐军侧后移动。"],[37,"仆固怀恩率回纥骑兵迎向东侧。"],[42,"两路在东侧接战，正面仍未分出胜负。"],[46,"东侧伏兵散开，回纥骑兵继续北移。"],[50,"唐军正面继续推进，另一支部队转向叛军阵后。"],[55,"李嗣业所部和回纥骑兵出现在叛军背后。"],[59,"叛军各队转身、分散，整条阵线瓦解。"]];
+const T=window.THREE, total=65, get=id=>document.getElementById(id);
+const canvas=get('map'), seek=get('seek'), play=get('play'), toggle=get('toggle'), card=get('card');
+let current=0, previous=-1, playing=false, frame=0, world=null;
+const captionText=get("caption");
+const chapterButtons=phases.map(([time,title],i)=>{
+  const button=document.createElement('button');
+  button.textContent=title;
+  button.onclick=()=>{pause();draw(time);};
+  get('chapters').append(button);
+  return button;
+});
+function setInfo(open){
+  card.hidden=!open;toggle.textContent=open?'收起资料':'战役资料';
+  toggle.setAttribute('aria-expanded',String(open));
+}
+setInfo(!matchMedia('(max-width:820px)').matches);
+toggle.onclick=()=>setInfo(card.hidden);
+function draw(t){
+  current=t;
+  const i=phases.findLastIndex(phase=>t>=phase[0]);
+  if(i!==previous){
+    previous=i;
+    const [,title,detail]=phases[i];
+    get('phase').textContent=title;get('detail').textContent=detail;
+    chapterButtons.forEach((button,j)=>button.setAttribute('aria-current',String(j===i)));
+  }
+  const caption=cues.findLast(([start])=>t>=start)[1];
+  if(captionText.textContent!==caption)captionText.textContent=caption;
+  seek.value=t;
+  get('clock').textContent=Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0')+' / 1:05';
+  seek.setAttribute('aria-valuetext',get('clock').textContent+'，'+phases[i][1]);
+  world?.render(t);
+}
+function pause(){
+  cancelAnimationFrame(frame);playing=false;
+  play.textContent=current>=total?'重新播放':current>0?'继续播放':'播放战役';
+}
+play.onclick=()=>{
+  if(playing){pause();return;}
+  if(current===total)draw(0);
+  playing=true;play.textContent='暂停';
+  const from=current, start=performance.now();
+  let drawn=-Infinity;
+  const tick=now=>{
+    // A frame timestamp can precede the click that queued its callback.
+    const t=Math.min(total,from+Math.max(0,now-start)/1000);
+    if(now-drawn>=33||t===total){draw(t);drawn=now;}
+    if(t===total)pause();else frame=requestAnimationFrame(tick);
+  };
+  frame=requestAnimationFrame(tick);
+};
+seek.oninput=()=>{pause();draw(Number(seek.value));pause();};
+get('reset').onclick=()=>world?.reset();
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&playing)pause();});
+
+function createWorld(){
+  const renderer=new T.WebGLRenderer({canvas,antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+  const scene=new T.Scene(), camera=new T.PerspectiveCamera(38,1,.2,650);
+  scene.background=new T.Color('#d7c5a3');
+  scene.fog=new T.Fog('#cab99c',125,350);
+  const sun=new T.DirectionalLight('#ffe4a9',2);
+  sun.position.set(-50,77,43);
+  scene.add(sun,new T.HemisphereLight('#fff0d5','#68654d',1.7));
+  const box=new T.BoxGeometry(), ball=new T.IcosahedronGeometry(1,0), pyramid=new T.ConeGeometry(1,1,4);
+  const mat=(color,options)=>new T.MeshStandardMaterial({color,roughness:1,...options});
+  const grass=mat('#a5a079',{vertexColors:true}), dirt=mat('#b7a179'), wood=mat('#604631'), tile=mat('#4c4e43');
+  const reeds=mat('#586c50'), canopy=mat('#677d52'), dark=mat('#4b4035'), metal=mat('#bbb8a3');
+  function put(parent,geometry,material,x,y,z,w,h,d,turn=0){
+    const mesh=new T.Mesh(geometry,material);
+    mesh.position.set(x,y,z);mesh.scale.set(w,h,d);mesh.rotation.y=turn;
+    parent.add(mesh);return mesh;
+  }
+  const river=z=>-47+3.2*Math.sin(z/17);
+  function elevation(x,z){
+    const bank=Math.min(1,Math.max(0,(Math.abs(x-river(z))-3.6)/3));
+    const rise=6*Math.exp(-((x-49)**2/230+(z-8)**2/470))+4*Math.exp(-((x-32)**2/380+(z+46)**2/190));
+    return -.85+bank*(1.1+rise+.17*Math.sin(x*.3+z*.14));
+  }
+  const floor=new T.PlaneGeometry(164,152,120,105).rotateX(-Math.PI/2);
+  const points=floor.attributes.position, colors=[];
+  for(let i=0;i<points.count;i++){
+    const x=points.getX(i),z=points.getZ(i),y=elevation(x,z);
+    points.setY(i,y);
+    const c=.84+.13*(Math.sin(x*.16+z*.16)*Math.cos(z*.18)+1)*.5;
+    colors.push(c,c*.995,c*.91);
+  }
+  floor.setAttribute('color',new T.Float32BufferAttribute(colors,3));floor.computeVertexNormals();
+  scene.add(new T.Mesh(floor,grass));
+  const water=new T.PlaneGeometry(9.7,149,1,100).rotateX(-Math.PI/2);
+  const waterVerts=water.attributes.position;
+  for(let i=0;i<waterVerts.count;i++){
+    waterVerts.setX(i,waterVerts.getX(i)+river(waterVerts.getZ(i)));waterVerts.setY(i,-.39);
+  }
+  scene.add(new T.Mesh(water,new T.MeshBasicMaterial({color:'#628f85'})));
+  let seed=757;const rand=()=>((seed=Math.imul(seed,1664525)+1013904223|0)>>>0)/4294967296;
+  for(const [cx,cz,rx,rz,count] of [[43,9,11,18,35],[38,-29,9,10,25],[-56,-19,5,25,23],[-53,39,7,12,24],[21,43,11,6,13]]){
+    for(let j=0;j<count;j++){
+      const x=cx+(rand()-.5)*rx*2,z=cz+(rand()-.5)*rz*2;
+      const h=.65+rand()*1.5;
+      if(Math.abs(x-river(z))<5.3)continue;
+      const y=elevation(x,z);
+      put(scene,box,wood,x,y+h*.43,z,.16,h,.18);
+      put(scene,ball,j%3===0?reeds:canopy,x,y+h,z,h*.61,h*.72,h*.55,rand()*5);
+    }
+  }
+  const tx=-33,tz=28,ty=elevation(tx,tz);
+  put(scene,box,dirt,tx,ty+.12,tz,7,.3,4);
+  put(scene,box,wood,tx,ty+1,tz,5.3,1.65,2.9);
+  put(scene,pyramid,tile,tx,ty+2.25,tz,4.1,1.30,2.4,Math.PI/4);
+  for(const x of [tx-1.9,tx,tx+1.9])put(scene,box,dark,x,ty+1,tz-1.55,.25,1.6,.2);
+  const labelRoot=get('labels'), tags=[];
+  function marker(text,side,x,z,offset){
+    const el=document.createElement('span');el.className='tag '+side;el.textContent=text;labelRoot.append(el);
+    const item={el,x,z,offset,visible:true};tags.push(item);return item;
+  }
+  marker('沣水','',-46,-8,1.3);
+  marker('香积寺（示意）','',tx,tz,3.5);
+  marker('战场东侧','',45,-28,2);
+  const palettes={tang:mat('#9e4334'),yan:mat('#306774'),uyghur:mat('#a87622')};
+  const actors=[];
+  function unit(side,columns,rows,frames,{name='',mounted=false,after=0,until=Infinity}={}){
+    const model=new T.Group();scene.add(model);
+    const parts=new Map(), uniform=palettes[side], tmp=new T.Object3D();
+    function part(geom,material,x,y,z,w,h,d){
+      const key=geom.id+':'+material.id;
+      if(!parts.has(key))parts.set(key,{geom,material,items:[]});
+      tmp.position.set(x,y,z);tmp.scale.set(w,h,d);tmp.updateMatrix();
+      parts.get(key).items.push(tmp.matrix.clone());
+    }
+    const gap=mounted?1.95:1.42;
+    for(let r=0;r<rows;r++)for(let c=0;c<columns;c++){
+      const x=(c-(columns-1)*.5)*gap,z=(r-(rows-1)*.5)*gap;
+      const lift=mounted?.71:0;
+      if(mounted){
+        part(box,wood,x,.58,z,.68,.61,1.28);
+        part(ball,wood,x,1.02,z+.55,.28,.37,.35);
+        for(const a of [-1,1])for(const b of [-1,1])part(box,dark,x+a*.21,.25,z+b*.42,.12,.49,.13);
+      }else{
+        part(box,dark,x,.42,z,.43,.74,.38);
+        if(r===rows-1)part(box,uniform,x-.28,.81,z+.25,.45,.65,.12);
+      }
+      part(box,uniform,x,.98+lift,z,.62,.52,.46);
+      part(ball,dark,x,1.34+lift,z,.28,.28,.27);
+      part(box,wood,x+.34,.98+lift,z+.13,.055,1.65,.055);
+      part(box,metal,x+.34,1.86+lift,z+.13,.09,.19,.07);
+    }
+    for(const {geom,material,items} of parts.values()){
+      const mesh=new T.InstancedMesh(geom,material,items.length);
+      items.forEach((matrix,i)=>mesh.setMatrixAt(i,matrix));
+      model.add(mesh);
+    }
+    const item=name?marker(name,side,0,0,mounted?3.4:2.9):null;
+    actors.push({model,frames,item,after,until});
+  }
+  // North is at negative z. All placements are for the illustration.
+  for(let j=0;j<3;j++){
+    const x=-20+j*9;
+    for(let k=0;k<2;k++){
+      const column=x+(k===0?-2.11:1.48);
+      const retreat=[-3,-2,-4,5,2,3][j*2+k];
+      const gap=j===1?(k===0?-3:3):0;
+      unit('tang',k===0?2:3,3,[
+        [0,column,15,3.14],[4.2,column,5.4+k*1.3,3.14],
+        [6.4+k*.36,column+retreat*.6,12+(j===1?2:0),3.45+retreat*.12],
+        [10+k*.5,column+retreat,21+(j===1?4:0)+k*2,2.45+retreat*.51],
+        [13,column+retreat,23+(j===1?4:0)+k*2,2.66+retreat*.48],
+        [18+k*.5,column+gap,19+k*.9,3.14],[23,column+gap,11+j*.6,3.14],
+        [38,column+gap,8+j*.6,3.14],[49,column+gap,6,3.14],[57,column+gap,-4,3.14],[64,column+gap,-10,3.14]
+      ],{name:j===0&&k===0?'唐军前阵':''});
+      const scattered=column+(j-1)*8+(k===0?-7:7);
+      unit('yan',k===0?2:3,3,[
+        [0,column,-15,0],[4,column,-10,0],[8,column,4,0],[12,column,13,0],
+        [16,column,13,0],[20,column,7,0],[23,column,2,0],
+        [38,column,-.8,0],[43,column,1.8,0],[49,column,-2,0],[55,column,-3,0],
+        [57+k*.6,column+1,-5,1.1+k*.4],[60,scattered,-13-k*2,2.1+k*.57],[65,scattered+(k===0?-3:6),-28+k*4,2.72+k*.48]
+      ],{name:j===1&&k===0?'叛军正面':''});
+    }
+    unit('tang',5,2,[[0,x,30,3.14],[13,x,30,3.14],[19,x,26,3.14],[23,x,24,3.14],[50,x,16,3.14],[63,x,1,3.14]]);
+    unit('yan',5,2,[[0,x,-24,0],[12,x,3,0],[21,x,-6,0],[50,x,-11,0],[56,x,-10,0],[65,x+(j-1)*13,-34,2.6+j*.5]]);
+  }
+  unit('yan',4,2,[[0,-9,-4,0],[4,-9,1,0],[7,-8,-8,3.14],[13,-8,-14,3.14]],{name:'李归仁所部',mounted:true,until:13});
+  unit('tang',4,2,[
+    [0,-11,32,3.14],[12,-11,27,3.14],[16,-11,18,3.14],[20,-11,13,3.14],[25,-11,8,3.14],
+    [46,-11,7,3.14],[51,13,-4,2.1],[56,19,-17,3.4],[61,5,-20,-.9]
+  ],{name:'李嗣业所部',after:12});
+  for(let j=0;j<2;j++){
+    const o=j*6;
+    for(let k=0;k<2;k++){
+      const dz=(k-.5)*1.5;
+      unit('yan',5,1,[
+        [25,45+o,dz,-1.45],[31,37+o,7+dz,-1.2],[38,29+o,15+dz,-1.05],
+        [42.4+k*.45,27+o,17+dz,-1.6],[44.1+k*.62,32+o,13+dz,.8+k*.8],
+        [48+j*.55,40+o+(k===0?1:6),6+dz*4,1.2+k*.53],[57,52+o+(k===0?1:5),-7+dz*8,2.3]
+      ],{name:j===0&&k===0?'叛军东侧伏兵':'',after:25});
+    }
+    unit('uyghur',4,2,[
+      [37,27+o,27,3.14],[41.8+j*.4,27+o,19,3.14],[43.3+j*.5,28+o,17,2.98],
+      [45,27+o,19,3.14],[48,31+o,9,3.14],[51,30+o,-8,3.14],[55,16+o,-24,-1.75],[63,4+o,-19,-.68]
+    ],{name:j?'':'仆固怀恩 · 回纥骑兵',mounted:true,after:37});
+  }
+  const breach=marker('唐军前阵出现缺口','tang',-11,17,3.1);
+  breach.el.classList.add('turning-point');
+  const dustImage=document.createElement('canvas');
+  dustImage.width=dustImage.height=48;
+  const dustContext=dustImage.getContext('2d');
+  const dustGradient=dustContext.createRadialGradient(24,24,0,24,24,24);
+  dustGradient.addColorStop(0,'rgba(181,150,97,.82)');
+  dustGradient.addColorStop(.55,'rgba(181,150,97,.38)');
+  dustGradient.addColorStop(1,'rgba(181,150,97,0)');
+  dustContext.fillStyle=dustGradient;dustContext.fillRect(0,0,48,48);
+  const dustTexture=new T.CanvasTexture(dustImage);
+  dustTexture.colorSpace=T.SRGBColorSpace;
+  const impacts=[
+    [7.4,-14,9],[8.3,-6,12],[9.5,-21,13],[16.2,-11,15],[20,-11,10],
+    [42.2,27,17],[43,33,18],[44.2,30,16],
+    [55,-18,0],[56.2,-9,-4],[57.1,1,-6]
+  ];
+  const dust=impacts.map(([start,x,z])=>{
+    const sprite=new T.Sprite(new T.SpriteMaterial({map:dustTexture,transparent:true,depthWrite:false}));
+    scene.add(sprite);
+    return {sprite,start,x,z};
+  });
+  let yaw=-.02,pitch=1.03,zoom=1,width=0,height=0,drag=null;
+  const projection=new T.Vector3();
+  function render(t){
+    if(width!==canvas.clientWidth||height!==canvas.clientHeight){
+      width=canvas.clientWidth;height=canvas.clientHeight;
+      renderer.setSize(width,height,false);
+    }
+    camera.aspect=width/height;
+    camera.updateProjectionMatrix();
+    const radius=Math.max(119,158/Math.max(.44,camera.aspect))/zoom;
+    const targetX=camera.aspect>1.2?8:0;
+    const target=new T.Vector3(targetX,0,2);
+    camera.position.set(targetX+radius*Math.sin(yaw)*Math.cos(pitch),radius*Math.sin(pitch),2+radius*Math.cos(yaw)*Math.cos(pitch));
+    camera.lookAt(target);camera.updateMatrixWorld();
+    for(const {model,frames,item,after,until} of actors){
+      model.visible=t>=after&&t<until;
+      if(item)item.visible=model.visible;
+      if(!model.visible)continue;
+      const end=frames.findIndex(key=>key[0]>t);
+      const a=frames[end===-1?frames.length-1:Math.max(0,end-1)],b=frames[end===-1?frames.length-1:end];
+      const u=a===b?0:Math.max(0,(t-a[0])/(b[0]-a[0])),f=u*u*(3-2*u);
+      const x=T.MathUtils.lerp(a[1],b[1],f),z=T.MathUtils.lerp(a[2],b[2],f);
+      model.position.set(x,elevation(x,z),z);
+      model.rotation.y=a[3]+Math.atan2(Math.sin(b[3]-a[3]),Math.cos(b[3]-a[3]))*f;
+      if(item){item.x=x;item.z=z;}
+    }
+    breach.visible=t>=8.4&&t<16.6;
+    for(const {sprite,start,x,z} of dust){
+      const age=(t-start)/1.6;
+      sprite.visible=age>=0&&age<1;
+      if(!sprite.visible)continue;
+      sprite.position.set(x+age*.8,elevation(x,z)+.56+age,z-age*.5);
+      sprite.scale.set(2.9+age*4,1.6+age*2.1,1);
+      sprite.material.opacity=Math.sin(Math.PI*age)*.7;
+    }
+    renderer.render(scene,camera);
+    for(const tag of tags){
+      if(!tag.visible){tag.el.hidden=true;continue;}
+      projection.set(tag.x,elevation(tag.x,tag.z)+tag.offset,tag.z).project(camera);
+      tag.el.hidden=Math.abs(projection.x)>1.04||Math.abs(projection.y)>1.05||projection.z>1;
+      tag.el.style.left=((.5+.5*projection.x)*width)+'px';
+      tag.el.style.top=((.5-.5*projection.y)*height)+'px';
+    }
+  }
+  canvas.onpointerdown=e=>{
+    if(e.button!==0)return;
+    drag={id:e.pointerId,x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);
+  };
+  canvas.onpointermove=e=>{
+    if(drag?.id!==e.pointerId)return;
+    yaw-=(e.clientX-drag.x)*.005;
+    pitch=T.MathUtils.clamp(pitch+(e.clientY-drag.y)*.004,.29,1.52);
+    drag.x=e.clientX;drag.y=e.clientY;render(current);
+  };
+  canvas.onlostpointercapture=()=>{drag=null;};
+  canvas.addEventListener('wheel',e=>{
+    e.preventDefault();zoom=T.MathUtils.clamp(zoom*Math.exp(-e.deltaY*.0015),.67,1.85);render(current);
+  },{passive:false});
+  canvas.onkeydown=e=>{
+    const keys={ArrowLeft:[-.12,0],ArrowRight:[.12,0],ArrowUp:[0,.1],ArrowDown:[0,-.1]};
+    if(!keys[e.key])return;e.preventDefault();
+    yaw+=keys[e.key][0];pitch=T.MathUtils.clamp(pitch+keys[e.key][1],.29,1.52);render(current);
+  };
+  window.addEventListener('resize',()=>render(current));
+  return {render,reset(){yaw=-.02;pitch=1.03;zoom=1;render(current);}};
+}
+function flat(){world=null;get('error').hidden=false;get('labels').hidden=true;get('reset').hidden=true;}
+try{world=createWorld();document.documentElement.dataset.renderer='webgl';}catch(error){console.warn(error);flat();}
+canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();flat();});
+draw(0);
+</script><a href="../" aria-label="返回全国地图" style="position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:5;padding:4px 8px;border-radius:3px;background:#263b34;color:#fff;font:12px/1.25 sans-serif;text-decoration:none;white-space:nowrap">全国地图</a></body></html>

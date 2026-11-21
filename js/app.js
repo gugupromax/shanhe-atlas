@@ -4,6 +4,10 @@
 (function () {
   'use strict';
 
+  const BATTLE_SANDBOXES = new Map([
+    ['sandbox-jingxing', ['井陉之战', 'Battle of Jingxing', './battles/jingxing.html']],
+    ['sandbox-xiangjisi', ['香积寺之战', 'Battle of Xiangji Temple', './battles/xiangjisi.html']],
+  ]);
   const SVG_NS = 'http://www.w3.org/2000/svg';
   const RAD_TO_DEG = 180 / Math.PI;
   const DEG_TO_RAD = Math.PI / 180;
@@ -1908,6 +1912,11 @@
         for (const [key, [zh, en]] of Object.entries(window.ATLAS_LORE_DATA.FEATURED_JOURNEYS)) {
           journeys.append(new Option(localize(zh, en), key));
         }
+        const sandboxes = document.createElement('optgroup');
+        sandboxes.label = localize('3D 战役沙盘', '3D battle reenactments');
+        for (const [key, [zh, en]] of BATTLE_SANDBOXES) {
+          sandboxes.append(new Option(localize(zh, en), key));
+        }
         const journeyCount = journeys.childElementCount;
         journeys.label = localize(`人物行迹（${journeyCount}）`, `Historical journeys (${journeyCount})`);
         const stories = document.createElement('optgroup');
@@ -1917,7 +1926,7 @@
         for (const story of events) stories.append(new Option(localize(story.zh, story.en), story.key));
         const count = topics.dataset.catalogCount;
         const catalog = new Option(localize(`浏览全部 ${count} 篇图志`, `Browse all ${count} atlas guides`), 'catalog');
-        topics.replaceChildren(placeholder, journeys, stories, catalog);
+        topics.replaceChildren(placeholder, sandboxes, journeys, stories, catalog);
         topics.value = '';
       }
       const lblLayersBtn = this._id('lbl-layers-btn');
@@ -9783,14 +9792,15 @@
         topics.addEventListener('change', () => {
           const choice = topics.value;
           topics.value = '';
-          if (choice === 'catalog') {
+          const sandbox = BATTLE_SANDBOXES.get(choice);
+          if (choice === 'catalog' || sandbox) {
             // Preserve the current view for Back even if the debounced URL update is pending.
             if (this._urlSyncTimer && !this.challenge) {
               clearTimeout(this._urlSyncTimer);
               this._urlSyncTimer = null;
               this._writeUrlState();
             }
-            window.location.assign('./topics/index.html');
+            window.location.assign(sandbox ? sandbox[2] : './topics/index.html');
           } else if (choice) {
             this.openPersonChronicle(choice, -1);
           }
