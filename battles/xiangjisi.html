@@ -94,7 +94,7 @@ function createWorld(){
   const sun=new T.DirectionalLight('#ffe4a9',2);
   sun.position.set(-50,77,43);
   scene.add(sun,new T.HemisphereLight('#fff0d5','#68654d',1.7));
-  const box=new T.BoxGeometry(), ball=new T.IcosahedronGeometry(1,0), pyramid=new T.ConeGeometry(1,1,4);
+  const box=new T.BoxGeometry(), ball=new T.IcosahedronGeometry(1,0);
   const mat=(color,options)=>new T.MeshStandardMaterial({color,roughness:1,...options});
   const grass=mat('#a5a079',{vertexColors:true}), dirt=mat('#b7a179'), wood=mat('#604631'), tile=mat('#4c4e43');
   const reeds=mat('#586c50'), canopy=mat('#677d52'), dark=mat('#4b4035'), metal=mat('#bbb8a3');
@@ -138,8 +138,22 @@ function createWorld(){
   }
   const tx=-33,tz=28,ty=elevation(tx,tz);
   put(scene,box,dirt,tx,ty+.12,tz,7,.3,4);
-  put(scene,box,wood,tx,ty+1,tz,5.3,1.65,2.9);
-  put(scene,pyramid,tile,tx,ty+2.25,tz,4.1,1.30,2.4,Math.PI/4);
+  const hallWidth=5.3, hallDepth=2.9, wallTop=ty+1.825;
+  put(scene,box,wood,tx,ty+1,tz,hallWidth,1.65,hallDepth);
+  // Start the roof at the wall cap. Explicit eaves keep its footprint independent of the ridge.
+  const eaveY=wallTop+.04, halfWidth=hallWidth/2+.32, halfDepth=hallDepth/2+.28;
+  const ridgeY=eaveY+1.06, halfRidge=1.45;
+  const roof=new T.BufferGeometry();
+  roof.setAttribute('position',new T.Float32BufferAttribute([
+    -halfWidth,0,-halfDepth, halfWidth,0,-halfDepth,
+    halfWidth,0,halfDepth, -halfWidth,0,halfDepth,
+    -halfRidge,ridgeY-eaveY,0, halfRidge,ridgeY-eaveY,0
+  ],3));
+  roof.setIndex([0,4,5,0,5,1, 1,5,2, 2,5,4,2,4,3, 3,4,0]);
+  roof.computeVertexNormals();
+  put(scene,roof,tile,tx,eaveY,tz,1,1,1);
+  put(scene,box,tile,tx,ridgeY,tz,halfRidge*2+.16,.12,.11);
+  put(scene,box,wood,tx,eaveY-.04,tz,halfWidth*2,.08,halfDepth*2);
   for(const x of [tx-1.9,tx,tx+1.9])put(scene,box,dark,x,ty+1,tz-1.55,.25,1.6,.2);
   const labelRoot=get('labels'), tags=[];
   function marker(text,side,x,z,offset){
