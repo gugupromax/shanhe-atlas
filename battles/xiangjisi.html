@@ -19,10 +19,11 @@ footer{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);width:min(
 .flag-note{font-size:11px;color:#555e50}.people{margin:10px 0;border-block:1px solid #c4bea8;padding:6px 0}.people summary{cursor:pointer;font-weight:bold}.people h3{margin:11px 0 4px;color:#5c5847;font-size:13px}.people dl{margin:0}.people dt{font-weight:bold;margin-top:7px}.people dt span{font-weight:400;color:#5c5847;font-size:11px;margin-left:3px}.people dd{margin:1px 0 6px;font-size:13px}.people-sources{font-size:12px}
 .sandbox-mode{position:fixed;right:18px;top:15px;display:flex;gap:5px;z-index:4}.sandbox-mode button[aria-pressed=true]{background:#e9d9b3;color:#263a32;font-weight:700}
 #info{top:58px}#command-panel{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);width:min(1040px,calc(100% - 20px));background:#253a34f5;border:1px solid #a59b7d;border-radius:5px;padding:10px;z-index:3}
-#command-units{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}#command-units button{position:relative;text-align:left;overflow:hidden;padding-bottom:9px}#command-units button[aria-pressed=true]{background:#e9d9b3;color:#263a32}#command-units small{display:block;font-size:12px}#command-units i{position:absolute;bottom:0;left:0;height:3px;background:#caa55b}#command-units button:disabled{opacity:.48}
+#command-units{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:8px}#command-units button{position:relative;text-align:left;overflow:hidden;padding-bottom:9px}#command-units button[aria-pressed=true]{background:#e9d9b3;color:#263a32}#command-units small{display:block;font-size:12px}#command-units i{position:absolute;bottom:0;left:0;height:3px;background:#caa55b}#command-units button:disabled{opacity:.48}
 #command-status{font-weight:bold;color:#f8dfa4}#command-selection{min-height:1.5em}#command-panel p{margin:4px 0}#command-panel button:disabled{opacity:.55;cursor:default}
 .command-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.command-row small{color:#dfd8c5}
 body.commanding #map{cursor:crosshair}body.commanding #hint{bottom:185px}.tag.selected{outline:2px solid #f5df90;outline-offset:2px}
+#command-units.experimental{grid-template-columns:repeat(5,minmax(0,1fr))} #command-roster{font:inherit}
 </style>
 <body>
 <canvas id="map" tabindex="0" aria-label="香积寺之战沙盘，拖动旋转，滚轮缩放"></canvas><div id="labels" aria-hidden="true"></div>
@@ -32,7 +33,7 @@ body.commanding #map{cursor:crosshair}body.commanding #hint{bottom:185px}.tag.se
   <span><b class="faction-flag yan" aria-hidden="true">燕</b>燕军</span>
   <span><b class="faction-flag uyghur" aria-hidden="true">纥</b>回纥援军</span>
 </div>
-<p class="flag-note">燕军指安史叛军。旗色、形制与旗字为沙盘识别标记。</p>
+<p class="flag-note">燕军东侧伏骑史载为“精骑”，轻重与装具未详。燕军指安史叛军。旗色、形制与旗字为沙盘识别标记。</p>
 <details id="commanders" class="people">
   <summary>重点人物与双方指挥</summary>
   <h3>唐军</h3>
@@ -60,14 +61,14 @@ body.commanding #map{cursor:crosshair}body.commanding #hint{bottom:185px}.tag.se
 </div>
 <section id="command-panel" aria-label="代入指挥" hidden>
   <div id="command-units" aria-label="可指挥部队"></div>
-  <div class="command-row"><button type="button" id="command-start">开始战斗</button><button type="button" id="command-hold">坚守</button><button type="button" id="command-reset">重开本局</button><button type="button" id="command-camera">复位视角</button><span id="command-status" role="status"></span></div>
+  <div class="command-row"><label>阵容 <select id="command-roster"><option value="historical">史料阵容</option><option value="experimental">兵种试验（非史实）</option></select></label><button type="button" id="command-start">开始战斗</button><button type="button" id="command-stakes"></button><button type="button" id="command-hold">坚守</button><button type="button" id="command-reset">重开本局</button><button type="button" id="command-camera">复位视角</button><span id="command-status" role="status"></span></div>
   <p id="command-selection"></p>
-  <small>左键选方阵 · 右键地面移动、右键敌军攻击 · Shift 拖动旋转 · 兵力为玩法设定</small>
+  <small>左键选方阵 · 右键地面移动、右键敌军攻击 · 骑兵移动穿阵可造成冲击 · Shift 拖动旋转 · 默认阵容按史载部队角色简化，兵力数字为玩法设定 · 士气持续 3 秒不高于 30 才会溃散</small>
 </section>
 <div id="hint">地形、阵位和兵俑数量为示意</div>
 <footer><p id="caption"></p><div id="playbar"><button id="play">播放战役</button><input id="seek" aria-label="回放进度" type="range" min="0" max="65" step=".01" value="0"><output id="clock" for="seek">0:00 / 1:05</output><button id="reset">复位视角</button></div><nav id="chapters" aria-label="战役阶段"></nav></footer>
 <p id="error" hidden>此浏览器暂时无法显示 3D。下方仍可逐幕阅读战役经过。</p>
-<script src="../vendor/three.min.js"></script><script src="xiangjisi-command.js"></script><script>'use strict';
+<script src="battle-morale.js?v=2"></script><script src="../vendor/three.min.js"></script><script src="xiangjisi-command.js?v=4"></script><script>'use strict';
 const phases=[
   [0,'前军受挫','唐军阵于香积寺北、沣水东岸。李归仁引兵挑战，唐军前锋追击后遭燕军反冲，阵势一度动摇。'],
   [12,'嗣业稳阵','李嗣业在阵前力战，唐军重新整顿队列。正面战线稳住后，逐步向燕军阵地压进。'],
@@ -264,7 +265,8 @@ function createWorld(){
     model.add(standard);
   }
   const actors=[];
-  function unit(side,columns,rows,frames,{name='',mounted=false,after=0,until=Infinity,scenario=false}={}){
+  const bowGeometry=new T.TorusGeometry(.37,.045,5,10,Math.PI);
+  function unit(side,columns,rows,frames,{name='',mounted=false,kind=null,after=0,until=Infinity,scenario=false}={}){
     const model=new T.Group();scene.add(model);
     const parts=new Map(), uniform=palettes[side], tmp=new T.Object3D();
     function part(geom,material,x,y,z,w,h,d){
@@ -283,12 +285,15 @@ function createWorld(){
         for(const a of [-1,1])for(const b of [-1,1])part(box,dark,x+a*.21,.25,z+b*.42,.12,.49,.13);
       }else{
         part(box,dark,x,.42,z,.43,.74,.38);
-        if(r===rows-1)part(box,uniform,x-.28,.81,z+.25,.45,.65,.12);
+        if(kind!=="archer"&&r===rows-1)part(box,uniform,x-.28,.81,z+.25,.45,.65,.12);
       }
       part(box,uniform,x,.98+lift,z,.62,.52,.46);
       part(ball,dark,x,1.34+lift,z,.28,.28,.27);
-      part(box,wood,x+.34,.98+lift,z+.13,.055,1.65,.055);
-      part(box,metal,x+.34,1.86+lift,z+.13,.09,.19,.07);
+      if(kind==='heavy')part(box,uniform,x,.58,z,.86,.40,1.36);
+      if(kind==='archer'){
+        part(bowGeometry,wood,x+.4,1.05,z+.28,1,1,1);
+      }else part(box,wood,x+.34,.98+lift,z+.13,.055,1.65,.055);
+      if(kind!=='archer')part(box,metal,x+.34,1.86+lift,z+.13,.09,.19,.07);
     }
     for(const {geom,material,items} of parts.values()){
       const mesh=new T.InstancedMesh(geom,material,items.length);
@@ -382,12 +387,35 @@ function createWorld(){
   }));
   orderRing.visible=false;
   scene.add(selectedRing,orderRing);
-  function commandFrame(units,selected){
+  const stakes=new T.Group();
+  const stakeWood=mat('#573622');
+  for(let i=-1;i<=1;i++){
+    for(const angle of [-.6,.6])put(stakes,box,stakeWood,i*2.15,.65,0,.19,1.7,.23).rotation.x=angle;
+  }
+  put(stakes,box,stakeWood,0,.76,0,6.2,.19,.19);
+  stakes.visible=false;scene.add(stakes);
+  const arrows=new T.LineSegments(new T.BufferGeometry(),new T.LineBasicMaterial({color:'#fff4bc'}));
+  arrows.geometry.setAttribute('position',new T.BufferAttribute(new Float32Array(96*6),3));
+  arrows.frustumCulled=false;arrows.visible=false;scene.add(arrows);
+  let stakesPlaced=false;
+  function commandFrame(units,selected,obstacle,shots,time){
+    stakesPlaced=Boolean(obstacle);
+    if(obstacle)stakes.position.set(obstacle.x,elevation(obstacle.x,obstacle.z),obstacle.z);
+    const positions=arrows.geometry.attributes.position;
+    let i=0;
+    for(const shot of shots.slice(-96)){
+      const progress=Math.min(1,(time-shot.time)/.43);
+      for(const t of [Math.max(0,progress-.2),progress]){
+        const x=T.MathUtils.lerp(shot.x,shot.endX,t),z=T.MathUtils.lerp(shot.z,shot.endZ,t);
+        positions.setXYZ(i++,x,elevation(x,z)+1.5+Math.sin(Math.PI*t)*2.9,z);
+      }
+    }
+    positions.needsUpdate=true;arrows.geometry.setDrawRange(0,i);
     commandState=units;commandSelected=selected;
     if(commandModels.length===0){
       for(const entry of units){
-        const mounted=entry.type==='cavalry';
-        const actor=unit(entry.side,mounted?4:5,3,[],{name:entry.name,mounted,scenario:true});
+        const mounted=entry.stats.mounted;
+        const actor=unit(entry.side,mounted?4:5,3,[],{name:entry.name,mounted,kind:entry.type,scenario:true});
         actor.parts=actor.model.children.filter(mesh=>mesh.isInstancedMesh).map(mesh=>[mesh,mesh.count]);
         commandModels.push(actor);
       }
@@ -409,7 +437,8 @@ function createWorld(){
       model.position.set(entry.x,elevation(entry.x,entry.z),entry.z);
       model.rotation.set(-entry.flash*.65,entry.yaw,0);
       item.x=entry.x;item.z=entry.z;
-      item.el.textContent=entry.name+' · '+Math.ceil(entry.hp/entry.stats.hp);
+      item.el.textContent=entry.name+' · '+Math.ceil(entry.hp/entry.stats.hp)+(entry.routed?' · 溃散':'');
+      item.el.style.opacity=entry.routed?'.58':'';
       item.el.classList.toggle('selected',entry.id===commandSelected);
       for(const [mesh,max] of parts)mesh.count=Math.max(1,Math.ceil(max*ratio));
       if(entry.id===commandSelected){
@@ -441,6 +470,8 @@ function createWorld(){
     selectedRing.visible=false;
     orderRing.visible=false;
     for(const {model,item} of commandModels){model.visible=false;item.visible=false;}
+    arrows.visible=inCommand;
+    stakes.visible=inCommand&&stakesPlaced;
     if(inCommand)drawCommand();
     for(const {model,frames,item,after,until} of actors){
       model.visible=!inCommand&&t>=after&&t<until;
