@@ -18,13 +18,8 @@ footer{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);width:min(
 .faction-flag.tang{background:#863b2f}.faction-flag.yan{background:#22535d}.faction-flag.uyghur{background:#795511}
 .flag-note{font-size:11px;color:#555e50}.people{margin:10px 0;border-block:1px solid #c4bea8;padding:6px 0}.people summary{cursor:pointer;font-weight:bold}.people h3{margin:11px 0 4px;color:#5c5847;font-size:13px}.people dl{margin:0}.people dt{font-weight:bold;margin-top:7px}.people dt span{font-weight:400;color:#5c5847;font-size:11px;margin-left:3px}.people dd{margin:1px 0 6px;font-size:13px}.people-sources{font-size:12px}
 .sandbox-mode{position:fixed;right:18px;top:15px;display:flex;gap:5px;z-index:4}.sandbox-mode button[aria-pressed=true]{background:#e9d9b3;color:#263a32;font-weight:700}
-#info{top:58px}#command-panel{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);width:min(1040px,calc(100% - 20px));background:#253a34f5;border:1px solid #a59b7d;border-radius:5px;padding:10px;z-index:3}
-#command-units{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:8px}#command-units button{position:relative;text-align:left;overflow:hidden;padding-bottom:9px}#command-units button[aria-pressed=true]{background:#e9d9b3;color:#263a32}#command-units small{display:block;font-size:12px}#command-units i{position:absolute;bottom:0;left:0;height:3px;background:#caa55b}#command-units button:disabled{opacity:.48}
-#command-status{font-weight:bold;color:#f8dfa4}#command-selection{min-height:1.5em}#command-panel p{margin:4px 0}#command-panel button:disabled{opacity:.55;cursor:default}
-.command-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.command-row small{color:#dfd8c5}
-body.commanding #map{cursor:crosshair}body.commanding #hint{bottom:185px}.tag.selected{outline:2px solid #f5df90;outline-offset:2px}
-#command-units.experimental{grid-template-columns:repeat(5,minmax(0,1fr))} #command-roster{font:inherit}
-</style>
+#info{top:58px}body.commanding #map{cursor:crosshair}body.commanding #hint{bottom:185px}.tag.selected{outline:2px solid #f5df90;outline-offset:2px}
+</style><link rel="stylesheet" href="battle-command.css">
 <body>
 <canvas id="map" tabindex="0" aria-label="香积寺之战沙盘，拖动旋转，滚轮缩放"></canvas><div id="labels" aria-hidden="true"></div>
 <header><small>山河图集 · 至德二载（757）</small><div class="battle-heading"><h1>香积寺之战</h1><a class="battle-home" href="../"><span aria-hidden="true">←</span> 返回首页</a></div></header>
@@ -61,14 +56,14 @@ body.commanding #map{cursor:crosshair}body.commanding #hint{bottom:185px}.tag.se
 </div>
 <section id="command-panel" aria-label="代入指挥" hidden>
   <div id="command-units" aria-label="可指挥部队"></div>
-  <div class="command-row"><label>阵容 <select id="command-roster"><option value="historical">史料阵容</option><option value="experimental">兵种试验（非史实）</option></select></label><button type="button" id="command-start">开始战斗</button><button type="button" id="command-stakes"></button><button type="button" id="command-hold">坚守</button><button type="button" id="command-reset">重开本局</button><button type="button" id="command-camera">复位视角</button><span id="command-status" role="status"></span></div>
-  <p id="command-selection"></p>
+  <div class="command-row"><label id="command-roster-label">阵容 <select id="command-roster"><option value="historical">史料阵容</option><option value="experimental">兵种试验（非史实）</option></select></label><button type="button" id="command-start">开始战斗</button><button type="button" id="command-stakes"></button><button type="button" id="command-hold">坚守</button><button type="button" id="command-reset">重开本局</button><button type="button" id="command-camera">复位视角</button><span id="command-status" role="status"></span></div>
+  <p id="command-selection"></p><p id="command-objective"></p><details class="command-evidence"><summary>兵种与史料依据</summary><div id="command-evidence"></div></details>
   <small>左键选方阵 · 右键地面移动、右键敌军攻击 · 骑兵移动穿阵可造成冲击 · Shift 拖动旋转 · 默认阵容按史载部队角色简化，兵力数字为玩法设定 · 士气持续 3 秒不高于 30 才会溃散</small>
 </section>
 <div id="hint">地形、阵位和兵俑数量为示意</div>
 <footer><p id="caption"></p><div id="playbar"><button id="play">播放战役</button><input id="seek" aria-label="回放进度" type="range" min="0" max="65" step=".01" value="0"><output id="clock" for="seek">0:00 / 1:05</output><button id="reset">复位视角</button></div><nav id="chapters" aria-label="战役阶段"></nav></footer>
 <p id="error" hidden>此浏览器暂时无法显示 3D。下方仍可逐幕阅读战役经过。</p>
-<script src="battle-morale.js?v=2"></script><script src="../vendor/three.min.js"></script><script src="xiangjisi-command.js?v=4"></script><script>'use strict';
+<script src="battle-morale.js?v=2"></script><script src="../vendor/three.min.js"></script><script src="battle-units.js"></script><script src="scenario-xiangjisi.js"></script><script src="battle-command.js"></script><script>'use strict';
 const phases=[
   [0,'前军受挫','唐军阵于香积寺北、沣水东岸。李归仁引兵挑战，唐军前锋追击后遭燕军反冲，阵势一度动摇。'],
   [12,'嗣业稳阵','李嗣业在阵前力战，唐军重新整顿队列。正面战线稳住后，逐步向燕军阵地压进。'],
@@ -133,7 +128,7 @@ get('reset').onclick=()=>world?.reset();
 const commandPanel=get('command-panel');
 let command=null, inCommand=false;
 function setMode(enabled){
-  if(enabled&&(!world||!window.createXiangjiCommand))return;
+  if(enabled&&(!world||!window.createBattleCommand))return;
   pause();
   if(!enabled)command?.pause();
   inCommand=enabled;
@@ -144,7 +139,7 @@ function setMode(enabled){
   get('info').hidden=enabled;
   commandPanel.hidden=!enabled;
   if(enabled){
-    if(!command){command=createXiangjiCommand(world,commandPanel);command.reset();}
+    if(!command){command=createBattleCommand(world,commandPanel,window.atlasBattleScenario);command.reset();}
     else command.pause();
   }else draw(current);
 }
@@ -415,7 +410,7 @@ function createWorld(){
     if(commandModels.length===0){
       for(const entry of units){
         const mounted=entry.stats.mounted;
-        const actor=unit(entry.side,mounted?4:5,3,[],{name:entry.name,mounted,kind:entry.type,scenario:true});
+        const actor=unit(entry.side,entry.shape.columns,entry.shape.rows,[],{name:entry.name,mounted,kind:entry.type,scenario:true});
         actor.parts=actor.model.children.filter(mesh=>mesh.isInstancedMesh).map(mesh=>[mesh,mesh.count]);
         commandModels.push(actor);
       }

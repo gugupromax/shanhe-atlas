@@ -12,3 +12,6 @@ data/tiles/
 /geojson/*
 !/geojson/demo.html
 !/geojson/jiangshan-locate.js
+
+# Local-only illustration provided for the Changshe preview
+/battles/changshe-conference.local.png

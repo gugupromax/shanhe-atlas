@@ -6383,3 +6383,8 @@ html[lang="en"] .mp-lore-lbl {
   fill: currentColor;
   font-weight: 700;
 }
+
+html.is-battle-embed #embed-open { display: none; }
+
+html.changshe-battle-embed #map-key { display: none !important; }
+html.changshe-battle-embed #milestone-balloon { display: none !important; }

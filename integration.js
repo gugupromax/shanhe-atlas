@@ -77,6 +77,9 @@
     const doc = root.document;
     const viewport = doc.getElementById('viewport-frame');
     if (!app || !viewport || !app.svg || root.atlasFusion) return;
+    const params = new URLSearchParams(root.location.search);
+    const parentBattle = app.embed && root.parent !== root && params.get('battle') === 'changshe';
+    if (parentBattle) doc.documentElement.classList.add('changshe-battle-embed');
     let active = false;
     let ready = false, surfaceBitmaps = false, baseDrawAck = false, detailTextureLimit = 3072;
     let applyingChild = false;
@@ -300,7 +303,20 @@
           name: app.milestoneHeadline(dynasty, m), coord: a.coord, year: m.year,
           kind: 'event', index,
         }))) : [];
-      return stops.concat(milestones, city);
+      const battle = parentBattle ? [
+        {name:'南阳 · 金围', coord:[112.53,32.99], kind:'battle', index:0},
+        {name:'长社 · 宋守金围', coord:[113.82,34.02], kind:'battle', index:1},
+        {name:'鄢陵 · 援军未发', coord:[114.18,34.10], kind:'battle', index:1},
+        {name:'长葛 · 金占', coord:[113.78,34.24], kind:'battle', index:1},
+        {name:'临颍 · 金占', coord:[113.94,33.83], kind:'battle', index:1},
+        {name:'舞阳 · 金占', coord:[113.61,33.43], kind:'battle', index:1},
+        {name:'襄城 · 宋守', coord:[113.49,33.85], kind:'battle', index:1},
+        {name:'郾城 · 宋守', coord:[114.01,33.59], kind:'battle', index:1},
+        {name:'西平 · 宋守', coord:[114.02,33.39], kind:'battle', index:1},
+        {name:'陕州 · 宋守', coord:[111.19,34.77], kind:'battle', index:2},
+        {name:'晋宁军 · 失守', coord:[110.70,35.97], kind:'battle', index:2},
+      ] : [];
+      return battle.concat(stops, milestones, city);
     }
     function sync(reason = 'controller', force = false) {
       if (!ready || applyingChild) return;
@@ -475,7 +491,9 @@
       if (event.source !== frame.contentWindow || !message || message.channel !== CHANNEL) return;
       // file:// has an opaque origin; source identity is the security boundary there.
       if (root.location.protocol !== 'file:' && event.origin !== root.location.origin) return;
-      if (message.type === 'ready') {
+      if (message.type === 'battle' && parentBattle) {
+        root.parent.postMessage({type:Number.isInteger(message.index)?'atlas-changshe-front':'atlas-changshe-enter',index:message.index}, root.location.origin === 'null' ? '*' : root.location.origin);
+      } else if (message.type === 'ready') {
         ready = true;
         surfaceBitmaps = message.surfaceBitmaps === true && typeof root.createImageBitmap === 'function';
         baseDrawAck = message.baseDrawAck === true;
@@ -578,6 +596,7 @@
     }, true);
     root.addEventListener('resize', () => schedule());
     root.atlasFusion = { setMode, sync, get active() { return active; }, get ready() { return ready; } };
+    if (parentBattle && params.get('terrain') === '3d') setMode(true);
   }
   // Deferred scripts run at readyState=interactive before app.js's earlier
   // DOMContentLoaded listener creates the controller. Wait for that listener.

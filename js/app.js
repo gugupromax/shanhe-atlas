@@ -5,6 +5,7 @@
   'use strict';
 
   const BATTLE_SANDBOXES = new Map([
+    ['sandbox-changshe', ['《绍宋》长社之战', 'Changshe (literary adaptation)', './battles/changshe.html', true]],
     ['sandbox-jingxing', ['井陉之战', 'Battle of Jingxing', './battles/jingxing.html']],
     ['sandbox-xiangjisi', ['香积寺之战', 'Battle of Xiangji Temple', './battles/xiangjisi.html']],
   ]);
@@ -1830,11 +1831,17 @@
         e.preventDefault();
         activate();
       });
-      root.addEventListener('mouseleave', () => {
-        this._embedActive = false;
-        shield.classList.remove('is-hidden');
-      });
-      frame.appendChild(shield);
+      const battleEmbed = new URLSearchParams(location.search).get('battle') === 'changshe' && window.parent !== window;
+      if (battleEmbed) {
+        root.classList.add('is-battle-embed');
+        activate();
+      } else {
+        root.addEventListener('mouseleave', () => {
+          this._embedActive = false;
+          shield.classList.remove('is-hidden');
+        });
+        frame.appendChild(shield);
+      }
 
       const badge = make('div', 'embed-badge', 'embed-chip');
       badge.appendChild(make('span', '', 'embed-seal', this.uiStr('brand_seal', '山河图集')));
@@ -1914,8 +1921,10 @@
         }
         const sandboxes = document.createElement('optgroup');
         sandboxes.label = localize('3D 战役沙盘', '3D battle reenactments');
-        for (const [key, [zh, en]] of BATTLE_SANDBOXES) {
-          sandboxes.append(new Option(localize(zh, en), key));
+        const literary = document.createElement('optgroup');
+        literary.label = localize('小说战役试点', 'Literary battle prototypes');
+        for (const [key, [zh, en, , fiction]] of BATTLE_SANDBOXES) {
+          (fiction ? literary : sandboxes).append(new Option(localize(zh, en), key));
         }
         const journeyCount = journeys.childElementCount;
         journeys.label = localize(`人物行迹（${journeyCount}）`, `Historical journeys (${journeyCount})`);
@@ -1926,7 +1935,7 @@
         for (const story of events) stories.append(new Option(localize(story.zh, story.en), story.key));
         const count = topics.dataset.catalogCount;
         const catalog = new Option(localize(`浏览全部 ${count} 篇图志`, `Browse all ${count} atlas guides`), 'catalog');
-        topics.replaceChildren(placeholder, sandboxes, journeys, stories, catalog);
+        topics.replaceChildren(placeholder, sandboxes, literary, journeys, stories, catalog);
         topics.value = '';
       }
       const lblLayersBtn = this._id('lbl-layers-btn');
@@ -3313,6 +3322,11 @@
         const path = this._svgNode('path', attrs, polGroup);
         path.dataset.polityTitle = pol.title;
         path.dataset.polityRole = pol.role;
+        if (new URLSearchParams(location.search).get('battle') === 'changshe' && ['南宋', '金'].includes(pol.title)) {
+          path.style.setProperty('fill', pol.title === '南宋' ? '#a53e32' : '#286875', 'important');
+          path.style.setProperty('fill-opacity', '0.20', 'important');
+          path.style.setProperty('stroke', pol.title === '南宋' ? '#7a3029' : '#20525c', 'important');
+        }
 
         if (pol.anchor) {
           const [cx, cy] = this.projector.toScreen(pol.anchor[0], pol.anchor[1]);
@@ -4366,6 +4380,7 @@
     }
 
     _syncAutoMilestoneBalloon(dynasty) {
+      if (this.embed && new URLSearchParams(location.search).get('battle') === 'changshe') return;
       if (!dynasty || !this.milestoneBalloon) return;
       const milestonesHidden =
         this.grpMilestones && this.grpMilestones.classList.contains('is-hidden');

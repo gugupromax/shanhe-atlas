@@ -9,15 +9,11 @@
     const morale=Math.max(0,100-55*armyLoss-55*ownLoss-shock);
     return {morale,routed:morale<=threshold(noRetreat)};
   }
-  // Enable modifiers per scenario, faction and battle event.
-  const scenarios={
-    jingxing: {
-      han: context=>({noRetreat:context.backToWater===true}),
-      zhao: context=>({shockSeconds:context.believesCommanderCaptured?context.secondsSinceReveal:0})
-    }
-  };
-  function conditions(battle,side,context={}){
-    return scenarios[battle]?.[side]?.(context)??{};
+  function conditions(scenario,side,context={}){
+    return {
+      noRetreat:scenario.morale?.backToWaterSide===side&&context.backToWater===true,
+      shockSeconds:scenario.morale?.captureShockSide===side&&context.believesCommanderCaptured?context.secondsSinceReveal:0
+    };
   }
   window.atlasBattleMorale={conditions,threshold,evaluate};
 })();
