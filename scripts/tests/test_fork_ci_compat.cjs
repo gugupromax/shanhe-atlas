@@ -132,6 +132,7 @@ function adapterFixture(readyState, appExists) {
   const app = { svg: element(), _openChallenge() {} };
   const win = {
     document: doc,
+    location: { search: "", protocol: "https:", origin: "https://example.test" },
     addEventListener(type, handler) {
       if (!listeners.has(type)) listeners.set(type, []);
       listeners.get(type).push(handler);
@@ -141,7 +142,7 @@ function adapterFixture(readyState, appExists) {
   win.addEventListener('DOMContentLoaded', () => { win.atlasApp = app; });
   if (appExists) win.atlasApp = app;
   vm.runInNewContext(fs.readFileSync(path.join(ROOT, 'integration.js'), 'utf8'), {
-    window: win, setTimeout() {}, clearTimeout() {},
+    window: win, URLSearchParams, setTimeout() {}, clearTimeout() {},
   });
   return {
     win,
