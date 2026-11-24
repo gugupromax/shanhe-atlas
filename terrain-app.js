@@ -2,6 +2,36 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
+  // Opt-in cold-start profiler. Enable with ?perf=1 or localStorage.atlasPerf='1'.
+  // When disabled every call is a no-op, so production behaviour is unchanged.
+  const PERF = (() => {
+    let on = false;
+    try {
+      on = new URLSearchParams(location.search).get('perf') === '1'
+        || localStorage.getItem('atlasPerf') === '1';
+    } catch (_) { on = false; }
+    if (!on) return { on: false, mark() {}, span() {}, report() { return null; } };
+    const spans = {};
+    const open = {};
+    const api = {
+      on: true,
+      mark(name) { open[name] = performance.now(); },
+      span(name, from) {
+        const start = open[from];
+        if (start == null) return;
+        spans[name] = Math.round(performance.now() - start);
+        delete open[from];
+      },
+      report() {
+        const marks = performance.getEntriesByType('mark')
+          .filter(entry => entry.name.startsWith('atlas-3d:'))
+          .map(entry => ({ name: entry.name.slice('atlas-3d:'.length), at: Math.round(entry.startTime) }));
+        return { spans: { ...spans }, marks };
+      },
+    };
+    window.__atlasPerf = api;
+    return api;
+  })();
   const embedded=new URLSearchParams(location.search).get('embedded')==='1';
   let fusion=null,fusionState=null,fusionActive=!embedded,fusionLocations=[],fusionLayers={},fusionPaintedKey=null,fusionViewKey='',fusionHeightTimer=null,fusionViewTimer=null,fusionStarted=false;
   let atlasSurface=null,surfaceSceneKey='',surfaceBaseId=-1,surfaceDetailId=-1,surfaceLoads=0,pendingSurfaceDetail=null,pendingBaseDraw=null;
@@ -202,15 +232,17 @@
     }
   }
   function build(d) {
+    PERF.mark('build-start');
     atlasSurface?.dispose();atlasSurface=null;
     dispose(terrain);dispose(base);dispose(markerGroup);clearProfile();
     tangTileJob++;tangTilePlanKey='';tangBaseApplied=false;
     if(embedded)fusionPaintedKey=null;
-    dataset=d;heights=decode(d);seaMask=findSea();
+    PERF.mark('decode-start');dataset=d;heights=decode(d);seaMask=findSea();PERF.span('decode','decode-start');
     const [w,s,e,n]=d.bounds;
     mapFrame=viewportGeometry.createFrame(d.bounds,selected==='national');widthKm=mapFrame.width;depthKm=mapFrame.depth;
     const xs=Array.from({length:d.width},(_,col)=>mapFrame.toWorld(w+(e-w)*col/(d.width-1),n).x);
     const rowInfo=Array.from({length:d.height},(_,row)=>{const lat=n-(n-s)*row/(d.height-1);return {z:mapFrame.toWorld(w,lat).z,scale:mapFrame.heightScale(lat)};});
+    PERF.mark('positions-start');
     const count=d.width*d.height, positions=new Float32Array(count*3), colors=embedded?null:new Float32Array(count*3),uv=new Float32Array(count*2),seaColor=new THREE.Color('#8eb5bd');
     for(let row=0;row<d.height;row++)for(let col=0;col<d.width;col++) {
       const i=row*d.width+col;
@@ -220,6 +252,7 @@
       if(colors){const c=seaMask?.[i]?seaColor:terrainColor(heights[i]);colors.set([c.r,c.g,c.b],i*3);}
       uv[i*2]=col/(d.width-1);uv[i*2+1]=embedded?.5-rowInfo[row].z/depthKm:1-row/(d.height-1);
     }
+    PERF.span('positions','positions-start');PERF.mark('normals-start');
     geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
     if(colors)geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
     if(embedded){
@@ -229,6 +262,7 @@
       geometry.setIndex(new THREE.BufferAttribute(viewportGeometry.meshIndices(d.width,d.height).indices,1));
       geometry.computeVertexNormals();
     }
+    PERF.span('normals','normals-start');PERF.mark('mesh-start');
     geometry.setAttribute('uv',new THREE.BufferAttribute(uv,2));
     geometry.computeBoundingBox();
     if(embedded){
@@ -237,7 +271,7 @@
     }else terrain=new THREE.Mesh(geometry,new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide}));
     scene.add(terrain);
     if(embedded)terrain.visible=false;
-    buildBase();rebuildMarkers();resetCamera();
+    PERF.span('mesh','mesh-start');buildBase();rebuildMarkers();resetCamera();PERF.span('build-total','build-start');
     const step=d.gridStepMetresApprox;
     $('data-summary').textContent=`本地真实高程 · 网格约 ${step[0]>=1000?(step[0]/1000).toFixed(1)+' × '+(step[1]/1000).toFixed(1)+' 千米':step[0]+' × '+step[1]+' 米'} · ${d.width} × ${d.height} 点`;
     $('coordinate').textContent='单击山体，查看经纬度与海拔';dirty=true;
@@ -374,7 +408,7 @@
     if(!renderer)return;const token=++loadingToken;
     $('load-state').textContent='正在读取本地'+(key==='national'?'全国地形':passes.find(p=>p[0]===key)?.[1]||'太行全貌')+'高程…';$('load-state').hidden=false;
     try {
-      const d=await loadGrid(key==='national'?'context':key);if(token!==loadingToken)return;
+      PERF.mark('grid-fetch-start');const d=await loadGrid(key==='national'?'context':key);PERF.span('grid-fetch','grid-fetch-start');if(token!==loadingToken)return;
       selected=key;selectedRoute=routeKey||(['national','overview'].includes(key)?null:key);exaggeration=key==='national'?(embedded?defaultEmbeddedExaggeration:60):key==='overview'?10:3;
       $('exaggeration').max=key==='national'?120:16;
       document.body.classList.toggle('national-mode',key==='national');
@@ -1009,6 +1043,7 @@
     const sample=frameMetric&&!performance.getEntriesByName(frameMetric,'measure').length;
     const drawStart=sample?performance.now():0;
     renderer.render(scene,camera);
+    if(PERF.on&&!PERF.firstDrawn){PERF.firstDrawn=true;performance.mark('atlas-3d:first-draw');}
     if(pendingBaseDraw && terrain.visible && pendingBaseDraw.sceneKey===fusionState?.sceneKey){
       fusion.send('surface-drawn',pendingBaseDraw);
       pendingBaseDraw=null;
@@ -1097,7 +1132,10 @@
   try {
     if(typeof THREE==='undefined')throw new Error('缺少 vendor/three.min.js，请解压整个文件夹，不要只移动 index.html。');
     performance.mark('atlas-3d:renderer-start');
-    renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio,1.8));
+    // `?aa=0` disables MSAA. Software renderers pay a large penalty for it, so the
+    // flag exists to A/B that cost on real machines (see scripts/benchmark_terrain_cold_start.cjs).
+    const antialias=new URLSearchParams(location.search).get('aa')!=='0';
+    renderer=new THREE.WebGLRenderer({antialias,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio,1.8));
     performance.mark('atlas-3d:renderer-ready');
     if(!viewportGeometry)throw new Error('缺少 viewport-geometry.js，请保留完整文件夹。');
     renderer.setClearColor(embedded?'#d6e0de':'#8eb5bd');renderer.outputColorSpace=THREE.SRGBColorSpace;
