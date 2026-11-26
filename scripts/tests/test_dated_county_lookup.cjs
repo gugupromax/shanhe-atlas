@@ -56,7 +56,7 @@ function countySearchLink(query = '金牛县', year = '741') {
     _selectSearchResult(hit) { selections.push({title:hit.titleZh, year:this.year}); },
   });
   return {
-    ctrl, input, loads, selections,
+    ctrl, sandbox, input, loads, selections,
     releaseCountyData() {
       vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/tang_741.js'), 'utf8'), sandbox);
       release();
@@ -85,19 +85,17 @@ test('URL quick search selects a 741 county once after its data arrives', async 
 
 test('URL quick search waits for a year label that needs the Chinese dictionary', async () => {
   const link = countySearchLink('金牛县', '開元二十九年');
-  let dictionaryReady = false;
+  const converter = link.sandbox.window.ZH_HANT_CONV;
+  delete link.sandbox.window.ZH_HANT_CONV;
   let finishDictionary;
   const dictionary = new Promise(resolve => { finishDictionary = resolve; });
-  Object.assign(link.ctrl, {
-    _hasZhHant: () => dictionaryReady,
-    _ensureZhHant: () => dictionary,
-    _parseYearList: () => dictionaryReady ? [741] : [],
-  });
+  link.ctrl._ensureZhHant = () => dictionary;
+  assert.deepEqual(Array.from(link.ctrl._parseYearList('開元二十九年')), []);
   link.ctrl._restoreFromQuery();
   await link.flush();
   assert.equal(link.input.value, '金牛县');
   assert.deepEqual(link.loads, []);
-  dictionaryReady = true;
+  link.sandbox.window.ZH_HANT_CONV = converter;
   finishDictionary();
   await link.flush();
   assert.deepEqual(link.loads, [741]);
@@ -105,6 +103,26 @@ test('URL quick search waits for a year label that needs the Chinese dictionary'
   link.releaseCountyData();
   await link.flush();
   assert.deepEqual(link.selections, [{title:'金牛县',year:741}]);
+});
+
+test('year links accept exact era years, explicit calendar years and numeric lists', () => {
+  const {ctrl} = countySearchLink();
+  const parse = value => Array.from(ctrl._parseYearList(value));
+  for (const label of ['开元二十九年', '開元二十九年', '唐玄宗开元29年', '公元741年', '741 CE']) {
+    assert.deepEqual(parse(label), [741], label);
+  }
+  assert.deepEqual(parse('公元前 214 年；開元二十九年 819, 960'), [-214,741,819,960]);
+  assert.deepEqual(parse('太和二年'), [], 'ambiguous era name');
+  assert.deepEqual(parse('北魏孝文帝太和二年'), [478], 'qualified era name');
+  assert.deepEqual(parse('开元三十年'), [], 'outside the actual recorded span');
+});
+
+test('an ambiguous URL year cannot select a county from an incidental year', async () => {
+  const link = countySearchLink('金牛县','太和二年');
+  link.ctrl._restoreFromQuery();
+  await link.flush();
+  assert.deepEqual(link.loads, []);
+  assert.deepEqual(link.selections, []);
 });
 
 test('URL quick search does not replay when input or year changes while county data loads', async () => {

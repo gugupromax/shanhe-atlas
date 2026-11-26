@@ -215,16 +215,35 @@
     _parseYearList(year) {
       if (year === undefined || year === null || year === '') return [];
       const raw = Array.isArray(year) ? year.join(',') : String(year);
-      return raw
-        .split(/[,，、;\s]+/)
-        .map((s) => s.trim())
-        .filter(Boolean)
-        .map((s) => Number(s))
-        .filter((n) => !Number.isNaN(n))
-        .map((n) => {
-          const clamped = Math.max(this.minYear, Math.min(this.maxYear, Math.round(n)));
-          return clamped === 0 ? 1 : clamped;
-        });
+      const tokens = raw.trim().replace(/(公元前?|前)\s+(?=\d)/g, '$1')
+        .replace(/(\d)\s+(年|BCE?\b|CE\b|AD\b)/gi, '$1$2').split(/[,，、;；\s]+/).filter(Boolean);
+      const years = [];
+      for (const token of tokens) {
+        let n = Number(token);
+        if (Number.isNaN(n)) {
+          const label = this._toHans(token);
+          const calendar = label.match(/^(?:公元)?(前|-)?(\d{1,4})(年|BC|BCE|AD|CE)?$/i);
+          if (calendar) {
+            n = Number(calendar[2]) * (calendar[1] || /^bc/i.test(calendar[3] || '') ? -1 : 1);
+          } else {
+            const era = label.match(/^(.+?)(元|\d+|[一二三四五六七八九]?十[一二三四五六七八九]?|[一二三四五六七八九])[年载]$/);
+            if (!era) continue;
+            const ordinal = this._parseChineseNumber(era[2]);
+            const matches = new Set();
+            for (const span of this._getCompiledEraSpans()) {
+              if (![span.prefix, span.eraOnly, span.fullCombo, span.shortCombo].includes(era[1])) continue;
+              const candidate = span.startY + ordinal - span.baseNum;
+              if (candidate >= span.startY && candidate <= span.endY) matches.add(candidate);
+            }
+            // Quick search can offer several reigns; a URL year must have a single meaning.
+            if (matches.size !== 1) return [];
+            n = matches.values().next().value;
+          }
+        }
+        const clamped = Math.max(this.minYear, Math.min(this.maxYear, Math.round(n)));
+        years.push(clamped === 0 ? 1 : clamped);
+      }
+      return years;
     }
 
     _parsePlaceTokens(place, year) {
@@ -1613,8 +1632,21 @@
           (year && /[\u4e00-\u9fff]/.test(String(year))));
       const needsLoreDetail = !this._isLoreDetailLoaded();
       this.stopAutoplay();
-      const placeTokens = this._parsePlaceTokens(place, year);
       const yearList = this._parseYearList(year);
+      if (!yearList.length && /[\u4e00-\u9fff]/.test(String(year))) {
+        if (needsZhHant) {
+          const activeYear = this.year, trace = this.activeTrace, person = this.activePerson;
+          const area = this.activeMapArea, route = this.activeCustomRoute;
+          this._ensureZhHant().then(() => {
+            if (this._latestLocateRequest === request && this.year === activeYear &&
+                this.activeTrace === trace && this.activePerson === person &&
+                this.activeMapArea === area && this.activeCustomRoute === route &&
+                this._parseYearList(year).length) this.locate(opts, showTransition);
+          });
+        }
+        return this.inspect({year:this.year});
+      }
+      const placeTokens = this._parsePlaceTokens(place, year);
       const initialYear = placeTokens.length
         ? placeTokens[0].year
         : yearList.length
@@ -1865,14 +1897,15 @@
           } else if (/[\u4e00-\u9fff]/.test(rawYr) && !this._hasZhHant()) {
             const beforeRetry = this.year;
             pendingYearRestore = this._ensureZhHant().then(() => {
-              if (rawQ && !isSearchCurrent(beforeRetry)) return null;
+              if (!isSearchCurrent(beforeRetry)) return null;
               const retryList = this._parseYearList(rawYr);
-              if (retryList.length) {
-                this.jumpToYear(retryList[0], false);
-                if (searchInput) searchInput.value = rawQ;
-              }
+              if (!retryList.length) return null;
+              this.jumpToYear(retryList[0], false);
+              if (searchInput) searchInput.value = rawQ;
               return this.year;
             });
+          } else if (rawYr) {
+            pendingYearRestore = Promise.resolve(null);
           }
         }
         if (traceParts) {
