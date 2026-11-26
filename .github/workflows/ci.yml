@@ -31,7 +31,7 @@ jobs:
 
       - name: Run shared non-browser regression checks
         id: regression
-        run: node scripts/verify_all.cjs
+        run: node scripts/verify_all.cjs --allow-unbuilt
 
       - name: Upload regression failure logs
         if: failure() && steps.regression.outcome == 'failure'

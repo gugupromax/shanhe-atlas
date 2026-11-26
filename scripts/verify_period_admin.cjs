@@ -81,10 +81,23 @@ function verifyProvider({placesForYear, inputFiles}) {
 
 if (require.main === module) {
   const root = path.resolve(__dirname, '..');
-  const context = vm.createContext({window: {}});
-  for (const file of ['js/map_data.js', 'data/tiles/period-admin.js']) {
-    vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, {filename:file});
+  const tile = path.join(root, 'data/tiles/period-admin.js');
+  let source;
+  try {
+    source = fs.readFileSync(tile, 'utf8');
+  } catch (error) {
+    if (error.code !== 'ENOENT' || !process.argv.includes('--allow-unbuilt')) throw error;
   }
+
+  if (source === undefined) {
+    console.log('Full period-admin check skipped: local-only data/tiles/period-admin.js is absent.');
+    process.exit(0);
+  }
+
+  const context = vm.createContext({window: {}});
+  const mapData = path.join(root, 'js/map_data.js');
+  vm.runInContext(fs.readFileSync(mapData, 'utf8'), context, {filename:mapData});
+  vm.runInContext(source, context, {filename:tile});
   console.log('Full local dated seats verified', verifyProvider(context.window.ATLAS_PERIOD_ADMIN));
 }
 module.exports = {verifyProvider, verify1911};

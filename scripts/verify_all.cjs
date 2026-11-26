@@ -6,6 +6,7 @@
  *   node scripts/verify_all.cjs            # run everything
  *   node scripts/verify_all.cjs --only=fusion,history
  *   node scripts/verify_all.cjs --quiet
+ *   node scripts/verify_all.cjs --allow-unbuilt  # CI checkout without the local period-admin bundle
  *
  * Exit code 1 if any check fails. Every check gets a hard timeout so a hung
  * check can never block the pipeline the way a foreground static server would.
@@ -25,6 +26,7 @@ const ROOT = path.resolve(__dirname, '..');
 const LOG_DIR = path.join(ROOT, '.runtime');
 const PER_CHECK_TIMEOUT_MS = 180_000;
 const TAIL_BYTES = 4096;
+const argv = process.argv.slice(2);
 const unitTests = readdirSync(path.join(ROOT, 'scripts/tests'))
   .filter((name) => /^test_.*\.cjs$/.test(name))
   .sort()
@@ -42,12 +44,14 @@ const CHECKS = [
   { id: 'viewport', title: '墨卡托与视角约束', file: 'scripts/verify_viewport.cjs' },
   { id: 'surface-races', title: '贴面竞态与重入', file: 'scripts/verify_surface_races.cjs' },
   { id: 'surface-registration', title: '贴面与地形坐标注册', file: 'scripts/verify_surface_registration.cjs' },
-  { id: 'period-admin', title: '历代治所数据完整性', file: 'scripts/verify_period_admin.cjs' },
+  {
+    id: 'period-admin', title: '历代治所数据完整性',
+    args: ['scripts/verify_period_admin.cjs', ...argv.filter((arg) => arg === '--allow-unbuilt')],
+  },
   { id: 'atlas', title: '图集内容与 CUJ', file: 'scripts/validate_atlas.js' },
   { id: 'perf-budget', title: '首屏体积预算', args: ['scripts/perf_budget.js', '--check'] },
 ];
 
-const argv = process.argv.slice(2);
 const quiet = argv.includes('--quiet');
 const onlyArg = argv.find((a) => a.startsWith('--only='));
 const wanted = onlyArg ? onlyArg.slice('--only='.length).split(',').map((s) => s.trim()).filter(Boolean) : null;
