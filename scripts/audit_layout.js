@@ -26,6 +26,7 @@ function findChromeBinary() {
     process.env.PLAYWRIGHT_BROWSERS_PATH || '',
     path.join(os.homedir(), '.cache', 'ms-playwright'),
     path.join(os.homedir(), 'Library', 'Caches', 'ms-playwright'),
+    path.join(os.homedir(), 'AppData', 'Local', 'ms-playwright'),
   ];
   for (const root of pwRoots) {
     if (!root || !fs.existsSync(root)) continue;
@@ -34,8 +35,10 @@ function findChromeBinary() {
         'chrome-headless-shell-mac-arm64/chrome-headless-shell',
         'chrome-headless-shell-mac-x64/chrome-headless-shell',
         'chrome-headless-shell-linux64/chrome-headless-shell',
+        'chrome-headless-shell-win64/chrome-headless-shell.exe',
         'chrome-linux/chrome',
         'chrome-mac/Chromium.app/Contents/MacOS/Chromium',
+        'chrome-win/chrome.exe',
       ]) {
         candidates.push(path.join(root, dir, rel));
       }
@@ -53,12 +56,18 @@ function findChromeBinary() {
     '/usr/bin/chromium',
     '/usr/bin/chromium-browser',
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-    '/Applications/Chromium.app/Contents/MacOS/Chromium'
+    '/Applications/Chromium.app/Contents/MacOS/Chromium',
+    'C:/Program Files/Google/Chrome/Application/chrome.exe',
+    'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
+    path.join(os.homedir(), 'AppData', 'Local', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+    'C:/Program Files/Microsoft/Edge/Application/msedge.exe',
+    'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
   );
   for (const c of candidates) {
     if (c && fs.existsSync(c)) {
       try {
-        fs.accessSync(c, fs.constants.X_OK);
+        // X_OK is meaningless on Windows, where it degrades to an existence check.
+        fs.accessSync(c, process.platform === 'win32' ? fs.constants.F_OK : fs.constants.X_OK);
         return c;
       } catch (_) {}
     }

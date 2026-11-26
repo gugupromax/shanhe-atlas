@@ -9,17 +9,29 @@
  *
  * Exit code 1 if any check fails. Every check gets a hard timeout so a hung
  * check can never block the pipeline the way a foreground static server would.
+ * A failed check keeps its complete output in .runtime/verify-<id>.log.
  */
 'use strict';
 
-const { execFileSync } = require('child_process');
+const { spawnSync } = require('child_process');
+const { randomUUID } = require('crypto');
+const {
+  appendFileSync, closeSync, fstatSync, mkdirSync, openSync, readSync,
+  readdirSync, renameSync, unlinkSync,
+} = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
+const LOG_DIR = path.join(ROOT, '.runtime');
 const PER_CHECK_TIMEOUT_MS = 180_000;
-const TAIL_LINES = 2;
+const TAIL_BYTES = 4096;
+const unitTests = readdirSync(path.join(ROOT, 'scripts/tests'))
+  .filter((name) => /^test_.*\.cjs$/.test(name))
+  .sort()
+  .map((name) => path.join('scripts/tests', name));
 
 const CHECKS = [
+  { id: 'unit', title: '仓库单元与回归测试', args: ['--test', ...unitTests] },
   { id: 'command', title: '战役指挥与兵种表', file: 'battles/verify-command.cjs' },
   { id: 'campaign', title: '多战场时钟与战果联动', file: 'battles/verify-campaign.cjs' },
   { id: 'fusion', title: '平面/3D 融合与状态同步', file: 'scripts/verify_fusion.cjs' },
@@ -32,7 +44,7 @@ const CHECKS = [
   { id: 'surface-registration', title: '贴面与地形坐标注册', file: 'scripts/verify_surface_registration.cjs' },
   { id: 'period-admin', title: '历代治所数据完整性', file: 'scripts/verify_period_admin.cjs' },
   { id: 'atlas', title: '图集内容与 CUJ', file: 'scripts/validate_atlas.js' },
-  { id: 'perf-budget', title: '首屏体积预算', file: 'scripts/perf_budget.js' },
+  { id: 'perf-budget', title: '首屏体积预算', args: ['scripts/perf_budget.js', '--check'] },
 ];
 
 const argv = process.argv.slice(2);
@@ -46,30 +58,46 @@ if (selected.length === 0) {
   process.exit(2);
 }
 
-function tail(text, lines) {
-  const rows = String(text || '').trim().split(/\r?\n/).filter(Boolean);
-  return rows.slice(-lines).join(' / ').slice(0, 400);
+function tail(fd) {
+  const { size } = fstatSync(fd);
+  const buffer = Buffer.alloc(Math.min(size, TAIL_BYTES));
+  const bytesRead = readSync(fd, buffer, 0, buffer.length, size - buffer.length);
+  const rows = buffer.toString('utf8', 0, bytesRead).trim().split(/\r?\n/).filter(Boolean);
+  return rows.slice(-2).join(' / ').slice(0, 400);
 }
 
+mkdirSync(LOG_DIR, { recursive: true });
 const results = [];
 const startedAll = Date.now();
 
 for (const check of selected) {
   const began = Date.now();
-  let status = 'PASS';
+  const tempPath = path.join(LOG_DIR, `verify-${check.id}-${randomUUID()}.tmp`);
+  const fd = openSync(tempPath, 'wx+');
+  let result;
   let detail = '';
   try {
-    const stdout = execFileSync(process.execPath, [path.join(ROOT, check.file)], {
+    result = spawnSync(process.execPath, check.args ?? [check.file], {
       cwd: ROOT,
       timeout: PER_CHECK_TIMEOUT_MS,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: ['ignore', fd, fd],
     });
-    detail = tail(stdout, TAIL_LINES);
-  } catch (error) {
-    const timedOut = error.killed || error.signal === 'SIGTERM';
-    status = timedOut ? 'TIMEOUT' : 'FAIL';
-    detail = tail(error.stdout || error.stderr || error.message, TAIL_LINES + 1);
+    if (!quiet && result.status === 0 && !result.error) detail = tail(fd);
+  } finally {
+    closeSync(fd);
+  }
+
+  let status = 'PASS';
+  if (result.status === 0 && !result.error) {
+    unlinkSync(tempPath);
+  } else {
+    status = result.error?.code === 'ETIMEDOUT' ? 'TIMEOUT' : 'FAIL';
+    const logPath = path.join(LOG_DIR, `verify-${check.id}.log`);
+    const diagnostics = [status, `Exit code: ${result.status}`, `Signal: ${result.signal}`];
+    if (result.error) diagnostics.push(result.error.stack || result.error.message);
+    appendFileSync(tempPath, '\n\n' + diagnostics.join('\n') + '\n');
+    renameSync(tempPath, logPath);
+    detail = `log: .runtime/verify-${check.id}.log`;
   }
   const ms = Date.now() - began;
   results.push({ ...check, status, ms, detail });
@@ -88,7 +116,7 @@ console.log(`duration : ${(totalMs / 1000).toFixed(1)} s`);
 if (failed.length) {
   console.log('');
   console.log('failed checks:');
-  for (const f of failed) console.log(`  - ${f.id} (${f.file}) [${f.status}] ${f.detail}`);
+  for (const f of failed) console.log(`  - ${f.id} (${f.file ?? f.args.slice(0, 1).join(' ')}) [${f.status}] ${f.detail}`);
   process.exit(1);
 }
 
