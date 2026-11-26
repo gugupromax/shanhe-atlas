@@ -4,7 +4,7 @@
 const assert = require('node:assert/strict');
 const os = require('node:os');
 const path = require('node:path');
-const {clickControl, enableCountyLayer} = require('./tests/terrain_browser_controls.cjs');
+const {clickControl, enableCountyLayer, terrainTestUrl} = require('./tests/terrain_browser_controls.cjs');
 
 function playwright() {
   if (process.env.TERRAIN_TEST_PLAYWRIGHT) return require(process.env.TERRAIN_TEST_PLAYWRIGHT);
@@ -17,9 +17,8 @@ function playwright() {
 }
 
 async function main() {
+  const url = terrainTestUrl();
   const {chromium} = playwright();
-  const url = new URL(process.env.TERRAIN_TEST_URL || 'http://127.0.0.1:8773/');
-  assert.ok(url.protocol === 'http:' && ['127.0.0.1','localhost','[::1]'].includes(url.hostname));
   url.search = '?year=741&zoom=7&center=119.77,40.01';
   const withoutTiles = process.argv.includes('--without-tiles');
   const args = process.argv.includes('--software')

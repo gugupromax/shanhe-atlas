@@ -10,7 +10,7 @@
  *
  * Exit code 1 if any check fails. Every check gets a hard timeout so a hung
  * check can never block the pipeline the way a foreground static server would.
- * A failed check keeps its complete output in .runtime/verify-<id>.log.
+ * A failed check keeps its complete output in .runtime/verify-<id>.log or a unique fallback log.
  */
 'use strict';
 
@@ -48,7 +48,7 @@ const CHECKS = [
     id: 'period-admin', title: '历代治所数据完整性',
     args: ['scripts/verify_period_admin.cjs', ...argv.filter((arg) => arg === '--allow-unbuilt')],
   },
-  { id: 'atlas', title: '图集内容与 CUJ', file: 'scripts/validate_atlas.js' },
+  { id: 'atlas', title: '图集内容与 CUJ', file: 'scripts/validate_atlas.js', timeoutMs: 300_000 },
   { id: 'perf-budget', title: '首屏体积预算', args: ['scripts/perf_budget.js', '--check'] },
 ];
 
@@ -70,6 +70,23 @@ function tail(fd) {
   return rows.slice(-2).join(' / ').slice(0, 400);
 }
 
+function saveFailureLog(checkId, tempPath, diagnostics) {
+  let logPath = path.join(LOG_DIR, `verify-${checkId}.log`);
+  try {
+    appendFileSync(tempPath, '\n\n' + diagnostics.join('\n') + '\n');
+    try {
+      renameSync(tempPath, logPath);
+    } catch {
+      // Another process can be holding the previous log open on Windows.
+      logPath = path.join(LOG_DIR, path.basename(tempPath, '.tmp') + '.log');
+      renameSync(tempPath, logPath);
+    }
+    return `log: .runtime/${path.basename(logPath)}`;
+  } catch (error) {
+    return `log: .runtime/${path.basename(tempPath)}（保存失败：${error.message}）`;
+  }
+}
+
 mkdirSync(LOG_DIR, { recursive: true });
 const results = [];
 const startedAll = Date.now();
@@ -83,10 +100,12 @@ for (const check of selected) {
   try {
     result = spawnSync(process.execPath, check.args ?? [check.file], {
       cwd: ROOT,
-      timeout: PER_CHECK_TIMEOUT_MS,
+      timeout: check.timeoutMs ?? PER_CHECK_TIMEOUT_MS,
       stdio: ['ignore', fd, fd],
     });
     if (!quiet && result.status === 0 && !result.error) detail = tail(fd);
+  } catch (error) {
+    result = { status: null, signal: null, error };
   } finally {
     closeSync(fd);
   }
@@ -96,12 +115,9 @@ for (const check of selected) {
     unlinkSync(tempPath);
   } else {
     status = result.error?.code === 'ETIMEDOUT' ? 'TIMEOUT' : 'FAIL';
-    const logPath = path.join(LOG_DIR, `verify-${check.id}.log`);
     const diagnostics = [status, `Exit code: ${result.status}`, `Signal: ${result.signal}`];
     if (result.error) diagnostics.push(result.error.stack || result.error.message);
-    appendFileSync(tempPath, '\n\n' + diagnostics.join('\n') + '\n');
-    renameSync(tempPath, logPath);
-    detail = `log: .runtime/verify-${check.id}.log`;
+    detail = saveFailureLog(check.id, tempPath, diagnostics);
   }
   const ms = Date.now() - began;
   results.push({ ...check, status, ms, detail });
@@ -124,4 +140,4 @@ if (failed.length) {
   process.exit(1);
 }
 
-console.log('PASS: 全部非浏览器回归通过。浏览器/真机性能验收另跑 scripts/verify_terrain_browser.cjs。');
+console.log('PASS: 全部非浏览器回归通过。启动本地地图后，可运行 node scripts/verify_terrain_browser.cjs 验收 3D。');

@@ -96,6 +96,12 @@
 
 使用已有 Python 3，在仓库根目录运行 `python -m http.server 8000 --bind 127.0.0.1`，浏览器打开 `http://127.0.0.1:8000/`。Windows 也可双击「启动地图.cmd」，结束后用「停止地图.cmd」停止本机服务。无需安装第三方 Python 包；浏览器需支持 WebGL。为可靠读取本地资源，推荐通过本机 HTTP 服务打开，不直接双击 HTML。
 
+### 验证
+
+CI 用合成数据测试历代治所生成器，并运行治所相关单测。完整数据集的验收在本机进行。将下载的第三方源数据放入 `data/tiles/period-admin-sources/`，用 Python 3 运行 `python scripts/build_period_admin.py` 生成数据包，再运行 `node scripts/verify_all.cjs`，省略 `--allow-unbuilt`。
+
+启动本地地图后，运行 `node scripts/verify_terrain_browser.cjs` 做 3D 浏览器验收。脚本会读取启动器记录的地址。手动用 `python -m http.server 8000 --bind 127.0.0.1` 启动时，先将 `TERRAIN_TEST_URL` 设为 `http://127.0.0.1:8000/`。
+
 ## 数据来源与许可
 
 新增高程来自 [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/)，数据下载日期、范围、网格及哈希见 `data/context_manifest.json`、`data/manifest.json`。署名：SRTM、GMTED2010 terrain data courtesy of the U.S. Geological Survey；Global ETOPO1 terrain data: NOAA；详见 [原始署名要求](https://github.com/tilezen/joerd/blob/master/docs/attribution.md)。Three.js r160 使用 MIT，许可证保存在 `vendor/LICENSE-three.txt`。
