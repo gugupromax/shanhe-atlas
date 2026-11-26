@@ -394,6 +394,10 @@
       const hasQueryParens = /[（(]/.test(raw);
       const isAsciiQuery = /[a-z]/i.test(raw) && !/[\u4e00-\u9fa5]/.test(raw);
       const isPassSuffix = /(?:关|\s+(?:pass|guan))$/i.test(raw);
+      const isAdminSuffix = /\s+(?:county|city|prefecture|province)$/i.test(raw) || /县$/.test(raw);
+      // When a query names its own type (“… Pass”, “… County”) it must not fall back to
+      // a bare place name of a different type: “Lantian County” is not 蓝田关.
+      const explicitTypeSuffix = isPassSuffix || isAdminSuffix;
       const stripped = raw
         .replace(
           /(?:省|市|州|郡|府|道|路|县|国|关|城|盟|地区|(?:[一-龥]{1,6}族)*自治州|壮族自治区|回族自治区|维吾尔自治区|自治区|特别行政区)$/,
@@ -418,6 +422,16 @@
       const passModes = isAsciiQuery
         ? ['strict', 'folded', 'substring']
         : ['strict', 'substring'];
+      const targetSettlements = targetDyn.settlements || [];
+      const livesAtYear = (s) =>
+        (s.appear == null || yr >= s.appear) && (s.vanish == null || yr < s.vanish);
+      const outsideTargetWindow = targetSettlements.some((s) => {
+        if (livesAtYear(s)) return false;
+        const name = isAsciiQuery ? this._enDict(s.ancient || '') : s.ancient;
+        const clean = (hasQueryParens ? name || '' : stripParens(name)).toLowerCase();
+        return clean === q || (isAsciiQuery && qFold.length >= 3 && foldAscii(clean) === qFold);
+      });
+      const allowGazetteerStrip = !outsideTargetWindow && !explicitTypeSuffix && !hasQueryParens;
 
       // Pass 1A ('strict': apostrophe-preserving) -> Pass 1B ('folded': space/apostrophe-insensitive) -> Pass 2 ('substring')
       for (const mode of passModes) {
@@ -494,6 +508,7 @@
         }
 
         const matchSettlement = (s, allowStrip = true) => {
+          if (!livesAtYear(s)) return false;
           const anc = (s.ancient || '').toLowerCase();
           const mod = (s.modern || '').toLowerCase();
           const cleanAnc = stripParens(anc);
@@ -611,7 +626,7 @@
 
         // 2a. Target dynasty settlements first (preserves era-specific homonyms like 战国/西汉 江州=重庆)
         for (const allowStrip of isExact ? [false, true] : [true]) {
-          for (const s of targetDyn.settlements || []) {
+          for (const s of targetSettlements) {
             const res = matchSettlement(s, allowStrip);
             if (res) return res;
           }
@@ -630,12 +645,12 @@
                     (n) =>
                       n === q ||
                       (!hasQueryParens && stripParens(n) === q) ||
-                      (!hasQueryParens && stripParens(n) === qStripped)
+                      (allowGazetteerStrip && stripParens(n) === qStripped)
                   )
                 : zhNames.some(
                     (n) =>
                       n.includes(q) ||
-                      (!hasQueryParens && qStripped.length >= 2 && n.includes(qStripped))
+                      (allowGazetteerStrip && qStripped.length >= 2 && n.includes(qStripped))
                   );
             } else {
               const enNames = [];
@@ -655,7 +670,9 @@
                 matched = allEn.some(
                   (n) =>
                     normApos(n) === qApos ||
-                    (!hasQueryParens && qStrippedApos.length >= 3 && normApos(n) === qStrippedApos)
+                    (allowGazetteerStrip &&
+                      qStrippedApos.length >= 3 &&
+                      normApos(n) === qStrippedApos)
                 );
               } else if (isFolded) {
                 matched =
@@ -664,7 +681,7 @@
                     (n) =>
                       normSpace(n) === qNorm ||
                       foldAscii(n) === qFold ||
-                      (!hasQueryParens &&
+                      (allowGazetteerStrip &&
                         qStrippedFold.length >= 3 &&
                         (normSpace(n) === qStrippedNorm || foldAscii(n) === qStrippedFold))
                   );
@@ -672,7 +689,7 @@
                 matched = allEn.some(
                   (n) =>
                     n.includes(q) ||
-                    (!hasQueryParens && qStripped.length >= 3 && n.includes(qStripped)) ||
+                    (allowGazetteerStrip && qStripped.length >= 3 && n.includes(qStripped)) ||
                     (qFold.length >= 4 && foldAscii(n).includes(qFold))
                 );
               }
@@ -696,6 +713,10 @@
           const gazHit = matchGazetteer();
           if (gazHit) return gazHit;
         }
+
+        // Keep authored exact gazetteer aliases, but avoid falling through to
+        // a different event site or era's city for a pin absent in this year.
+        if (outsideTargetWindow) return null;
 
         // 2c. Remaining dynasties' settlements
         for (const allowStrip of isExact ? [false, true] : [true]) {
