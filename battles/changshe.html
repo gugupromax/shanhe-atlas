@@ -26,11 +26,16 @@ aside h2{font:700 19px SimSun,serif;margin:3px 0}#front-status,#units,#journal{m
   .terrain-pane:has(#map-brief[data-night-detour]) :is(#terrain-canvas,#terrain-labels,#map){position:absolute;inset:0 0 auto;height:360px}
   #map-brief[data-night-detour]{position:relative;inset:auto;margin:0 12px 12px}
 }
-#map-phase{color:#f2d090;letter-spacing:.08em}#map-headline{margin:2px 0 4px;font:700 clamp(20px,2.2vw,28px)/1.2 SimSun,serif}#map-explain,#map-motion{margin:4px 0}
-#map-motion{color:#f2d090;font-size:13px}#orders:empty{display:none}#orders:not(:empty){margin-top:6px}#orders button{pointer-events:auto;background:#efda9e;border:1px solid #f9e9be;color:#243b35;font-weight:700}
+#map-chapter{display:flex;flex-wrap:wrap;justify-content:space-between;gap:3px 12px;margin-bottom:5px;padding-bottom:5px;border-bottom:1px solid #c8b78266}
+#map-phase{color:#ffe0a7;font-weight:700}#map-source{color:#e2d2ad}#map-headline{margin:2px 0 5px;font:700 clamp(20px,2.2vw,28px)/1.2 SimSun,serif}#map-explain,#map-motion{margin:4px 0}
+#map-motion{color:#f2d090;font-size:13px}#orders button{pointer-events:auto;background:#efda9e;border:1px solid #f9e9be;color:#243b35;font-weight:700}
+#map-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:7px}#map-actions:not(:has(button:not([hidden]))),#orders:not(:has(button:not([hidden]))){display:none}
+#map-motion:empty{display:none}
+.terrain-story-route{background:#654725;color:#fff5d7;border:1px solid #ffe1a0;font-weight:700}
+.map-story-route polyline{fill:none;stroke:#704821;stroke-width:.55}
 #toggle-details{position:absolute;z-index:3;top:10px;right:10px}.board.details-hidden{grid-template-columns:1fr}
 .terrain-tag.marching{border-left:3px solid #ffd889}.terrain-tag.engaged{box-shadow:0 0 0 3px #563f32a0}.terrain-tag.highlighted{background:#f0daa4;color:#293d36;border:1px solid #453e2d}
-#review-open,#scene-open{pointer-events:auto;margin-top:6px}
+#review-open,#scene-open{pointer-events:auto}
 #scene-dialog{max-width:calc(100vw - 32px);max-height:calc(100dvh - 32px);padding:0;border:1px solid #6c6357;background:#202926;color:#fff0d9;box-shadow:0 20px 60px #0007}
 #scene-dialog::backdrop{background:#101915c9}
 .scene-layout{display:grid;grid-template-columns:auto minmax(260px,330px);align-items:center}
@@ -70,8 +75,10 @@ aside h2{font:700 19px SimSun,serif;margin:3px 0}#front-status,#units,#journal{m
 <iframe id="national-atlas" title="山河图集 · 南宋初年历史地图" aria-hidden="true" tabindex="-1"></iframe>
 <button id="intro-open" type="button" hidden>战前局势</button>
 <section id="situation-intro" aria-labelledby="intro-title" hidden>
-<h2 id="intro-title">长社开战前：南阳和长社为什么同时被围？</h2>
-<p>《绍宋》卷二。金军从东、西两个方向南下，眼下东路分兵围困南阳和长社。点选战场查看局势。</p>
+<h2 id="intro-title">鄢陵有八万援军，长社为什么还在等？</h2>
+<p>东京留守宗泽病重，朝廷命杜充统兵。王彦率八字军赶来，鄢陵集结八万余人。长社仍被挞懒围着。</p>
+<p><strong>杜充奏报</strong>　岳飞、王彦不和，强令出战恐怕生变。</p>
+<p><strong>杜岩连夜面陈</strong>　两将曾共同请战，是父亲与挞懒私约不战。他经西平、中阳山回到南阳，也给赵玖指出了一条去鄢陵的路。<small>卷二第62章《召见》</small></p>
 <p><strong>先前金军五路渡河：</strong>阿里偷渡济南、讹鲁补强渡濮州，两路得手；耶律马五进逼滑州、拔离速攻汜水关，两路包抄东京受阻；西路撒八进攻河东，在解州被李彦仙、翟兴、翟进击退。此后金军重新调动，形成眼下局面。<small> <a href="https://cn.ttkan.co/novel/pagea/shaosong-liudanpashui_126.html">卷二第39章</a></small></p>
 <div class="situation-key"><span><i class="song-key"></i>南宋</span><span><i class="jin-key"></i>金</span><span><i class="siege-key"></i>金军围城 · 范围示意</span></div>
 <p><small>淡底色表示 1128 年历史疆域。交战态势见城池标记，虚线圈标示小说中的围城，范围为示意。</small></p>
@@ -86,15 +93,19 @@ aside h2{font:700 19px SimSun,serif;margin:3px 0}#front-status,#units,#journal{m
 </section>
 <output id="situation-status" aria-label="长社状态"></output><canvas id="terrain-canvas" aria-label="可旋转和缩放的 3D 地图" hidden></canvas><div id="terrain-labels"></div>
 <p id="terrain-notice">正在加载真实高程…</p><svg id="map" role="img" aria-label="三个战场与各支部队的持续位置" viewBox="0 0 100 68" preserveAspectRatio="xMidYMid meet">
+<defs><marker id="story-arrow" markerWidth="4" markerHeight="4" refX="3" refY="2" orient="auto"><path d="M0,0 L4,2 L0,4 Z" fill="#704821"/></marker></defs>
 <rect class="land" x="-30" y="-30" width="160" height="130"/><path class="river" d="M 56,-20 C 48,7 64,13 53,29 S 59,58 45,90"/><text class="map-label" x="56" y="11">清潩水（示意）</text><g id="routes"></g><g id="landmarks"></g><g id="forces"></g></svg><section id="map-brief" aria-label="地图解说">
-  <small id="map-phase"></small><h2 id="map-headline"></h2>
+  <div id="map-chapter"><small id="map-phase"></small><small id="map-source"></small></div>
+  <h2 id="map-headline"></h2>
   <p id="map-explain"></p><p id="map-motion"></p>
-  <div class="play" id="orders" aria-label="当前可用命令"></div>
-  <button type="button" id="review-open" hidden>回看解说</button>
-  <button type="button" id="scene-open" hidden>回看斧决杜充</button>
+  <div id="map-actions">
+    <div class="play" id="orders" aria-label="当前可用命令"></div>
+    <button type="button" id="review-open" hidden>回看解说</button>
+    <button type="button" id="scene-open" hidden>回看斧决杜充</button>
+  </div>
 </section><button type="button" id="toggle-details" aria-expanded="false" aria-controls="campaign-details">显示右侧资料</button></div>
 <aside id="campaign-details" hidden><section id="story" aria-live="polite"></section><div><h2>战场状态</h2><ul id="front-status"></ul></div><div><h2>部队视角与士气</h2><ul id="units"></ul></div><h2>事件记录</h2><ol id="journal"></ol></aside></div>
-<footer><div class="play"><button type="button" id="play">开始</button><button type="button" id="reset">重置</button><output class="clock" id="clock">0:00</output></div><p id="help">全国图为 1128 年历史参照，路线及敌骑位置为示意。兵力为沙盘示意，旗旁兵力条的亮色长度表示人数，满格为8万人；人数按原著约数，空心虚线表示待核或包含在总数内。路线为示意。 <a href="changshe-sources.md">情节核对与出处</a></p></footer>
+<footer><div class="play"><button type="button" id="play">开始</button><button type="button" id="reset">重置</button><output class="clock" id="clock">0:00</output></div><p id="help">全国图为 1128 年历史参照，路线及敌骑位置为示意。兵力为沙盘示意，旗旁亮条表示人数，满格为 8 万人。空心虚线表示待核或已计入总数。 <a href="changshe-sources.md">情节核对与出处</a></p></footer>
 </main><dialog id="review-dialog" aria-labelledby="review-title"><h2 id="review-title">回看解说</h2><form method="dialog"><button autofocus>返回地图</button></form><ol id="review-list" reversed></ol></dialog><dialog id="scene-dialog" aria-labelledby="scene-title">
   <div class="scene-layout">
     <figure id="scene-art" hidden><img id="scene-image" alt="赵玖举起斧头，杜充倒在堂上"><figcaption>《绍宋》漫画画面 · 用户提供</figcaption></figure>

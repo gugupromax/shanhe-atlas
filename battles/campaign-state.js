@@ -69,7 +69,7 @@
       completed.set(event.id,at);
       log.push({id:event.id,time:at,title:event.title,detail:event.detail,people:event.people,source:event.source});
     }
-    function advance(to){
+    function advance(to,pauseAt=[]){
       if(!Number.isFinite(to)||to<time)throw new RangeError('Campaign clock must advance');
       for(;;){
         let next=null,nextTime=Infinity;
@@ -85,6 +85,7 @@
         }
         if(!next)break;
         settle(nextTime);time=nextTime;apply(next,time);
+        if(pauseAt.includes(next.id))return snapshot();
       }
       settle(to);time=to;
       return snapshot();

@@ -1,6 +1,7 @@
 (function(){
   'use strict';
   const cfg=window.atlasCampaignDemo;
+  const clockStops=[...(cfg.pauseAt??[]),cfg.finishAt??'relief'];
   const get=id=>document.getElementById(id);
   const map=get('map'), play=get('play'), result=get('result');
   let campaign=createAtlasCampaign(cfg), view={kind:'all'}, running=false, frame=0, clockBase=0;
@@ -38,7 +39,7 @@
       console.warn(error);
     }
   }
-  const mapBrief=get('map-brief'), mapPhase=get('map-phase'), mapHeadline=get('map-headline'), mapExplain=get('map-explain'), mapMotion=get('map-motion');
+  const mapBrief=get('map-brief'), mapPhase=get('map-phase'), mapSource=get('map-source'), mapHeadline=get('map-headline'), mapExplain=get('map-explain'), mapMotion=get('map-motion');
   if(nationalAtlas)view={kind:'national'};
   function selectSituation(index){
     if(!Number.isInteger(index)||index<0||index>2)return;
@@ -121,13 +122,15 @@
       if(situationStatus.textContent!==pressure)situationStatus.textContent=pressure;
       situationStatus.dataset.pressure=!besieged?'clear':clearing?'breaking':'siege';
     }
-    const phase=finished?'本局结局':waiting?'等待下令':route?'行军中':event?'战役进行中':'战役开场';
-    const title=brief?.[0]??event?.title??'长社被围，赵玖仍在南阳';
-    const detail=brief?.[1]??event?.detail??'点「从南阳出发」。赵玖与赤心队将向东绕行，韩世忠仍在长社。';
-    const motion=route?route.name+' → '+frontNames.get(route.route.front)+' · '+Math.min(100,Math.round(100*(snapshot.time-route.route.start)/(route.route.end-route.route.start)))+'%':
-      waiting?'选择下一条命令继续。':finished?'可在各处查看结局，或重开。':'';
-    for(const [element,value] of [[mapPhase,phase],[mapHeadline,title],[mapExplain,detail],[mapMotion,motion]]){
-      if(element.textContent!==value)element.textContent=value;
+    const chapters=cfg.chapters??[];
+    const chapterIndex=Math.max(0,chapters.findLastIndex(([id])=>snapshot.log.some(item=>item.id===id)));
+    const chapter=chapters[chapterIndex];
+    const phase=chapter?(chapterIndex+1)+' / '+chapters.length+'　'+chapter[1]:finished?'本局结局':waiting?'等待下令':event?'战役进行中':'战役开场';
+    const title=brief?.[0]??event?.title??cfg.openingBrief?.[0]??'战役开场';
+    const detail=brief?.[1]??event?.detail??cfg.openingBrief?.[1]??'';
+    const motion=route&&!finished?route.name+' → '+frontNames.get(route.route.front):'';
+    for(const [element,value] of [[mapPhase,phase],[mapSource,chapter?.[2]??''],[mapHeadline,title],[mapExplain,detail],[mapMotion,motion]]){
+      if(element&&element.textContent!==value)element.textContent=value;
     }
   }
   const actions=(cfg.controls??[]).map(action=>{
@@ -162,7 +165,7 @@
   viewButton('战役总览','all',undefined,get('views'));
   if(terrain&&cfg.situation)viewButton('长社战局','situation',undefined,get('views'));
   const fronts=cfg.fronts.map(front=>{
-    if(!front.hiddenView)viewButton(front.name,'front',front.id,get('views'));
+    if(!front.hiddenView&&!front.captionOnly)viewButton(front.name,'front',front.id,get('views'));
     const row=text('li',front.name,get('front-status')), status=text('strong','',row);
     const siege=cfg.terrain&&front.id==='nanyang'
       ?svg('circle',{class:'map-siege',cx:front.x,cy:front.y,r:3.3},get('landmarks')):null;
@@ -170,6 +173,15 @@
     const label=svg('text',{class:'map-label',x:front.x+1.8,y:front.y-.8},get('landmarks'));
     label.textContent=front.name;
     return {status,dot,label,siege};
+  });
+  const storyRoutes=(cfg.storyRoutes??[]).map(route=>{
+    const points=route.via.map(id=>cfg.fronts.find(front=>front.id===id));
+    const shapes=svg('g',{class:'map-story-route'},get('routes'));
+    svg('polyline',{points:points.map(({x,y})=>x+','+y).join(' '),'marker-end':'url(#story-arrow)'},shapes);
+    const anchor=points[Math.ceil((points.length-1)/2)];
+    const caption=svg('text',{class:'map-label',x:anchor.x,y:anchor.y-2},shapes);
+    caption.textContent=route.label;
+    return {route,shapes};
   });
   const statusNames={waiting:'待命',marching:'行军中',fighting:'交战中',arrived:'已抵达',holding:'守住阵地',routed:'阵溃',charge:'冲向徐庆阵',rout:'阵溃',standard:'举旗推进',withdraw:'沿河撤离',withdrawing:'撤离',isolated:'受阻'};
   const units=cfg.groups.map(group=>{
@@ -193,6 +205,7 @@
   };
   function paint(snapshot){
     latest=snapshot;
+    const done=new Set(snapshot.log.map(event=>event.id));
     const eventId=snapshot.log.at(-1)?.id??null;
     const sceneChanged=eventId!==lastMapEvent;
     if(mapHeadline&&sceneChanged){
@@ -218,8 +231,7 @@
       map.toggleAttribute('hidden',national||Boolean(terrain));
       terrainNotice.hidden=national||Boolean(terrain);
     }
-    if(terrain&&!national)terrain.render(snapshot,view);
-    else if(!national){
+    if(!terrain&&!national){
       map.classList.toggle('compact',compact);
       if(compact){
         const focus=(view.kind==='front'?snapshot.fronts:snapshot.groups).find(item=>item.id===view.id);
@@ -228,9 +240,13 @@
     }
     for(const {button,kind,id} of views)button.setAttribute('aria-pressed',String(view.kind===kind&&view.id===id));
     const reachedYanling=cfg.terrain&&snapshot.log.some(event=>event.id==='meeting');
-    mapBrief?.toggleAttribute('data-night-detour',!national&&cfg.terrain&&!reachedYanling);
+    mapBrief?.toggleAttribute('data-night-detour',!national&&cfg.terrain&&view.kind==='all'&&!reachedYanling);
+    for(const {route,shapes} of storyRoutes)shapes.toggleAttribute('hidden',!done.has(route.after)||done.has(route.until));
     snapshot.fronts.forEach((front,i)=>{
-      const {status,label,siege}=fronts[i];
+      const {status,label,dot,siege}=fronts[i];
+      const hidden=Boolean(front.reveal&&!done.has(front.reveal));
+      dot.toggleAttribute('hidden',hidden);
+      label.toggleAttribute('hidden',hidden);
       status.textContent=front.status;
       if(siege){
         siege.toggleAttribute('hidden',reachedYanling);
@@ -274,7 +290,6 @@
         }
       }
     }
-    const done=new Set(snapshot.log.map(event=>event.id));
     if(result)result.disabled=!done.has('join')||done.has('won');
     const finished=done.has(cfg.finishAt??'relief');
     for(const {button,action} of actions){
@@ -287,6 +302,7 @@
       play.textContent=finished?'战役结束':'等待下令';
     }
     updateBrief(snapshot,waiting,finished);
+    if(terrain&&!national)terrain.render(snapshot,view);
     play.disabled=Boolean((national&&!introDismissed)||(cfg.controls&&(finished||waiting)));
     for(const item of views)item.button.disabled=!introDismissed&&item.kind!=='national';
     if(unitView)unitView.disabled=!introDismissed;
@@ -297,7 +313,7 @@
   }
   function tick(now){
     if(!running)return;
-    paint(campaign.advance(Math.max(latest.time,(now-clockBase)/1000)));
+    paint(campaign.advance(Math.max(latest.time,(now-clockBase)/1000),clockStops));
     if(running)frame=requestAnimationFrame(tick);
   }
   function start(){

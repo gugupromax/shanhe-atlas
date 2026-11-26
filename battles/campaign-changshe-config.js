@@ -1,14 +1,29 @@
 /* Literary adaptation, volume II chapters 62–71. Distances, elapsed times and all stats are playtest estimates. */
 window.atlasCampaignDemo={
   terrain:true,
+  chapters:[
+    ['briefing','长社等援','卷二第 60–62 章'],
+    ['courier','密报与夜行','卷二第 62–63 章'],
+    ['meeting','鄢陵换帅','卷二第 64–65 章'],
+    ['march-yue','长葛分兵','卷二第 66–67 章'],
+    ['contact','渡河解围','卷二第 68–70 章'],
+    ['reserve-exit','战后去向','卷二第 71 章']
+  ],
+  openingBrief:['长社被围，援军从哪里来？','韩世忠守长社，兀术又在围南阳。能驰援的是东京留守司的兵，但宗泽病重，谁能把各路兵调到一起？'],
+  storyRoutes:[
+    {after:'briefing',until:'courier',via:['tokyo','yanling'],label:'东京留守司诸军赴鄢陵'},
+    {after:'courier',until:'departure',via:['yanling','xiping','hills','nanyang'],label:'杜岩回南阳 · 西平 → 中阳山'},
+    {after:'reserve-exit',via:['changshe','changge','zhongmou'],label:'韩世忠、王彦 · 联马皋北追'},
+    {after:'reserve-exit',via:['changshe','yanling','tokyo'],label:'赵玖 · 拟经鄢陵返东京'}
+  ],
   strengthFor(group,log){
     const done=id=>log.some(event=>event.id===id);
-    if(group.id==='emperor')return done('march-emperor')?'随援军行进，人数未拆分':done('meeting')?'抵鄢陵不足200骑（途中掉队）':'出发约800骑';
+    if(group.id==='emperor')return done('reserve-exit')?'拟经鄢陵返东京':done('yue-turn')?'随援军行进，人数未拆分':done('meeting')?'抵鄢陵不足200骑':done('detour')?'西平再减员，余数未详':done('xiping')?'中阳山余约400骑':'出发约800骑';
     if(group.id==='decoy')return done('xiping')?'约1万出城，约4000返回':'佯动约1万人';
     if(group.id==='yue')return done('yue-turn')?'先遣约2万人':'属鄢陵宋军';
     if(group.id==='yanling-total')return '宋军合计8万余（含岳飞、王彦）';
-    if(group.id==='jin')return done('lure')?'分兵后推算约1.5万':'长社战前集结约2.5万（含鹘拔鲁）';
-    if(group.id==='reserve')return done('lure')?'约1万骑（从长社分出）':'属长社金军';
+    if(group.id==='jin')return done('relief')?'退兵人数待核':done('lure')?'分兵后推算约1.5万':'长社战前集结约2.5万（含鹘拔鲁）';
+    if(group.id==='reserve')return done('riverbank')?'鹘拔鲁已战死，余部待核':done('lure')?'约1万骑（从长社分出）':'属长社金军';
     if(group.id==='balisu')return done('departure')?'侧击约1万骑':'约1万骑（待机包抄）';
     if(group.id==='han')return done('relief')?'长社已解围，人数待核':'被围宋军，人数待核';
     if(group.id==='wuzhu')return '围南阳，兵力待核';
@@ -16,12 +31,12 @@ window.atlasCampaignDemo={
   },
   strengthScale(group,log){
     const done=id=>log.some(event=>event.id===id);
-    if(group.id==='emperor')return done('march-emperor')?null:done('meeting')?200:800;
+    if(group.id==='emperor')return done('yue-turn')?null:done('meeting')?200:done('detour')?null:done('xiping')?400:800;
     if(group.id==='decoy')return done('xiping')?4000:10000;
     if(group.id==='yue')return done('yue-turn')?20000:null;
     if(group.id==='yanling-total')return 80000;
-    if(group.id==='jin')return done('lure')?15000:25000;
-    if(group.id==='reserve')return done('lure')?10000:null;
+    if(group.id==='jin')return done('relief')?null:done('lure')?15000:25000;
+    if(group.id==='reserve')return done('lure')&&!done('riverbank')?10000:null;
     if(group.id==='balisu')return 10000;
     return null;
   },
@@ -40,44 +55,60 @@ window.atlasCampaignDemo={
     ]
   },
   mapCues:{
+    briefing:['救兵到了鄢陵，长社却仍在等','宗泽病重。岳飞能带本部出战，却难号令留守司诸军。朝廷派杜充统领，王彦率八字军来会，鄢陵遂集结八万余人。'],
+    stalled:['杜充把按兵不动归咎于诸将不和','岳飞、王彦等屡请出兵，都被杜充压下。南阳收到的却是各军几近火并的奏报，朝廷一时无法查实。'],
+    courier:['杜岩带回密报与回程','岳飞、王彦在军务上共同请战，杜充却与挞懒私约不战。杜岩从鄢陵经西平、中阳山绕回南阳，赵玖决定循这条路反向赴鄢陵，亲自调兵。'],
     departure:["赵玖夜出被围的南阳", "杨沂中等约万人向南佯动，拔离速约万骑侧击。刘晏率约800骑护赵玖从东面绕行，途中须避开金军骑兵。"],
-    xiping:["赤心队越过中阳山", "赵玖继续向西平。杨沂中等在南面佯动，遭金军打击。"],
-    detour:["绕开郾城战场，转赴鄢陵", "南阳佯动部队遭金军打击。赵玖经西平转向杜充据守的鄢陵。"],
+    xiping:["中阳山，八百骑留下半数", "半数军士下马步行去比阳，余下约四百人一人双马，赶往西平。南阳佯动的约万人只回城四千，东寨也失了。"],
+    detour:["过西平，再择马北行", "赵玖再次留下部分军士，绕开郾城。杜岩走过这条路，途中仍可能撞见零散金骑。"],
     meeting:["鄢陵城外 · 赵玖与岳飞议战", "韩世忠还在长社城里。金军已经分兵，岳飞请趁各路尚未回援时集中出击。"],
     yamen:["张宪护衙，岳飞去召集诸将", "郦琼奉旨。等各部将领到齐，再当面对质杜充。"],
     conference:["斧决杜充", "赵玖当众让岳飞负责调度，随后处置杜充。接下来，诸军按岳飞号令出兵。"],
-    'march-yue':['马皋向长葛亮旗','李逵已把消息送入金营。马皋等沿洧水北上，岳飞部同时向临颍方向走。'],
-    lure:['蒲察鹘拔鲁离开长社','挞懒派金军援部赶去长葛设伏，城下留兵继续围住韩世忠。'],
+    'march-yue':['马皋走长葛，岳飞先向临颍','李逵诈降，把北路宋军的消息送入金营。挞懒眼前有两路动静，还不知道赵玖已到鄢陵。'],
+    lure:['挞懒调约万骑离开长社','挞懒判断马皋要向北接应，派鹘拔鲁去长葛设伏，自己留兵围城。长社金军由约两万五千减至约一万五千。'],
     'yue-turn':['岳飞折向长社','金骑已被引往长葛，岳飞折向长社。沿途举起烟号，王彦在前，赵玖率援军从鄢陵出发。'],
     'xu-routed':['岳字旗仍立，八字军正在抢渡','徐庆阵散，岳飞仍守西岸桥头。王彦继续从上游过河，赵玖的援军仍在赶路。冲散徐庆阵的金骑回收队形，长葛方向的金军援兵也正折返。'],
     'xu-break':['徐庆阵溃，岳飞本阵未倒','金骑冲散徐庆部，徐庆阵亡。岳字旗仍在河边，王彦趁金骑未收拢，从上游抢渡。'],
-    contact:["岳飞部在清潩水接战", "徐庆阵与岳飞本阵背桥列阵。金骑已从河洲内扑来，王彦还没渡河，韩世忠仍在城头观望。"],
-    'wang-arrival':['王彦从上游抢渡','金军冲破了徐庆一阵，但岳飞本阵仍在。王彦趁金军骑兵阵势未收，从上游开出第二处战场。'],
+    contact:["挞懒留桥，等岳飞半渡", "挞懒想趁宋军未全部过河就击破先头。金骑扑向西岸的徐庆阵时，岳飞本阵背桥而立，王彦还未抢渡。"],
+    'wang-arrival':['上游抢渡，城头仍在等','徐庆阵溃，岳字旗却仍立在桥头。王彦看准金骑尚未收拢，从上游渡河；韩世忠在城头判断还有后援，继续等候。'],
     'march-emperor':['两路援军正在赶来','赵玖已走过鄢陵到渡口的大半路程，正率援军抵近浮桥。蒲察鹘拔鲁正在从长葛折返，还没到河边。'],
     'reserve-approach':['两路援军正在赶来','蒲察鹘拔鲁绕向河东，赵玖也在赶往清潩水浮桥。'],
+    'emperor-approach':['岳飞守住桥头，赵玖已到浮桥外','徐庆阵虽破，岳飞还守住西岸。王彦从上游分走金骑的压力，赵玖这一路才有机会过桥。'],
     'cross-emperor':['龙纛上桥','赵玖从清潩水东岸过桥，朝岳飞本阵去。蒲察鹘拔鲁仍在东北方向赶路。'],
+    'west-bank':['龙纛过桥，向岳飞本阵靠拢','赵玖已上西岸。长社守军仍在城里等援军信号。'],
     banner:["赵玖到达岳飞阵中", "赵玖进入岳飞本阵，龙纛显露。韩世忠见旗出城，赵玖命郦琼传令拆桥。"],
     breakout:['韩世忠见岳飞阵中龙纛，下令出城','解元出东门，王善出南门。韩世忠与成闵率背嵬军从城墙豁口直奔龙纛。赵玖已进入岳飞本阵，同时命郦琼传令拆桥。'],
+    'bridge-down':['清潩水浮桥已拆，韩军仍在突围','赵玖过河后命郦琼传令拆桥。韩军仍向岳飞本阵会合，鹘拔鲁的大队已无法从这座桥回援。'],
     joint:['韩、岳向龙纛靠拢','韩世忠见到赵玖，请他以龙纛为号，韩旗与岳旗护在两侧。'],
     'standards-advance':['韩、岳并旗，龙纛转向挞懒将台','三面旗一同向西北推进，乱战中的诸军认旗跟进。'],
     relief:["长社解围", "三旗并进后，宋军拔取金营。洪涯带挞懒从浊潩水方向脱身，长社解围，金军渡河部从河边退走。"],
     'reserve-blocked':['蒲察鹘拔鲁赶到河东','金营已失，浮桥已拆，宋军也已沿河布防。他在对岸看不到过河接应的机会。'],
-    'reserve-withdraw':['金军援部沿河北撤','蒲察鹘拔鲁从长葛折返，错过城下交战，在河滩接应挞懒后沿河北撤。'],
-    'reserve-exit':['解围后，宋军分兵','岳飞留镇五河，韩世忠与王彦北追。赵玖经鄢陵前往东京。'],
+    'reserve-withdraw':['金军援部沿河北上寻找挞懒','鹘拔鲁在河东得知西岸有金军溃兵，加上浮桥已断，便领兵向北寻找逃离将台的挞懒。'],
+    riverbank:['挞懒脱身，鹘拔鲁没能回来','洪涯带挞懒逃到浊潩水。鹘拔鲁在河滩接应挞懒过河，自己被李逵和赶来的牛皋杀死。'],
+    'reserve-exit':['岳飞守长社，韩、王北追','南援粮道紧张。岳飞留镇五河、牵制兀术，韩世忠和王彦联马皋北攻中牟。赵玖拟经鄢陵赴东京。地图显示战后军令。'],
   },
   scenes:{
     conference:{
       title:'斧决杜充',
-      text:'鄢陵县衙。诸将到齐，赵玖当众追问杜充为何闭城不战。杜岩先前已揭发父亲与挞懒私约不战。诸将到齐，岳飞说出了胜机：金军分兵，河冰渐融，骑兵难以迅速回援。赵玖当众让岳飞下令出战，随后处决杜充。',
+      text:'张宪守住县衙，林景默说服掌城防的郦琼奉旨。诸将到齐后，岳飞指出金军分兵、河冰渐融，可趁回援未到集中出战。赵玖当众让岳飞调度诸军，随后处决杜充。入夜，胡寅追问这番处置的代价。援军能动了，朝廷对擅杀大员的争议刚开始。',
       image:'changshe-conference.local.png'
     }
   },
-  autoStartSignal:'depart',
-  cameraCues:{'march-yue':{kind:'situation'},'lure':{kind:'situation'},'yue-turn':{kind:'situation'},'cross-emperor':{kind:'front',id:'ford'},'reserve-blocked':{kind:'front',id:'ford'},'reserve-withdraw':{kind:'unit',id:'reserve'},joint:{kind:'front',id:'jin-camp'}},
+  autoStartSignal:'briefing',
+  cameraCues:{
+    briefing:{kind:'situation',center:[113.99,34.13],distance:128},
+    courier:{kind:'all'},
+    'march-yue':{kind:'situation'},lure:{kind:'situation'},'yue-turn':{kind:'situation'},
+    'cross-emperor':{kind:'front',id:'ford'},'reserve-blocked':{kind:'front',id:'ford'},
+    'reserve-withdraw':{kind:'unit',id:'reserve'},riverbank:{kind:'front',id:'north-bank'},joint:{kind:'front',id:'jin-camp'},
+    'reserve-exit':{kind:'situation',center:[113.99,34.17],distance:133}
+  },
   motionCues:{'march-yue':'ma',lure:'reserve','yue-turn':'yue',contact:'river-jin','xu-break':'wang','march-emperor':'emperor','reserve-approach':'emperor','cross-emperor':'emperor',relief:'reserve','reserve-withdraw':'reserve',joint:'emperor','standards-advance':'emperor'},
   finishAt:'reserve-exit',
-  pauseAt:['meeting','yamen','conference','wang-arrival'],
+  pauseAt:['courier','meeting','yamen','conference','wang-arrival'],
   fronts:[
+    {id:'tokyo',geo:[114.28,34.60],name:'东京方向',x:87,y:3,status:'东京留守司',landmarkOnly:true,captionOnly:true},
+    {id:'zhongmou',geo:[113.94,34.60],name:'中牟方向',x:61,y:3,status:'战后北追方向',landmarkOnly:true,captionOnly:true,reveal:'reserve-exit'},
     {id:'nanyang',geo:[112.53, 32.99],name:'南阳',x:13,y:57,status:'金军压境'},
     {id:'hills',geo:[113.02, 33.09],name:'中阳山',x:30,y:53,status:'绕行'},
     {id:'xiping',geo:[114.02, 33.39],name:'西平',x:46,y:43,status:'绕行'},
@@ -86,7 +117,7 @@ window.atlasCampaignDemo={
     {id:'linying',geo:[113.99,33.84],name:'临颍方向',x:62,y:38,status:'宋军佯向',landmarkOnly:true},
     {id:'jin-camp',geo:[113.825,34.085],name:'挞懒将台',x:45,y:11,status:'金军将台',landmarkOnly:true},
     {id:'east-road',geo:[114.055,34.17],name:'河东北路',x:70,y:5,status:'金军折返方向',landmarkOnly:true,hiddenView:true},
-    {id:'north-bank',geo:[113.88,34.28],name:'潩水上游',x:56,y:0,status:'上游',landmarkOnly:true,hiddenView:true},
+    {id:'north-bank',geo:[113.84,34.26],name:'河滩',x:56,y:5,status:'潩水上游',landmarkOnly:true,captionOnly:true,reveal:'riverbank'},
     {id:'ford',geo:[113.94, 34.02],name:'清潩水渡口',x:57,y:20,status:'未接战'},
     {id:'changshe',geo:[113.82, 34.02],name:'长社',x:44,y:18,status:'韩世忠受围'}
   ],
@@ -106,14 +137,21 @@ window.atlasCampaignDemo={
     {id:'reserve',name:'蒲察鹘拔鲁部',side:'opposing',type:'elite',formation:'mounted',count:84,reveal:'lure',front:'ford',x:65,y:14}
   ],
   controls:[
-    {label:'南阳佯动 · 赵玖绕行',signal:'depart',focus:{kind:'all'},consumed:'departure'},
+    {label:'看鄢陵援军为何不动',signal:'briefing',focus:{kind:'situation'},consumed:'briefing'},
+    {label:'南阳佯动 · 赵玖绕行',signal:'depart',focus:{kind:'all'},after:['courier'],consumed:'departure'},
     {label:'进鄢陵县衙',signal:'yamen',focus:{kind:'front',id:'yanling'},after:['meeting'],consumed:'yamen'},
     {label:'召集诸将 · 堂上问责',signal:'conference',focus:{kind:'front',id:'yanling'},after:['yamen'],consumed:'conference'},
     {label:'按岳飞部署出兵',signal:'yue',focus:{kind:'situation'},after:['conference'],consumed:'march-yue'},
     {label:'赵玖率援军抵近浮桥',signal:'emperor',focus:{kind:'front',id:'ford'},after:['wang-arrival'],consumed:'march-emperor'},
   ],
   events:[
-    {id:'departure',at:0,signal:'depart',title:'南阳佯动，赵玖绕行',detail:'杜充以诸将不和为由上报，杜岩却连夜到南阳揭发父亲与挞懒私约不战。赵玖沿杜岩指出的绕行方向东行，由杨沂中等在南方牵制金军。',people:'杜岩、赵玖、杨沂中、刘晏',source:'卷二第 62–63 章《召见》《问答》',effects:[
+    {id:'briefing',at:0,signal:'briefing',title:'东京诸军集结鄢陵',detail:'宗泽病重，朝廷让杜充统领东京留守司援军。岳飞、王彦等军会合，鄢陵集结八万余人。',source:'卷二第 60–61 章',effects:[
+      {kind:'front',front:'yanling',value:'援军集结，待命'}]},
+    {id:'stalled',at:0,after:['briefing'],delay:8,title:'杜充奏称诸将不和',detail:'诸将已经共同请战，杜充拒绝出兵，却在奏报中声称各部互相攻讦。',source:'卷二第 61–62 章',effects:[
+      {kind:'front',front:'yanling',value:'杜充按兵不动'}]},
+    {id:'courier',at:0,after:['stalled'],delay:7,title:'杜岩绕回南阳，揭发私约',detail:'杜岩从鄢陵绕经西平、中阳山回到南阳，告诉赵玖杜充与挞懒私约不战。赵玖据这条回程决定亲赴鄢陵。',people:'杜充、杜岩、赵玖',source:'卷二第 62 章《召见》',effects:[
+      {kind:'front',front:'nanyang',value:'杜岩密报抵达'},{kind:'front',front:'yanling',value:'杜充私约不战'}]},
+    {id:'departure',at:0,after:['courier'],signal:'depart',title:'南阳佯动，赵玖绕行',detail:'赵玖沿杜岩走过的方向反向绕行，由杨沂中等在南方牵制金军。',people:'杜岩、赵玖、杨沂中、刘晏',source:'卷二第 62–63 章《召见》《问答》',effects:[
       {kind:'front',front:'nanyang',value:'佯动接战'},{kind:'status',unit:'decoy',value:'fighting'},
       {kind:'march',unit:'balisu',front:'nanyang',x:15,y:61,duration:4},
       {kind:'march',unit:'emperor',front:'hills',duration:5}]},
@@ -184,7 +222,9 @@ window.atlasCampaignDemo={
       {kind:'status',unit:'reserve',value:'isolated'}]},
     {id:'reserve-withdraw',at:0,after:['reserve-blocked'],delay:2,title:'蒲察鹘拔鲁沿河北撤',detail:'获知潩水西岸有金军溃兵后，蒲察鹘拔鲁领兵沿河向北。',source:'卷二第 70 章《河滩》',effects:[
       {kind:'march',unit:'reserve',front:'north-bank',duration:5,motion:'withdraw'}]},
-    {id:'reserve-exit',at:0,after:['reserve-withdraw'],arrived:'reserve',title:'金军援部撤离',detail:'金军援部离开长社战区。',effects:[
-      {kind:'status',unit:'reserve',value:'withdrawing'}]}
+    {id:'riverbank',at:0,after:['reserve-withdraw'],arrived:'reserve',title:'浊潩水河滩',detail:'鹘拔鲁北上接应挞懒。挞懒渡河脱身，李逵与赶来的牛皋在河滩杀死鹘拔鲁。',people:'完颜挞懒、洪涯、蒲察鹘拔鲁、李逵、牛皋',source:'卷二第 70 章《河滩》',effects:[
+      {kind:'status',unit:'reserve',value:'withdrawing'},{kind:'front',front:'north-bank',value:'挞懒脱身，鹘拔鲁战死'}]},
+    {id:'reserve-exit',at:0,after:['riverbank'],delay:8,title:'长社战后布置',detail:'粮草不足，直接南援风险太大。赵玖命岳飞留镇五河、解围诸城并迟滞兀术，韩世忠为主、王彦为辅，联马皋北攻中牟、追击挞懒，自己拟经鄢陵赴东京。',source:'卷二第 71 章《或言南北》',effects:[
+      {kind:'front',front:'yanling',value:'赵玖拟经此返东京'},{kind:'front',front:'changge',value:'北追联络点'}]}
   ]
 };

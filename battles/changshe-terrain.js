@@ -175,6 +175,7 @@
     }
     const heading=new T.Vector3();
     const cityHighlights=new Set(['赵玖与岳飞议战','诸将赴县衙','岳飞受命调度','交战中','两路宋军接战','金军赴长葛设伏','援军到场，金军援部受阻','宋军会师','宋军沿河布防','宋军过河，浮桥已拆','解围']);
+    for(const status of ['援军集结，待命','杜充按兵不动','杜充私约不战','杜岩密报抵达','挞懒脱身，鹘拔鲁战死','赵玖拟经此返东京','北追联络点'])cityHighlights.add(status);
     const unitStatus={marching:'行军',fighting:'接战',withdrawing:'撤离',isolated:'受阻',holding:'守住阵地',routed:'阵溃',charge:'冲阵',rout:'阵溃',disordered:'阵形未收拢',withdraw:'沿河撤离'};
     const models=new Map(config.groups.map(group=>[group.id,makeUnit(group)]));
     const situation=config.situation;
@@ -272,6 +273,25 @@
       arrow.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),item.curve.getTangentAt(item.t));
       arrow.renderOrder=5;openingRoutes.add(arrow);
     }
+    const storyMaterial=new T.MeshBasicMaterial({color:'#7d4e24',depthTest:false});
+    const storyEdge=new T.MeshBasicMaterial({color:'#ffdf94',depthTest:false});
+    const storyRoutes=(config.storyRoutes??[]).map(route=>{
+      const curve=new T.CatmullRomCurve3(route.via.map(id=>raisedPoint(fronts.get(id).geo,.8)));
+      const drawing=new T.Group();
+      for(const [radius,material,order] of [[.42,storyEdge,3],[.24,storyMaterial,4]]){
+        const line=new T.Mesh(new T.TubeGeometry(curve,40,radius,6,false),material);
+        line.renderOrder=order;
+        drawing.add(line);
+      }
+      const arrow=new T.Mesh(new T.ConeGeometry(1.1,3.1,3),storyMaterial);
+      curve.getPointAt(.90,arrow.position);
+      arrow.quaternion.setFromUnitVectors(up,curve.getTangentAt(.90));
+      arrow.renderOrder=5;
+      drawing.add(arrow);
+      tactical.add(drawing);
+      return {...route,drawing,caption:label(route.label,'terrain-story-route'),position:curve.getPointAt(.45)};
+    });
+    const planFronts=new Set(storyRoutes.filter(route=>route.after===config.finishAt).flatMap(route=>route.via));
     const routeLabels=[
       {geo:[113.38,33.22],planned:'实线 · 赵玖拟东向绕行',active:'实线 · 赵玖东向绕行',text:label('','terrain-route-label')},
       {geo:[112.48,32.78],planned:'虚线 · 宋军拟向南佯动',active:'虚线 · 宋军向南佯动',text:label('','terrain-route-label')},
@@ -296,6 +316,7 @@
     }
     const point=new T.Vector3();
     const captions=[];
+    const overlays=['map-brief','situation-status','toggle-details'].map(id=>document.getElementById(id));
     function place(element,x,y,z,priority=0){
       point.set(x,y,z).project(camera);
       element.hidden=point.z>1||Math.abs(point.x)>1.04||Math.abs(point.y)>1.04;
@@ -304,6 +325,12 @@
     function layOutCaptions(){
       // Keep active locations and units anchored. Lift nearby captions before hiding them.
       const placed=[];
+      const layer=labels.getBoundingClientRect();
+      for(const overlay of overlays){
+        if(!overlay?.offsetWidth)continue;
+        const box=overlay.getBoundingClientRect();
+        placed.push({left:box.left-layer.left,right:box.right-layer.left,top:box.top-layer.top,bottom:box.bottom-layer.top});
+      }
       if(openingRoutes.visible){
         const routePoints=[[112.53,32.99],[113.02,33.09],[112.48,32.76]].map(geo=>{
           const p=raisedPoint(geo,1.5).project(camera);
@@ -410,7 +437,7 @@
     }
     function render(snapshot,view){
       lastSnapshot=snapshot;lastView=view;
-      const key=view.kind+':'+view.id;
+      const key=view.kind+':'+view.id+':'+(view.center??'');
       const overview=view.kind==='all', tacticalView=view.kind==='situation';
       if(key!==lastKey){lastKey=key;zoom=1;yaw=0;pitch=.98;}
       if(canvas.clientWidth!==width||canvas.clientHeight!==height){
@@ -419,43 +446,56 @@
       }
       if(!width||!height)return;
       const group=view.kind==='unit'?snapshot.groups.find(unit=>unit.id===view.id):null;
-      const focus=overview?[113.37,33.40]:tacticalView?situation.center:group?groupGeo(group,snapshot.time):fronts.get(view.id).geo;
-      const [x,z]=project(...focus),base=overview?235:tacticalView?situation.distance:group?16:31;
+      const focus=view.center??(overview?[113.37,33.40]:tacticalView?situation.center:group?groupGeo(group,snapshot.time):fronts.get(view.id).geo);
+      const [x,z]=project(...focus),base=view.distance??(overview?235:tacticalView?situation.distance:group?16:31);
       const distance=base/zoom,ground=local.elevation(...focus);
       camera.aspect=width/height;camera.updateProjectionMatrix();
       camera.position.set(x+Math.sin(yaw)*Math.cos(pitch)*distance,ground+Math.sin(pitch)*distance,z+Math.cos(yaw)*Math.cos(pitch)*distance);
       camera.lookAt(x,ground,z);camera.updateMatrixWorld();
       drawPressure(snapshot,tacticalView);
+      const done=new Set(snapshot.log.map(event=>event.id));
       const reachedCrossings=snapshot.log.some(event=>event.id==='march-yue');
       const dismantled=snapshot.log.some(event=>event.id==='bridge-down');
       const warOver=snapshot.log.some(event=>event.id===(config.finishAt??'relief'));
+      const planning=warOver&&planFronts.size>0;
       const reachedYanling=snapshot.log.some(event=>event.id==='meeting');
+      const nightMarch=done.has('departure')&&!reachedYanling;
       nanyangSiege.visible=!reachedYanling;
-      openingRoutes.visible=overview&&!reachedYanling;
+      openingRoutes.visible=overview&&(!done.has('briefing')||nightMarch);
+      for(const {after,until,drawing,caption,position} of storyRoutes){
+        drawing.visible=done.has(after)&&!done.has(until);
+        caption.hidden=!drawing.visible;
+        if(drawing.visible)place(caption,position.x,position.y+1.7,position.z,5);
+      }
       for(const route of routeLabels){
         route.text.hidden=!openingRoutes.visible;
         route.text.textContent=snapshot.log.some(event=>event.id==='departure')?route.active:route.planned;
         if(openingRoutes.visible){const position=raisedPoint(route.geo,2);place(route.text,position.x,position.y,position.z,5);}
       }
       for(const danger of dangerFlags){
-        danger.text.hidden=reachedYanling;
-        if(!reachedYanling){const position=raisedPoint(danger.geo,1);place(danger.text,position.x,position.y,position.z,3);}
+        danger.text.hidden=!nightMarch;
+        if(nightMarch){const position=raisedPoint(danger.geo,1);place(danger.text,position.x,position.y,position.z,3);}
       }
       pontoonGroup.visible=reachedCrossings&&!dismantled;
       crossingTag.hidden=true;
 
-      place(riverLabel,riverX,local.elevation(...riverGeo)+.2,riverZ);
-      if(westLabelPoint)place(westLabel,westLabelPoint.x,westLabelPoint.y,westLabelPoint.z);
+      riverLabel.hidden=westLabel.hidden=warOver;
+      if(!warOver){
+        place(riverLabel,riverX,local.elevation(...riverGeo)+.2,riverZ);
+        if(westLabelPoint)place(westLabel,westLabelPoint.x,westLabelPoint.y,westLabelPoint.z);
+      }
       if(crossingPoint&&dismantled&&!warOver)place(crossingTag,crossingPoint.x,crossingPoint.y,crossingPoint.z,3);
       for(const front of snapshot.fronts){
         const {model,city}=locations.get(front.id);
-        if(front.hiddenView){city.hidden=true;continue;}
+        if(front.reveal&&!done.has(front.reveal)){model.visible=false;city.hidden=true;continue;}
+        model.visible=true;
+        if(front.hiddenView||(planning&&!planFronts.has(front.id))){city.hidden=true;continue;}
         const highlighted=cityHighlights.has(front.status);
         city.classList.toggle('highlighted',highlighted);
         const nanyangUnderSiege=front.id==='nanyang'&&nanyangSiege.visible;
         city.classList.toggle('besieged',nanyangUnderSiege||(front.id===situation?.siege&&siegeMarks.visible));
-        const caption=front.status==='援军到场，金军援部受阻'?'援军到场':front.status;
-        const title=front.name+(nanyangUnderSiege?' · 金军围城':highlighted||front.id==='changshe'?' · '+caption:'');
+        const caption=front.status==='援军到场，金军援部受阻'?'援军到场':warOver&&front.id==='changshe'?'岳飞留镇五河':front.status;
+        const title=front.name+(nanyangUnderSiege?(front.status==='杜岩密报抵达'?' · 杜岩抵达':' · 金军围城'):highlighted||front.id==='changshe'?' · '+caption:'');
         if(city.textContent!==title)city.textContent=title;
         model.scale.setScalar(overview?1.65:1);
         const lift=nanyangUnderSiege?5:1.6;
@@ -466,7 +506,7 @@
         const motion=entry.route?.motion;
         const present=(!entry.reveal||snapshot.log.some(event=>event.id===entry.reveal))&&(!entry.displayUntil||!snapshot.log.some(event=>event.id===entry.displayUntil));
         model.visible=present;
-        text.hidden=!present||motion==='standard';
+        text.hidden=!present||motion==='standard'||planning;
         text._leader.hidden=true;
         arrow.visible=false;
         route.visible=false;
@@ -520,7 +560,7 @@
         fill.style.width=strengthValue==null?'0%':(100*Math.min(strengthValue,80000)/80000)+'%';
         text.dataset.position=geo.map(v=>v.toFixed(4)).join(',');
         const labelLift=entry.route?(overview?10:3):(overview?3.2:1.3);
-        if(motion!=='standard')place(text,xx,elevation+labelLift,zz,entry.route?4:entry.id==='jin'?6:entry.id==='balisu'?5:entry.id==='wuzhu'||entry.id==='yanling-total'||entry.id==='han'?3:fighting||scattering?2:1);
+        if(!text.hidden)place(text,xx,elevation+labelLift,zz,entry.route?4:entry.id==='jin'?6:entry.id==='balisu'?5:entry.id==='wuzhu'||entry.id==='yanling-total'||entry.id==='han'?3:fighting||scattering?2:1);
       }
       layOutCaptions();
       renderer.render(scene,camera);
