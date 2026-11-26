@@ -43,18 +43,8 @@ def spawn_hidden():
     else:options['start_new_session']=True
     subprocess.Popen([sys.executable,str(Path(__file__).resolve()),*args],**options)
 
-def main():
-    if '--spawn-hidden' in sys.argv:
-        spawn_hidden();return
-    RUNTIME.mkdir(exist_ok=True)
-    record=existing()
-    if '--stop' in sys.argv:
-        if record:request_json(record['url']+'/__jiangshan_stop__',record['token'])
-        return
-    if record:
-        if '--no-browser' not in sys.argv:webbrowser.open(record['url']+'/index.html')
-        print(json.dumps({'url':record['url'],'reused':True}),flush=True);return
-    token=secrets.token_urlsafe(24)
+def make_handler(token=None):
+    """Create the static handler, enabling HTTP shutdown only with a token."""
     class Handler(SimpleHTTPRequestHandler):
         def log_message(self,*args):pass
         def end_headers(self):
@@ -67,12 +57,39 @@ def main():
             if any(part in {'.runtime','.git','.agents','.codex'} for part in request_path.split('/')):self.send_error(404);return
             super().do_GET()
         def do_POST(self):
-            if self.path!='/__jiangshan_stop__' or self.headers.get('X-Jiangshan-Token')!=token:self.send_error(403);return
+            if token is None or self.path!='/__jiangshan_stop__' or self.headers.get('X-Jiangshan-Token')!=token:self.send_error(403);return
             data=b'{"stopping":true}';self.send_response(200);self.send_header('Content-Type','application/json');self.send_header('Content-Length',str(len(data)));self.end_headers();self.wfile.write(data)
             threading.Thread(target=self.server.shutdown,daemon=True).start()
+    return partial(Handler,directory=str(ROOT))
+
+def benchmark_server() -> None:
+    """Serve the project on an ephemeral loopback port until the parent closes stdin."""
+    with LocalHTTPServer(('127.0.0.1',0),make_handler()) as server:
+        worker=threading.Thread(target=server.serve_forever,kwargs={'poll_interval':.1})
+        worker.start()
+        try:
+            print(json.dumps({'url':f'http://127.0.0.1:{server.server_port}'}),flush=True)
+            sys.stdin.buffer.read()
+        finally:
+            server.shutdown()
+            worker.join()
+
+def main():
+    if '--spawn-hidden' in sys.argv:
+        spawn_hidden();return
+    RUNTIME.mkdir(exist_ok=True)
+    record=existing()
+    if '--stop' in sys.argv:
+        if record:request_json(record['url']+'/__jiangshan_stop__',record['token'])
+        return
+    if record:
+        if '--no-browser' not in sys.argv:webbrowser.open(record['url']+'/index.html')
+        print(json.dumps({'url':record['url'],'reused':True}),flush=True);return
+    token=secrets.token_urlsafe(24)
+    handler=make_handler(token)
     server=None
     for port in range(8772,8792):
-        try:server=LocalHTTPServer(('127.0.0.1',port),partial(Handler,directory=str(ROOT)));break
+        try:server=LocalHTTPServer(('127.0.0.1',port),handler);break
         except OSError:continue
     if not server:raise OSError('本机8772—8791端口均被占用，请关闭其他本地地图服务后重试。')
     url=f'http://127.0.0.1:{server.server_port}'
@@ -87,10 +104,13 @@ def main():
         except (OSError,ValueError):pass
 
 if __name__=='__main__':
-    try:main()
-    except Exception as error:
-        RUNTIME.mkdir(exist_ok=True);(RUNTIME/'启动错误.txt').write_text(str(error),encoding='utf-8')
-        if os.name=='nt' and '--no-browser' not in sys.argv:
-            import ctypes
-            ctypes.windll.user32.MessageBoxW(0,str(error),'山河图集启动失败',0x10)
-        raise
+    if '--benchmark' in sys.argv:
+        benchmark_server()
+    else:
+        try:main()
+        except Exception as error:
+            RUNTIME.mkdir(exist_ok=True);(RUNTIME/'启动错误.txt').write_text(str(error),encoding='utf-8')
+            if os.name=='nt' and '--no-browser' not in sys.argv:
+                import ctypes
+                ctypes.windll.user32.MessageBoxW(0,str(error),'山河图集启动失败',0x10)
+            raise

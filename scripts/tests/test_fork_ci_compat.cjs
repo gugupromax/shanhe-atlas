@@ -1,6 +1,7 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const { spawnSync } = require('node:child_process');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -26,6 +27,27 @@ test('public staging excludes local-only generated map layers', () => {
     assert.ok(docker.includes(directory), directory);
     assert.ok(pages.includes("--exclude='" + directory + "/'"), directory);
   }
+  const localImage = 'battles/changshe-conference.local.png';
+  assert.ok(docker.includes(localImage));
+  assert.ok(pages.includes(`--exclude='/${localImage}'`));
+  assert.ok(pages.includes(`test ! -e _site/${localImage}`));
+});
+
+test('verify_all rejects invalid selections and reports successful subsets', () => {
+  const run = (selection) => spawnSync(process.execPath, ['scripts/verify_all.cjs', selection, '--quiet'], {
+    cwd: ROOT, encoding: 'utf8', timeout: 20_000,
+  });
+  const invalid = run('--only=fusion,hstory, typo');
+  assert.equal(invalid.status, 2);
+  assert.match(invalid.stderr, /hstory, typo/);
+  assert.equal(invalid.stdout, '');
+  const empty = run('--only=');
+  assert.equal(empty.status, 2);
+  assert.match(empty.stderr, /--only/);
+  const valid = run('--only= fusion ');
+  assert.equal(valid.status, 0, valid.stdout + valid.stderr);
+  assert.match(valid.stdout, /1 passed, 0 failed/);
+  assert.match(valid.stdout, /所选.*fusion/);
 });
 
 function fixture(t, newline = '\n') {
@@ -112,7 +134,7 @@ test('sync covers local integration assets without requiring an analytics tag', 
   }
 });
 
-function adapterFixture(readyState, appExists) {
+function adapterFixture(readyState, appExists, search = '', vTerrain) {
   const listeners = new Map();
   const nodes = new Map();
   let iframeCount = 0, frame;
@@ -130,9 +152,10 @@ function adapterFixture(readyState, appExists) {
     addEventListener() {},
   };
   const app = { svg: element(), _openChallenge() {} };
+  doc.getElementById('atlas-app-script').dataset = { vTerrain };
   const win = {
     document: doc,
-    location: { search: "", protocol: "https:", origin: "https://example.test" },
+    location: { search, protocol: "https:", origin: "https://example.test" },
     addEventListener(type, handler) {
       if (!listeners.has(type)) listeners.set(type, []);
       listeners.get(type).push(handler);
@@ -176,6 +199,25 @@ test('3D resources load only when the user enables the 3D view', () => {
   f.win.atlasFusion.setMode(true);
   assert.match(f.iframeSrc, /^terrain\.html\?embedded=1/);
   assert.equal(f.win.atlasFusion.ready, false);
+});
+
+test('the terrain iframe carries its version and only the supported antialiasing override', () => {
+  for (const [search, version, expected] of [
+    ['', undefined, 'terrain.html?embedded=1'],
+    ['', 'test hash', 'terrain.html?embedded=1&v=test%20hash'],
+    ['?year=741&aa=0', 'hash', 'terrain.html?embedded=1&v=hash&aa=0'],
+    ['?aa=0', undefined, 'terrain.html?embedded=1&aa=0'],
+    ['?aa=1', 'hash', 'terrain.html?embedded=1&v=hash'],
+    ['?aa=00', 'hash', 'terrain.html?embedded=1&v=hash'],
+  ]) {
+    const f = adapterFixture('complete', true, search, version);
+    f.win.atlasFusion.setMode(true);
+    assert.equal(f.iframeSrc, expected);
+  }
+  const rewritten = adapterFixture('complete', true, '?year=741&aa=0');
+  rewritten.win.location.search = '?year=742';
+  rewritten.win.atlasFusion.setMode(true);
+  assert.equal(rewritten.iframeSrc, 'terrain.html?embedded=1&aa=0');
 });
 
 test('HTML keeps both integration scripts deferred and in dependency order', () => {

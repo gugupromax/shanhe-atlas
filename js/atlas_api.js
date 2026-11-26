@@ -1832,23 +1832,10 @@
           Promise.all(tasks).then(run);
         }
       };
-      if (q.has('q')) {
-        const rawQ = (q.get('q') || '').trim();
-        if (rawQ) {
-          const inp = this._id('inp-map-search');
-          if (inp) inp.value = rawQ;
-          const pinyinReady = this._canMatchEventPinyin(this._eventPinyinQuery(rawQ))
-            ? this._ensureEventPinyin()
-            : Promise.resolve();
-          afterFullSnapshots(() => {
-            pinyinReady.then(() => {
-              if (inp && inp.value.trim() !== rawQ) return;
-              const hits = this._queryQuickSearch(rawQ);
-              if (hits && hits.length) this._selectSearchResult(hits[0]);
-            });
-          }, 80);
-        }
-      }
+      const rawQ = (q.get('q') || '').trim();
+      const searchInput = rawQ ? this._id('inp-map-search') : null;
+      const isSearchCurrent = (year) => this.year === year && (!searchInput || searchInput.value.trim() === rawQ);
+      let pendingYearRestore = null;
       if (q.has('terrain')) {
         const tv = q.get('terrain');
         this.toggleTerrainMode(tv !== '0' && tv !== 'false');
@@ -1876,9 +1863,15 @@
           if (yList.length) {
             this.jumpToYear(yList[0], false);
           } else if (/[\u4e00-\u9fff]/.test(rawYr) && !this._hasZhHant()) {
-            this._ensureZhHant().then(() => {
+            const beforeRetry = this.year;
+            pendingYearRestore = this._ensureZhHant().then(() => {
+              if (rawQ && !isSearchCurrent(beforeRetry)) return null;
               const retryList = this._parseYearList(rawYr);
-              if (retryList.length) this.jumpToYear(retryList[0], false);
+              if (retryList.length) {
+                this.jumpToYear(retryList[0], false);
+                if (searchInput) searchInput.value = rawQ;
+              }
+              return this.year;
             });
           }
         }
@@ -1904,6 +1897,29 @@
           this.camera = { x, y, w, h, zoom: z };
           this._applyCamera();
         }
+      }
+      if (rawQ) {
+        // Restore the input after jumpToYear, which can clear search on a dynasty change.
+        if (searchInput) searchInput.value = rawQ;
+        const pinyinReady = this._canMatchEventPinyin(this._eventPinyinQuery(rawQ))
+          ? this._ensureEventPinyin()
+          : Promise.resolve();
+        const countiesReady = (pendingYearRestore ?? Promise.resolve(this.year)).then(async (year) => {
+          if (year === null || !isSearchCurrent(year)) return null;
+          try {
+            if (year === 741) await this._loadTang741Places?.();
+            else if (/(?:县|縣|\s+County)$/i.test(rawQ)) await this._loadPeriodAdminPlaces?.(true);
+          } catch {
+            // The optional county asset must not block results from the base atlas.
+          }
+          return year;
+        });
+        const snapshotsReady = new Promise((resolve) => afterFullSnapshots(resolve, 80));
+        Promise.all([countiesReady, pinyinReady, snapshotsReady]).then(([year]) => {
+          if (year === null || !isSearchCurrent(year)) return;
+          const hits = this._queryQuickSearch(rawQ);
+          if (hits && hits.length) this._selectSearchResult(hits[0]);
+        });
       }
       if (
         q.has('year') ||

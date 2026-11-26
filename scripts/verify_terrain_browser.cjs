@@ -4,20 +4,8 @@
 // Options: --software selects SwiftShader, --failure tests retry, --profile reports upload timings,
 // and --period-data requires a local all-period county index.
 const assert = require('node:assert/strict');
-const os = require('node:os');
-const path = require('node:path');
+const {loadPlaywright} = require('./load_playwright.cjs');
 const {clickControl, enableCountyLayer, terrainTestUrl} = require('./tests/terrain_browser_controls.cjs');
-
-function playwright() {
-  if (process.env.TERRAIN_TEST_PLAYWRIGHT) return require(process.env.TERRAIN_TEST_PLAYWRIGHT);
-  try {
-    return require('playwright');
-  } catch (error) {
-    if (error.code !== 'MODULE_NOT_FOUND') throw error;
-    return require(path.join(os.homedir(), '.cache', 'codex-runtimes', 'codex-primary-runtime',
-      'dependencies', 'node', 'node_modules', 'playwright'));
-  }
-}
 
 async function verifyViewportReadBudget(frame) {
   // Measure one redraw on a stationary, populated scene. An extra read per marker
@@ -46,7 +34,7 @@ async function verifyViewportReadBudget(frame) {
 
 async function main() {
   const url = terrainTestUrl();
-  const { chromium } = playwright();
+  const { chromium } = loadPlaywright();
   url.search = '?year=741&zoom=8&center=109,34';
   const simulateFailure = process.argv.includes('--failure');
   const software = process.argv.includes('--software');

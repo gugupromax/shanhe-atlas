@@ -36,6 +36,122 @@ test('741 county deep links match all the distinct named pins, including after l
   assert.equal(near.distanceKm, 0);
 });
 
+function countySearchLink(query = '金牛县', year = '741') {
+  const {ctrl, sandbox, ROOT} = createValidationContext({fastMode:true});
+  const timers = [];
+  const input = {value:''};
+  const loads = [];
+  const selections = [];
+  let release, reject;
+  const pending = new Promise((resolve, fail) => { release = resolve; reject = fail; });
+  sandbox.location.search = `?year=${encodeURIComponent(year)}&q=${encodeURIComponent(query)}`;
+  sandbox.setTimeout = (fn) => timers.push(fn);
+  Object.assign(ctrl, {
+    _fullSnapshotsLoaded:true,
+    _id: id => id === 'inp-map-search' ? input : null,
+    _armUrlSync() {},
+    jumpToYear(year) { this.year = year; input.value = ''; },
+    _loadTang741Places() { loads.push(this.year); return pending; },
+    _loadPeriodAdminPlaces() { loads.push(this.year); return pending; },
+    _selectSearchResult(hit) { selections.push({title:hit.titleZh, year:this.year}); },
+  });
+  return {
+    ctrl, input, loads, selections,
+    releaseCountyData() {
+      vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/tang_741.js'), 'utf8'), sandbox);
+      release();
+    },
+    rejectCountyData() { reject(new Error('County asset unavailable')); },
+    async flush() {
+      await new Promise(resolve => setImmediate(resolve));
+      for (const fn of timers.splice(0)) fn();
+      await new Promise(resolve => setImmediate(resolve));
+    },
+  };
+}
+
+test('URL quick search selects a 741 county once after its data arrives', async () => {
+  const link = countySearchLink();
+  link.ctrl._restoreFromQuery();
+  assert.deepEqual(Array.from(link.ctrl._queryQuickSearch('金牛县')), []);
+  await link.flush();
+  assert.deepEqual(link.selections, []);
+  link.releaseCountyData();
+  await link.flush();
+  assert.equal(link.ctrl._queryQuickSearch('金牛县')[0].titleZh, '金牛县');
+  assert.deepEqual(link.selections, [{title:'金牛县',year:741}]);
+  assert.deepEqual(link.loads, [741]);
+});
+
+test('URL quick search waits for a year label that needs the Chinese dictionary', async () => {
+  const link = countySearchLink('金牛县', '開元二十九年');
+  let dictionaryReady = false;
+  let finishDictionary;
+  const dictionary = new Promise(resolve => { finishDictionary = resolve; });
+  Object.assign(link.ctrl, {
+    _hasZhHant: () => dictionaryReady,
+    _ensureZhHant: () => dictionary,
+    _parseYearList: () => dictionaryReady ? [741] : [],
+  });
+  link.ctrl._restoreFromQuery();
+  await link.flush();
+  assert.equal(link.input.value, '金牛县');
+  assert.deepEqual(link.loads, []);
+  dictionaryReady = true;
+  finishDictionary();
+  await link.flush();
+  assert.deepEqual(link.loads, [741]);
+  assert.equal(link.input.value, '金牛县');
+  link.releaseCountyData();
+  await link.flush();
+  assert.deepEqual(link.selections, [{title:'金牛县',year:741}]);
+});
+
+test('URL quick search does not replay when input or year changes while county data loads', async () => {
+  for (const changed of ['input', 'year']) {
+    const link = countySearchLink();
+    link.ctrl._restoreFromQuery();
+    assert.equal(link.input.value, '金牛县');
+    await link.flush();
+    assert.deepEqual(link.loads, [741]);
+    if (changed === 'input') link.input.value = '蓝田县';
+    else link.ctrl.year = 819;
+    link.releaseCountyData();
+    await link.flush();
+    assert.deepEqual(link.selections, []);
+    assert.equal(link.input.value, changed === 'input' ? '蓝田县' : '金牛县');
+    assert.equal(link.ctrl.year, changed === 'year' ? 819 : 741);
+  }
+});
+
+test('URL quick search falls back to existing data when the optional county request rejects', async () => {
+  const link = countySearchLink('蓝田县');
+  link.ctrl._restoreFromQuery();
+  const baseHit = link.ctrl._queryQuickSearch('蓝田县')[0];
+  assert.ok(baseHit);
+  await link.flush();
+  assert.deepEqual(link.loads, [741]);
+  link.rejectCountyData();
+  await link.flush();
+  assert.deepEqual(link.selections, [{title:baseHit.titleZh,year:741}]);
+  assert.deepEqual(link.loads, [741]);
+});
+
+test('other years request the optional admin layer only for county names', async () => {
+  const ordinary = countySearchLink('蓝关', '819');
+  ordinary.ctrl._restoreFromQuery();
+  await ordinary.flush();
+  assert.deepEqual(ordinary.loads, []);
+  assert.equal(ordinary.selections.length, 1);
+  const county = countySearchLink('蓝田县', '819');
+  county.ctrl._restoreFromQuery();
+  await county.flush();
+  assert.deepEqual(county.loads, [819]);
+  assert.deepEqual(county.selections, []);
+  county.rejectCountyData();
+  await county.flush();
+});
+
 test('county lookup respects the requested year and withholds ambiguous coordinates', () => {
   const {ctrl, sandbox} = createValidationContext({fastMode:true});
   const seat = (ancient, coord) => ({level:'county', ancient, coord});

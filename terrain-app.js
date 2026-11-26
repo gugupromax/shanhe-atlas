@@ -59,7 +59,7 @@
   const routeGeometry=window.TaihangRouteGeometry;
   const svgNS='http://www.w3.org/2000/svg';
   let selectedRoute=null,routeWorld=[];
-  let renderer, scene, camera, terrain, terrainDetail, terrainOverview, geometry, base, markerGroup, profileLine;
+  let renderer, scene, camera, terrain, terrainDetail, terrainOverview, geometry, markerGroup, profileLine;
   const defaultEmbeddedExaggeration = 20;
   let dataset, heights, widthKm, depthKm, seaMask, exaggeration = 60;
   const viewportGeometry=window.JiangshanViewport;
@@ -234,7 +234,7 @@
   function build(d) {
     PERF.mark('build-start');
     atlasSurface?.dispose();atlasSurface=null;
-    dispose(terrain);dispose(base);dispose(markerGroup);clearProfile();
+    dispose(terrain);dispose(markerGroup);clearProfile();
     tangTileJob++;tangTilePlanKey='';tangBaseApplied=false;
     if(embedded)fusionPaintedKey=null;
     PERF.mark('decode-start');dataset=d;heights=decode(d);seaMask=findSea();PERF.span('decode','decode-start');
@@ -271,13 +271,10 @@
     }else terrain=new THREE.Mesh(geometry,new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide}));
     scene.add(terrain);
     if(embedded)terrain.visible=false;
-    PERF.span('mesh','mesh-start');buildBase();rebuildMarkers();resetCamera();PERF.span('build-total','build-start');
+    PERF.span('mesh','mesh-start');rebuildMarkers();resetCamera();PERF.span('build-total','build-start');
     const step=d.gridStepMetresApprox;
     $('data-summary').textContent=`本地真实高程 · 网格约 ${step[0]>=1000?(step[0]/1000).toFixed(1)+' × '+(step[1]/1000).toFixed(1)+' 千米':step[0]+' × '+step[1]+' 米'} · ${d.width} × ${d.height} 点`;
     $('coordinate').textContent='单击山体，查看经纬度与海拔';dirty=true;
-  }
-  function buildBase() {
-    dispose(base);base=null;
   }
   function addLabel(name,lon,lat,type='pass',key=null) {
     const [w,s,e,n]=dataset.bounds;if(lon<w||lon>e||lat<s||lat>n)return;
@@ -452,7 +449,7 @@
         if(mesh.geometry.index)fillTerrainPatch(mesh);
       }
     }else{geometry.computeVertexNormals();geometry.computeBoundingSphere();}
-    buildBase();rebuildMarkers();
+    rebuildMarkers();
     if(profileEndpoints)drawProfileLine();dirty=true;
   }
   function clearProfile() {

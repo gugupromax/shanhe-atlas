@@ -24,66 +24,69 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const http = require('node:http');
-const os = require('node:os');
+const {loadPlaywright} = require('./load_playwright.cjs');
 const path = require('node:path');
 const { spawn, spawnSync } = require('node:child_process');
 
 const ROOT = path.resolve(__dirname, '..');
-const RECORD = path.join(ROOT, '.runtime', 'server.json');
 const VIEWPORT = { width: 1440, height: 900 };
 const FIRST_DRAW_TIMEOUT_MS = 180_000;
-
-function playwright() {
-  if (process.env.TERRAIN_TEST_PLAYWRIGHT) return require(process.env.TERRAIN_TEST_PLAYWRIGHT);
-  try {
-    return require('playwright');
-  } catch (error) {
-    if (error.code !== 'MODULE_NOT_FOUND') throw error;
-    return require(path.join(os.homedir(), '.cache', 'codex-runtimes', 'codex-primary-runtime',
-      'dependencies', 'node', 'node_modules', 'playwright'));
-  }
-}
+const SERVER_START_TIMEOUT_MS = 20_000;
+const SERVER_STOP_TIMEOUT_MS = 2_000;
 
 function pythonBin() {
   for (const candidate of [process.env.PYTHON, 'python', 'py'].filter(Boolean)) {
-    const probe = spawnSync(candidate, ['-c', 'print(1)'], { encoding: 'utf8' });
-    if (probe.status === 0) return candidate;
+    const probe = spawnSync(candidate, ['-c', 'import sys; print(sys.executable)'], {
+      encoding: 'utf8', env: { ...process.env, PYTHONIOENCODING: 'utf-8' }, timeout: SERVER_START_TIMEOUT_MS,
+      windowsHide: true,
+    });
+    const executable = probe.stdout?.trim();
+    if (probe.status === 0 && executable) return executable;
   }
   throw new Error('Python 3 is required to start the static server');
 }
 
-function post(url, token) {
-  return new Promise((resolve) => {
-    const req = http.request(url, { method: 'POST', headers: { 'X-Jiangshan-Token': token } }, (res) => {
-      res.resume();
-      resolve(res.statusCode);
-    });
-    req.on('error', () => resolve(0));
-    req.end();
+function startServer() {
+  const child = spawn(pythonBin(), [path.join(ROOT, 'scripts', 'launch_map.pyw'), '--benchmark'], {
+    cwd: ROOT, stdio: ['pipe', 'pipe', 'inherit'], windowsHide: true,
   });
-}
-
-async function startServer() {
-  fs.rmSync(RECORD, { force: true });
-  spawn(pythonBin(), [path.join(ROOT, 'scripts', 'launch_map.pyw'), '--spawn-hidden', '--no-browser'],
-    { cwd: ROOT, stdio: 'ignore', detached: true }).unref();
-  for (let attempt = 0; attempt < 80; attempt += 1) {
-    if (fs.existsSync(RECORD)) {
-      const record = JSON.parse(fs.readFileSync(RECORD, 'utf8'));
-      if (record.url) return record;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 250));
-  }
-  throw new Error('launcher did not publish a runtime record');
-}
-
-async function stopServer(record) {
-  if (!record) return;
-  const status = await post(`${record.url}/__jiangshan_stop__`, record.token);
-  fs.rmSync(RECORD, { force: true });
-  return status;
+  const closed = new Promise((resolve) => child.once('close', resolve));
+  const ready = new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Benchmark server did not report its address')),
+      SERVER_START_TIMEOUT_MS);
+    const fail = (error) => { clearTimeout(timer); reject(error); };
+    child.on('error', fail);
+    child.stdin.on('error', fail);
+    child.once('close', (code, signal) => fail(new Error(`Benchmark server closed (${code ?? signal})`)));
+    let output = '';
+    child.stdout.setEncoding('utf8').on('data', (chunk) => {
+      output += chunk;
+      const end = output.indexOf('\n');
+      if (end === -1) return;
+      clearTimeout(timer);
+      try {
+        const { url } = JSON.parse(output.slice(0, end));
+        if (!/^http:\/\/127\.0\.0\.1:[1-9]\d{0,4}$/.test(url)) {
+          throw new Error('Benchmark server reported an invalid loopback address');
+        }
+        resolve(url);
+      } catch (error) {
+        fail(error);
+      }
+    });
+  });
+  return {
+    ready,
+    async stop() {
+      child.stdin.end();
+      const timer = setTimeout(() => child.kill('SIGKILL'), SERVER_STOP_TIMEOUT_MS);
+      try {
+        await closed;
+      } finally {
+        clearTimeout(timer);
+      }
+    },
+  };
 }
 
 function summarize(marks, spans) {
@@ -127,17 +130,26 @@ async function coldRun(browser, baseUrl, software, noAA) {
       null,
       { polling: 100, timeout: FIRST_DRAW_TIMEOUT_MS },
     );
-    const collected = await frame.evaluate(() => ({
-      report: window.__atlasPerf ? window.__atlasPerf.report() : null,
-      entries: Object.fromEntries(performance.getEntries()
-        .filter((entry) => entry.name.startsWith('atlas-3d:'))
-        .map((entry) => [entry.name.slice('atlas-3d:'.length),
-          Math.round(entry.entryType === 'mark' ? entry.startTime : entry.duration)])),
-    }));
+    const collected = await frame.evaluate(() => {
+      const canvas = document.querySelector('#canvas-host canvas');
+      const gl = canvas?.getContext('webgl2') ?? canvas?.getContext('webgl');
+      return {
+        aa: new URLSearchParams(location.search).get('aa'),
+        contextAntialias: gl?.getContextAttributes()?.antialias ?? null,
+        report: window.__atlasPerf ? window.__atlasPerf.report() : null,
+        entries: Object.fromEntries(performance.getEntries()
+          .filter((entry) => entry.name.startsWith('atlas-3d:'))
+          .map((entry) => [entry.name.slice('atlas-3d:'.length),
+            Math.round(entry.entryType === 'mark' ? entry.startTime : entry.duration)])),
+      };
+    });
+    assert.equal(collected.aa, noAA ? '0' : null, 'unexpected antialiasing option in terrain iframe');
+    if (noAA) assert.equal(collected.contextAntialias, false, 'terrain WebGL context must disable antialiasing');
     const report = collected.report || { spans: {}, marks: [] };
     const summary = summarize(report.marks, report.spans || {});
     return {
       software,
+      contextAntialias: collected.contextAntialias,
       clickToFirstDrawMs: Date.now() - clickedAt,
       navToFirstDrawMs: Date.now() - began,
       ...summary,
@@ -163,19 +175,21 @@ async function main() {
   const noAA = process.argv.includes('--aa=0');
   const asJson = process.argv.includes('--json');
 
-  const { chromium } = playwright();
+  const { chromium } = loadPlaywright();
   const executablePath = process.env.TERRAIN_TEST_CHROME ||
     (process.platform === 'win32' ? 'C:/Program Files/Google/Chrome/Application/chrome.exe' : undefined);
-  const record = await startServer();
-  const browser = await chromium.launch({
-    executablePath,
-    args: software ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] : [],
-  });
-
   const results = [];
+  let server;
+  let browser;
   try {
+    server = startServer();
+    const url = await server.ready;
+    browser = await chromium.launch({
+      executablePath,
+      args: software ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] : [],
+    });
     for (let index = 0; index < runs; index += 1) {
-      const result = await coldRun(browser, record.url, software, noAA);
+      const result = await coldRun(browser, url, software, noAA);
       results.push(result);
       if (!asJson) {
         console.log(`run ${index + 1}/${runs}  click→first-draw ${(result.clickToFirstDrawMs / 1000).toFixed(1)}s  `
@@ -185,14 +199,18 @@ async function main() {
       }
     }
   } finally {
-    await browser.close();
-    await stopServer(record);
+    try {
+      await browser?.close();
+    } finally {
+      await server?.stop();
+    }
   }
 
   const keys = ['renderer', 'gridFetch', 'decode', 'positions', 'normals', 'mesh', 'build', 'firstDrawAt', 'clickToFirstDrawMs'];
   const summary = Object.fromEntries(keys.map((key) => [key, median(results.map((r) => r[key]))]));
   summary.runs = runs;
   summary.software = software;
+  summary.antialiasRequested = !noAA;
 
   if (asJson) {
     console.log(JSON.stringify({ summary, results }, null, 2));

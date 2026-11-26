@@ -55,12 +55,16 @@ const CHECKS = [
 const quiet = argv.includes('--quiet');
 const onlyArg = argv.find((a) => a.startsWith('--only='));
 const wanted = onlyArg ? onlyArg.slice('--only='.length).split(',').map((s) => s.trim()).filter(Boolean) : null;
-const selected = wanted ? CHECKS.filter((c) => wanted.includes(c.id)) : CHECKS;
-
-if (selected.length === 0) {
-  console.error(`No checks matched. Known ids: ${CHECKS.map((c) => c.id).join(', ')}`);
-  process.exit(2);
+if (wanted) {
+  const known = CHECKS.map((check) => check.id);
+  const unknown = [...new Set(wanted.filter((id) => !known.includes(id)))];
+  if (!wanted.length || unknown.length) {
+    console.error(wanted.length ? `Unknown --only ids: ${unknown.join(', ')}` : '--only requires at least one check id.');
+    console.error(`Known ids: ${known.join(', ')}`);
+    process.exit(2);
+  }
 }
+const selected = wanted ? CHECKS.filter((c) => wanted.includes(c.id)) : CHECKS;
 
 function tail(fd) {
   const { size } = fstatSync(fd);
@@ -140,4 +144,8 @@ if (failed.length) {
   process.exit(1);
 }
 
-console.log('PASS: 全部非浏览器回归通过。启动本地地图后，可运行 node scripts/verify_terrain_browser.cjs 验收 3D。');
+if (selected.length < CHECKS.length) {
+  console.log(`PASS: 所选非浏览器回归通过（${selected.map((check) => check.id).join(', ')}）。`);
+} else {
+  console.log('PASS: 全部非浏览器回归通过。启动本地地图后，可运行 node scripts/verify_terrain_browser.cjs 验收 3D。');
+}

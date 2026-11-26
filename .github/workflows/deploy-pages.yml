@@ -37,6 +37,7 @@ jobs:
             --exclude='data/sources/' \
             --exclude='data/tiles/' \
             --exclude='assets/tang-741-tiles/' \
+            --exclude='/battles/changshe-conference.local.png' \
             --exclude='.runtime/' \
             --exclude='.impeccable/' \
             --exclude='docs/' \
@@ -56,6 +57,7 @@ jobs:
             ./ _site/
           test ! -e _site/assets/tang-741-tiles
           test ! -e _site/data/tiles
+          test ! -e _site/battles/changshe-conference.local.png
           du -sh _site
           echo "Staged file count: $(find _site -type f | wc -l)"
 

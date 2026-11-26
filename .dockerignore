@@ -8,6 +8,7 @@ data/atlas
 data/sources
 data/tiles
 assets/tang-741-tiles
+battles/changshe-conference.local.png
 .runtime
 .impeccable
 geojson/demo.html

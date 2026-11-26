@@ -419,7 +419,10 @@
       // Keep the flat map responsive until the user actually requests WebGL.
       if (starting && !frame.getAttribute('src')) {
         const version = doc.getElementById('atlas-app-script')?.dataset?.vTerrain;
-        frame.src = 'terrain.html?embedded=1' + (version ? '&v=' + encodeURIComponent(version) : '');
+        // The controller may rewrite the parent URL before this first activation.
+        const noAA = params.get('aa') === '0';
+        frame.src = 'terrain.html?embedded=1' + (version ? '&v=' + encodeURIComponent(version) : '')
+          + (noAA ? '&aa=0' : '');
       }
       doc.getElementById('fusion-flat').setAttribute('aria-pressed', String(!active));
       doc.getElementById('fusion-3d').setAttribute('aria-pressed', String(active));
