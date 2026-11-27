@@ -3322,11 +3322,6 @@
         const path = this._svgNode('path', attrs, polGroup);
         path.dataset.polityTitle = pol.title;
         path.dataset.polityRole = pol.role;
-        if (new URLSearchParams(location.search).get('battle') === 'changshe' && ['南宋', '金'].includes(pol.title)) {
-          path.style.setProperty('fill', pol.title === '南宋' ? '#a53e32' : '#286875', 'important');
-          path.style.setProperty('fill-opacity', '0.20', 'important');
-          path.style.setProperty('stroke', pol.title === '南宋' ? '#7a3029' : '#20525c', 'important');
-        }
 
         if (pol.anchor) {
           const [cx, cy] = this.projector.toScreen(pol.anchor[0], pol.anchor[1]);
@@ -4380,7 +4375,7 @@
     }
 
     _syncAutoMilestoneBalloon(dynasty) {
-      if (this.embed && new URLSearchParams(location.search).get('battle') === 'changshe') return;
+      if (this.embed && window.parent !== window && new URLSearchParams(location.search).get('battle') === 'changshe') return;
       if (!dynasty || !this.milestoneBalloon) return;
       const milestonesHidden =
         this.grpMilestones && this.grpMilestones.classList.contains('is-hidden');

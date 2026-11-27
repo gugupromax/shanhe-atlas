@@ -11,7 +11,19 @@ aside h2{font:700 19px SimSun,serif;margin:3px 0}#front-status,#units,#journal{m
 [hidden]{display:none!important}.terrain-pane{position:relative;min-height:430px;overflow:hidden}
 #national-atlas{position:absolute;inset:0;width:100%;height:100%;border:0;visibility:hidden;background:#e6ddc8}
 #national-atlas.is-active{visibility:visible}
-.terrain-pane:has(#national-atlas.is-active) #map-brief{max-width:420px}
+#national-atlas.is-active~#map-brief #map-motion{display:none}
+.terrain-pane:has(#national-atlas.is-active):has(#situation-intro[hidden]){
+  display:flex;flex-direction:column;
+}
+.terrain-pane:has(#situation-intro[hidden]) #national-atlas.is-active{
+  position:relative;inset:auto;flex:1 1 0;min-height:clamp(280px,48vh,560px);
+}
+.terrain-pane:has(#national-atlas.is-active):has(#situation-intro[hidden]) #map-brief{
+  position:static;width:100%;max-width:none;flex:none;border:0;border-radius:0;
+  background:#edf0e7;color:#263e37;box-shadow:none;border-top:1px solid #b5bdaa;
+}
+.terrain-pane:has(#national-atlas.is-active) #map-phase{color:#3c5647}
+.terrain-pane:has(#national-atlas.is-active) #map-source{color:#536451}
 .terrain-pane:has(#national-atlas.is-active) #situation-status{display:none}
 #terrain-canvas,#terrain-labels{position:absolute;inset:0;width:100%;height:100%}#terrain-canvas{touch-action:none;cursor:grab}#terrain-canvas:active{cursor:grabbing}
 #terrain-labels{pointer-events:none}.terrain-tag{position:absolute;transform:translate(-50%,-100%);white-space:nowrap;border-radius:3px;background:#30473def;color:#fcf1db;padding:2px 6px;font-size:12px;box-shadow:0 1px 3px #27342750}
@@ -80,8 +92,8 @@ aside h2{font:700 19px SimSun,serif;margin:3px 0}#front-status,#units,#journal{m
 <p><strong>杜充奏报</strong>　岳飞、王彦不和，强令出战恐怕生变。</p>
 <p><strong>杜岩连夜面陈</strong>　两将曾共同请战，是父亲与挞懒私约不战。他经西平、中阳山回到南阳，也给赵玖指出了一条去鄢陵的路。<small>卷二第62章《召见》</small></p>
 <p><strong>先前金军五路渡河：</strong>阿里偷渡济南、讹鲁补强渡濮州，两路得手；耶律马五进逼滑州、拔离速攻汜水关，两路包抄东京受阻；西路撒八进攻河东，在解州被李彦仙、翟兴、翟进击退。此后金军重新调动，形成眼下局面。<small> <a href="https://cn.ttkan.co/novel/pagea/shaosong-liudanpashui_126.html">卷二第39章</a></small></p>
-<div class="situation-key"><span><i class="song-key"></i>南宋</span><span><i class="jin-key"></i>金</span><span><i class="siege-key"></i>金军围城 · 范围示意</span></div>
-<p><small>淡底色表示 1128 年历史疆域。交战态势见城池标记，虚线圈标示小说中的围城，范围为示意。</small></p>
+<div class="situation-key"><span><i class="song-key"></i>南宋</span><span><i class="jin-key"></i>金</span></div>
+<p><small>地图以 1128 年的疆域和地名交代小说背景，点选城名可阅读各地局势。</small></p>
 <div id="situation-tabs" role="group" aria-label="选择战场">
 <button type="button" data-front="0" aria-pressed="true">南阳</button>
 <button type="button" data-front="1" aria-pressed="false">长社—鄢陵</button>
@@ -105,7 +117,7 @@ aside h2{font:700 19px SimSun,serif;margin:3px 0}#front-status,#units,#journal{m
   </div>
 </section><button type="button" id="toggle-details" aria-expanded="false" aria-controls="campaign-details">显示右侧资料</button></div>
 <aside id="campaign-details" hidden><section id="story" aria-live="polite"></section><div><h2>战场状态</h2><ul id="front-status"></ul></div><div><h2>部队视角与士气</h2><ul id="units"></ul></div><h2>事件记录</h2><ol id="journal"></ol></aside></div>
-<footer><div class="play"><button type="button" id="play">开始</button><button type="button" id="reset">重置</button><output class="clock" id="clock">0:00</output></div><p id="help">全国图为 1128 年历史参照，路线及敌骑位置为示意。兵力为沙盘示意，旗旁亮条表示人数，满格为 8 万人。空心虚线表示待核或已计入总数。 <a href="changshe-sources.md">情节核对与出处</a></p></footer>
+<footer><div class="play"><button type="button" id="play">开始</button><button type="button" id="reset">重置</button><output class="clock" id="clock">0:00</output></div><p id="help">全国地形以 1128 年为历史参照。「局部沙盘」可查看小说场景。 <a href="changshe-sources.md">情节核对与出处</a></p></footer>
 </main><dialog id="review-dialog" aria-labelledby="review-title"><h2 id="review-title">回看解说</h2><form method="dialog"><button autofocus>返回地图</button></form><ol id="review-list" reversed></ol></dialog><dialog id="scene-dialog" aria-labelledby="scene-title">
   <div class="scene-layout">
     <figure id="scene-art" hidden><img id="scene-image" alt="赵玖举起斧头，杜充倒在堂上"><figcaption>《绍宋》漫画画面 · 用户提供</figcaption></figure>
@@ -116,4 +128,4 @@ aside h2{font:700 19px SimSun,serif;margin:3px 0}#front-status,#units,#journal{m
       <form method="dialog"><button autofocus>返回战场</button></form>
     </section>
   </div>
-</dialog><script src="../vendor/three.min.js"></script><script src="changshe-terrain-data.js"></script><script src="changshe-terrain.js"></script><script src="battle-units.js"></script><script src="campaign-state.js"></script><script src="campaign-changshe-config.js"></script><script src="campaign-demo.js"></script></body></html>
+</dialog><script src="battle-units.js"></script><script src="campaign-state.js"></script><script src="campaign-changshe-config.js"></script><script src="campaign-demo.js"></script></body></html>

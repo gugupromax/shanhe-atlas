@@ -79,7 +79,66 @@
     if (!app || !viewport || !app.svg || root.atlasFusion) return;
     const params = new URLSearchParams(root.location.search);
     const parentBattle = app.embed && root.parent !== root && params.get('battle') === 'changshe';
-    if (parentBattle) doc.documentElement.classList.add('changshe-battle-embed');
+    const battleTowns = [
+      { name: '长社', coord: [113.82, 34.02], index: 1, kind: 'battle' },
+      { name: '鄢陵', coord: [114.18, 34.10], index: 1, kind: 'battle' },
+      { name: '南阳', coord: [112.53, 32.99], index: 0, kind: 'battle' },
+      { name: '陕州', coord: [111.19, 34.77], index: 2, kind: 'battle' },
+    ];
+    let battleView = 'overview', battleHidden = false, resumeBattleTerrain = false;
+    let overviewCamera;
+    const flatTowns = [];
+    const parentOrigin = root.location.protocol === 'file:' ? '*' : root.location.origin;
+    function openBattleChapter(index) {
+      if (!battleHidden && battleTowns.some(town => town.index === index)) {
+        root.parent.postMessage({ type: 'atlas-changshe-front', index }, parentOrigin);
+      }
+    }
+    if (parentBattle) {
+      doc.documentElement.classList.add('changshe-battle-embed');
+      // The class on the SVG also travels with the clone used for 3D textures.
+      app.svg.classList.add('changshe-geography');
+      overviewCamera = { ...app.camera };
+      const overlay = doc.createElement('div');
+      overlay.className = 'changshe-towns';
+      doc.getElementById('svg-stage-wrap').append(overlay);
+      for (const town of battleTowns) {
+        const button = doc.createElement('button');
+        button.type = 'button';
+        button.textContent = town.name;
+        button.onclick = () => openBattleChapter(town.index);
+        overlay.append(button);
+        flatTowns.push({ button, point: app.projector.toScreen(...town.coord) });
+      }
+      // Generic map taps and double clicks otherwise open hidden atlas cards and load city records.
+      app.openMapAreaAt = () => false;
+      app.openGenealogyAt = () => {};
+    }
+    function positionFlatTowns() {
+      if (presented || battleHidden || !flatTowns.length) return;
+      const { width, height } = app.svg.getBoundingClientRect();
+      const { x, y, w, h } = app.camera;
+      const scale = Math.min(width / w, height / h);
+      const boxes = [];
+      for (const { button, point } of flatTowns) {
+        const px = (width - w * scale) / 2 + (point[0] - x) * scale;
+        const py = (height - h * scale) / 2 + (point[1] - y) * scale;
+        const bw = button.offsetWidth, bh = button.offsetHeight;
+        button.style.visibility = 'hidden';
+        if (px < 0 || px > width || py < 0 || py > height) continue;
+        for (const dx of [0, bw / 2 + 3, -bw / 2 - 3]) {
+          const left = px + dx - bw / 2, top = py - bh / 2;
+          if (left < 0 || left + bw > width || top < 0 || top + bh > height ||
+              boxes.some(box => left < box.right + 2 && left + bw > box.left - 2 &&
+                top < box.bottom + 2 && top + bh > box.top - 2)) continue;
+          button.style.left = left + 'px';
+          button.style.top = top + 'px';
+          button.style.visibility = 'visible';
+          boxes.push({ left, top, right: left + bw, bottom: top + bh });
+          break;
+        }
+      }
+    }
     let active = false;
     let ready = false, surfaceBitmaps = false, baseDrawAck = false, detailTextureLimit = 3072;
     let applyingChild = false;
@@ -164,6 +223,7 @@
       viewport.classList.toggle('fusion-is-3d', show);
       frame.setAttribute('aria-hidden', String(!show));
       frame.tabIndex = show ? 0 : -1;
+      if (!show && parentBattle) positionFlatTowns();
       if (show) {
         root.performance?.clearMarks?.('atlas-3d:interactive');
         root.performance?.mark?.('atlas-3d:interactive');
@@ -284,11 +344,14 @@
       return Boolean(el && el.checked);
     };
     function layers() {
+      if (parentBattle) return { polities: true, hydro: true, settlements: false, prefectures: false,
+        corridors: false, modernProvinces: false, modernProvinceNames: false, milestones: false };
       return { polities: checked('polities'), settlements: checked('settlements'),
         prefectures: checked('prefectures'), corridors: checked('corridors'),
         hydro: checked('terrain'), modernProvinces: checked('provinces'), modernProvinceNames: checked('prov-names'), milestones: checked('milestones') };
     }
     function locations() {
+      if (parentBattle) return battleTowns;
       const dynasty = app.dynasties[app.dynastyIdx] || {};
       // Reuse the displayed seats so 3D picks share the map's historical names and coordinates.
       const city = renderedSettlementLocations(app.grpSettlements, node => root.getComputedStyle(node));
@@ -303,20 +366,7 @@
           name: app.milestoneHeadline(dynasty, m), coord: a.coord, year: m.year,
           kind: 'event', index,
         }))) : [];
-      const battle = parentBattle ? [
-        {name:'南阳 · 金围', coord:[112.53,32.99], kind:'battle', index:0},
-        {name:'长社 · 宋守金围', coord:[113.82,34.02], kind:'battle', index:1},
-        {name:'鄢陵 · 援军未发', coord:[114.18,34.10], kind:'battle', index:1},
-        {name:'长葛 · 金占', coord:[113.78,34.24], kind:'battle', index:1},
-        {name:'临颍 · 金占', coord:[113.94,33.83], kind:'battle', index:1},
-        {name:'舞阳 · 金占', coord:[113.61,33.43], kind:'battle', index:1},
-        {name:'襄城 · 宋守', coord:[113.49,33.85], kind:'battle', index:1},
-        {name:'郾城 · 宋守', coord:[114.01,33.59], kind:'battle', index:1},
-        {name:'西平 · 宋守', coord:[114.02,33.39], kind:'battle', index:1},
-        {name:'陕州 · 宋守', coord:[111.19,34.77], kind:'battle', index:2},
-        {name:'晋宁军 · 失守', coord:[110.70,35.97], kind:'battle', index:2},
-      ] : [];
-      return battle.concat(stops, milestones, city);
+      return stops.concat(milestones, city);
     }
     function sync(reason = 'controller', force = false) {
       if (!ready || applyingChild) return;
@@ -333,7 +383,7 @@
         personTitle: person && person.profile && (person.profile.zh || person.profile.titleZh),
         stopIndex: person ? app.activePersonEventIdx : app.customRouteStopIdx,
         traceCoord: app.activeTrace };
-      const adminDetail = [
+      const adminDetail = parentBattle ? null : [
         id(app.grpSettlements?.firstElementChild),
         app.svg.classList.contains('is-admin-overview'),
         app.svg.classList.contains('is-admin-counties'),
@@ -361,7 +411,7 @@
       lastTileTier = tileTier;
       post({ type: 'state', active, reason, seq: ++sequence, sceneKey, year: Math.round(app.year),
         ...cameraView, locations: fullScene ? locations() : [], selection,
-        adminLabels: fullScene
+        adminLabels: fullScene && !parentBattle
           ? root.JiangshanMapSurface.adminScreenLabels(app, node => root.getComputedStyle(node)) : [],
         passLabels: fullScene && passLayerActive
           ? root.JiangshanMapSurface.passScreenLabels(app, node => root.getComputedStyle(node), revealPasses) : [],
@@ -378,6 +428,7 @@
       queued = true;
       requestAnimationFrame(() => {
         queued = false;
+        if (parentBattle) positionFlatTowns();
         // A native atlas flight can update its camera every frame. Transmit its settled destination.
         if (!app.flyRaf) sync(pendingReason);
       });
@@ -394,7 +445,32 @@
         app._applyCamera(true);
       } finally { applyingChild = false; }
     }
-    function setMode(next, explanation) {
+    function changeBattleView(mode) {
+      if (mode === 'hidden') {
+        if (battleHidden) return;
+        battleHidden = true;
+        resumeBattleTerrain = active;
+        if (active) setMode(false);
+        return;
+      }
+      if (mode !== 'overview' && mode !== 'story') return;
+      const resume = battleHidden && resumeBattleTerrain;
+      battleHidden = false;
+      if (mode !== battleView) {
+        battleView = mode;
+        const rect = app.svg.getBoundingClientRect();
+        // Fit Nanyang and the Changshe–Yanling area in both tall and wide map panes.
+        const widthKm = Math.max(285, 245 * rect.width / Math.max(1, rect.height));
+        const camera = mode === 'overview' ? { ...overviewCamera } :
+          cameraForView(app, rect, [113.39, 33.60], widthKm);
+        pendingChildCamera = null;
+        applyChildCamera(camera);
+        sync('battle-view');
+      }
+      if (resume) setMode(true, undefined, true);
+      positionFlatTowns();
+    }
+    function setMode(next, explanation, keepOrientation = false) {
       if (next && app.challenge) {
         announce('小试需要在平面地图答题，结束后可切换 3D。');
         return;
@@ -422,7 +498,7 @@
         // The controller may rewrite the parent URL before this first activation.
         const noAA = params.get('aa') === '0';
         frame.src = 'terrain.html?embedded=1' + (version ? '&v=' + encodeURIComponent(version) : '')
-          + (noAA ? '&aa=0' : '');
+          + (noAA ? '&aa=0' : '') + (parentBattle ? '&battle=changshe' : '');
       }
       doc.getElementById('fusion-flat').setAttribute('aria-pressed', String(!active));
       doc.getElementById('fusion-3d').setAttribute('aria-pressed', String(active));
@@ -432,7 +508,7 @@
         if (ready && surfaceBaseKey && surfaceBaseKey === lastSceneKey) presentTerrain(true);
         else armTerrainStartup(ready ? 'map' : 'terrain');
       }
-      if (active) configure();
+      if (active && !keepOrientation) configure();
     }
     doc.getElementById('fusion-flat').addEventListener('click', () => setMode(false));
     doc.getElementById('fusion-3d').addEventListener('click', () => setMode(true));
@@ -495,7 +571,7 @@
       // file:// has an opaque origin; source identity is the security boundary there.
       if (root.location.protocol !== 'file:' && event.origin !== root.location.origin) return;
       if (message.type === 'battle' && parentBattle) {
-        root.parent.postMessage({type:Number.isInteger(message.index)?'atlas-changshe-front':'atlas-changshe-enter',index:message.index}, root.location.origin === 'null' ? '*' : root.location.origin);
+        openBattleChapter(message.index);
       } else if (message.type === 'ready') {
         ready = true;
         surfaceBitmaps = message.surfaceBitmaps === true && typeof root.createImageBitmap === 'function';
@@ -527,7 +603,8 @@
         tilesFailed = true;
         sync('controller', true);
       } else if (message.type === 'terrain-error') {
-        failTerrain('三维地形加载失败，已保留平面地图。可以再次点击 3D 地形重试。');
+        failTerrain(parentBattle ? '三维地形加载失败，已切换为平面地图。' :
+          '三维地形加载失败，已保留平面地图。可以再次点击 3D 地形重试。');
       } else if (message.type === 'applied' && message.seq === sequence && message.supported === false && active && !presented) {
         setMode(false, '当前位置超出三维高程范围，已保留平面地图。');
       } else if (message.type === 'shortcut' && active) {
@@ -599,7 +676,15 @@
     }, true);
     root.addEventListener('resize', () => schedule());
     root.atlasFusion = { setMode, sync, get active() { return active; }, get ready() { return ready; } };
-    if (parentBattle && params.get('terrain') === '3d') setMode(true);
+    if (parentBattle) {
+      root.addEventListener('message', event => {
+        if (event.source === root.parent && event.origin === root.location.origin &&
+            event.data?.type === 'atlas-changshe-map') changeBattleView(event.data.mode);
+      });
+      positionFlatTowns();
+      if (params.get('terrain') === '3d') setMode(true);
+      root.parent.postMessage({ type: 'atlas-changshe-ready' }, parentOrigin);
+    }
   }
   // Deferred scripts run at readyState=interactive before app.js's earlier
   // DOMContentLoaded listener creates the controller. Wait for that listener.

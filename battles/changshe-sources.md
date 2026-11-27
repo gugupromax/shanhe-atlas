@@ -42,6 +42,6 @@
 
 ## 地形与定位
 
-全国视角使用山河图集首页的历史 3D 地图，以 1128 年作为南宋初年的历史参照。战区和部队近景使用 [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) 的河南局部高程，通过 `python battles/build-changshe-terrain.py` 重采样。地图可脱机读取已经生成的数据文件。高程署名参见 [Tilezen Terrain Tiles](https://github.com/tilezen/joerd/blob/master/docs/attribution.md)。地形是现代实测数据的近似表达，色彩和垂直比例用于沙盘显示。
+「全国形势」与「长社一带」共用山河图集首页的历史 3D 地图，以 1128 年作为南宋初年的历史参照。点击城镇名可阅读小说局势说明，普通图层中的无关地名、现代省界与大事记标记在此隐藏。战区和部队近景使用 [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) 的河南局部高程，通过 `python battles/build-changshe-terrain.py` 重采样。地图可脱机读取已经生成的数据文件。高程署名参见 [Tilezen Terrain Tiles](https://github.com/tilezen/joerd/blob/master/docs/attribution.md)。地形是现代实测数据的近似表达，色彩和垂直比例用于沙盘显示。
 
 南阳、西平和鄢陵按地名所在区域参考定位，长社采用今许昌一带许州治所的概略定位，参考[许昌市历史沿革](https://www.xuchang.gov.cn/zjxc/005003/20110419/ee2362e7-1a28-4aa5-a854-a366d2c446d8.html)。中阳山走廊、清潩水河线与战场、渡口、城门和部队位置均为剧情示意。

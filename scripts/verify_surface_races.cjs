@@ -18,7 +18,7 @@ function section(source, start, end) {
 function parentFixture(useTangTiles = false, tilesPackaged = true) {
   const context = { console, useTangTiles, tilesPackaged, isCurrentMapPick };
   vm.runInNewContext(`
-    const CHANNEL='jiangshan-fusion',KM_PER_DEGREE=1;
+    const CHANNEL='jiangshan-fusion',KM_PER_DEGREE=1,parentBattle=false;
     let active=true,ready=true,surfaceBitmaps=false,baseDrawAck=false,detailTextureLimit=3072,applyingChild=false,lastSignature='',lastSceneKey='',sequence=0;
     let startupTimer,surfaceTimer,surfaceRequest=0,surfaceKey='',surfaceBaseKey='',surfaceBasePendingId=-1;
     let surfaceGeneration=0,surfaceRenderJob=null,queuedSurface=null,presented=false,detailAcknowledged=false;

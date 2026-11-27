@@ -32,7 +32,9 @@
     window.__atlasPerf = api;
     return api;
   })();
-  const embedded=new URLSearchParams(location.search).get('embedded')==='1';
+  const pageParams=new URLSearchParams(location.search);
+  const embedded=pageParams.get('embedded')==='1';
+  if(embedded&&pageParams.get('battle')==='changshe')$('coordinate').hidden=true;
   let fusion=null,fusionState=null,fusionActive=!embedded,fusionLocations=[],fusionLayers={},fusionPaintedKey=null,fusionViewKey='',fusionHeightTimer=null,fusionViewTimer=null,fusionStarted=false;
   let atlasSurface=null,surfaceSceneKey='',surfaceBaseId=-1,surfaceDetailId=-1,surfaceLoads=0,pendingSurfaceDetail=null,pendingBaseDraw=null;
   let tangTiles=null,tangTileJob=0,tangTilePlanKey='',tangBaseApplied=false,tangAppliedTier='far';
@@ -818,7 +820,7 @@
     const occupied=new Set();
     for(const p of points){
       const key=locationKey(p);if(occupied.has(key))continue;occupied.add(key);
-      const active=priority(p)===0&&(p.kind!=='battle'||['南阳','长社','鄢陵','陕州'].some(name=>p.name.startsWith(name))),el=document.createElement('button');el.className='map-label fusion-place '+p.kind+(active?' selected':'');
+      const active=priority(p)===0,el=document.createElement('button');el.className='map-label fusion-place '+p.kind+(active?' selected':'');
       el.textContent=p.kind==='event'?(p.year<0?'前'+Math.abs(p.year):p.year)+' · 史事':(p.kind==='journey'&&Number.isInteger(p.index)?(p.index+1)+' ':'')+(p.name.length>18?p.name.slice(0,18)+'…':p.name);
       el.title=(Number.isInteger(p.year)?timeCore.yearLabel(p.year)+' · ':'')+p.name+(p.kind==='journey'?' · 跳到此站':p.kind==='event'?' · 查看事件':p.kind==='battle'?'':' · 查看城市沿革');
       el.setAttribute('aria-label',el.title);
@@ -831,21 +833,11 @@
         else fusion.send('place-pick',{coord:p.coord,label:p.name,sceneKey:fusionState.sceneKey,year:fusionState.year});
       };
       $('labels').append(el);
-      const label={el,lon:p.coord[0],lat:p.coord[1],type:'fusion-'+p.kind,fusionPoint:p,active};
-      labels.push(label);
-      if(p.kind==='battle'&&['南阳','长社'].some(name=>p.name.startsWith(name))){
-        label.battleLeader=document.createElement('span');
-        label.battleLeader.className='battle-label-leader';
-        label.battleLeader.setAttribute('aria-hidden','true');
-        $('labels').append(label.battleLeader);
-      }
-      if(p.kind==='battle'&&['南阳','长社'].some(name=>p.name.startsWith(name))){
-        const siege=document.createElement('span');
-        siege.className='battle-siege-symbol';
-        siege.dataset.city=p.name.split(' · ')[0];
-        siege.setAttribute('aria-hidden','true');
-        $('labels').append(siege);
-        labels.push({el:siege,lon:p.coord[0],lat:p.coord[1],type:'siege',fusionPoint:p,active:true});
+      if(p.kind==='battle'){
+        // Use the atlas's projected city-label placement and shared collision boxes.
+        screenLabels.push({el,point:xyz(...p.coord),gateIndex:-1,seat:true});
+      }else{
+        labels.push({el,lon:p.coord[0],lat:p.coord[1],type:'fusion-'+p.kind,fusionPoint:p,active});
       }
     }
   }
@@ -1049,15 +1041,7 @@
     areaOverlay?.render(camera);
     // Read the viewport before placing labels. Measuring after each label write forces layout.
     const stage=$('stage'),stageWidth=stage.clientWidth,stageHeight=stage.clientHeight;
-    const occupied=labels.filter(label=>label.type==='siege').map(label=>{
-      const offset=2*distance*Math.tan(camera.fov*Math.PI/360)/stageHeight*5;
-      const point=xyz(label.lon,label.lat,offset).project(camera);
-      return {x:(point.x*.5+.5)*stageWidth,y:(-point.y*.5+.5)*stageHeight};
-    });
-    const siegeDistance=occupied.length>1?Math.max(Math.abs(occupied[0].x-occupied[1].x),Math.abs(occupied[0].y-occupied[1].y)):42;
-    const siegeDiameter=Math.min(36,Math.max(12,siegeDistance-6));
-    const siegeRadius=siegeDiameter/2;
-    const battleLabelBoxes=[];
+    const occupied=[];
     $('route-overlay').setAttribute('viewBox',`0 0 ${stageWidth} ${stageHeight}`);
     if($('route-toggle').checked)for(const segment of routeWorld){
       if(segment.dot){const p=segment.point.clone().project(camera);segment.dot.setAttribute('cx',(p.x*.5+.5)*stageWidth);segment.dot.setAttribute('cy',(-p.y*.5+.5)*stageHeight);segment.dot.style.display=p.z>-1&&p.z<1?'':'none';continue;}
@@ -1068,51 +1052,19 @@
     labels.forEach(label=>{
       const offset=label.fusionPoint?2*distance*Math.tan(camera.fov*Math.PI/360)/stageHeight*5:Math.max(widthKm,depthKm)*.005;
       const v=xyz(label.lon,label.lat,offset).project(camera),x=(v.x*.5+.5)*stageWidth,y=(-v.y*.5+.5)*stageHeight;
-      let lx=x,ly=y,battlePlacement=true;
-      const battleLabel=label.type!=='siege'&&label.fusionPoint?.kind==='battle';
-      if(battleLabel&&label.active){
-        const width=label.el.offsetWidth,height=label.el.offsetHeight;
-        const choices=[[0,-32],[0,48],[-85,0],[85,0],[0,-62],[0,78],[-100,-45],[100,-45],[-100,45],[100,45],[0,-105],[0,120]];
-        battlePlacement=false;
-        for(const [dx,dy] of choices){
-          const left=x+dx-width/2,right=x+dx+width/2,top=y+dy-height,bottom=y+dy;
-          const overlapsRing=occupied.slice(0,2).some(point=>left<point.x+siegeRadius+4&&right>point.x-siegeRadius-4&&top<point.y+siegeRadius+4&&bottom>point.y-siegeRadius-4);
-          const overlapsLabel=battleLabelBoxes.some(box=>left<box.right+4&&right>box.left-4&&top<box.bottom+4&&bottom>box.top-4);
-          if(left<2||right>stageWidth-2||top<2||bottom>stageHeight-2||overlapsRing||overlapsLabel)continue;
-          lx=x+dx;ly=y+dy;battleLabelBoxes.push({left,right,top,bottom});battlePlacement=true;break;
-        }
-      }
+      let ly=y;
       if(label.type==='pass'||label.type==='waypoint'){
         const offsets=['南阳','长社'].some(name=>label.fusionPoint?.name.startsWith(name))?[-45,45,-70,70,-95,95]:[0,-25,25,-50,50,-75,75];
         for(const offset of offsets){
           ly=y+offset;if(!occupied.some(p=>Math.abs(p.x-x)<65&&Math.abs(p.y-ly)<24))break;
         }
       }
-      let visible=battlePlacement&&v.z<1&&v.z>-1&&lx>35&&lx<stageWidth-35&&ly>25&&ly<stageHeight-40&&!(label.type==='waypoint'&&!$('route-toggle').checked);
+      let visible=v.z<1&&v.z>-1&&x>35&&x<stageWidth-35&&ly>25&&ly<stageHeight-40&&!(label.type==='waypoint'&&!$('route-toggle').checked);
       if(label.type==='city'&&occupied.some(p=>Math.abs(p.x-x)<55&&Math.abs(p.y-y)<25))visible=false;
       if(selected==='national'&&label.type==='region'&&occupied.some(p=>Math.abs(p.x-x)<60&&Math.abs(p.y-y)<18))visible=false;
       if(label.fusionPoint&&!label.active&&occupied.some(p=>Math.abs(p.x-x)<85&&Math.abs(p.y-y)<24))visible=false;
-      if(visible&&label.type!=='siege')occupied.push({x,y:ly});
-      label.el.style.visibility=visible?'visible':'hidden';label.el.style.left=lx+'px';label.el.style.top=ly+'px';
-      if(label.type==='siege'){
-        label.el.style.width=siegeDiameter+'px';
-        label.el.style.height=siegeDiameter+'px';
-      }
-      if(label.battleLeader){
-        const leader=label.battleLeader;
-        leader.style.visibility=visible?'visible':'hidden';
-        if(visible){
-          const labelLeft=lx-label.el.offsetWidth/2,labelRight=lx+label.el.offsetWidth/2;
-          const labelTop=ly-label.el.offsetHeight,labelBottom=ly;
-          const endX=Math.max(labelLeft,Math.min(x,labelRight));
-          const endY=Math.max(labelTop,Math.min(y,labelBottom));
-          const dx=endX-x,dy=endY-y,length=Math.hypot(dx,dy);
-          const startX=x+dx/length*(siegeRadius+2),startY=y+dy/length*(siegeRadius+2);
-          leader.style.left=startX+'px';leader.style.top=startY+'px';
-          leader.style.width=Math.max(0,length-siegeRadius-2)+'px';
-          leader.style.transform='rotate('+Math.atan2(dy,dx)+'rad)';
-        }
-      }
+      if(visible)occupied.push({x,y:ly});
+      label.el.style.visibility=visible?'visible':'hidden';label.el.style.left=x+'px';label.el.style.top=ly+'px';
       if(label.leader){const anchor=xyz(label.lon,label.lat,Math.max(widthKm,depthKm)*.0009).project(camera);label.leader.style.display=visible?'':'none';label.leader.setAttribute('x1',(anchor.x*.5+.5)*stageWidth);label.leader.setAttribute('y1',(-anchor.y*.5+.5)*stageHeight);label.leader.setAttribute('x2',x);label.leader.setAttribute('y2',ly-2);}
     });
     drawScreenLabels(stageWidth,stageHeight,occupied);

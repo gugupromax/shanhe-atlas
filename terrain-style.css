@@ -56,10 +56,6 @@ html,body{height:100%;overflow:hidden}.topbar{height:54px;padding:0 18px;gap:14p
 .embedded-map #labels .tang-label[data-kind="water"] { color:#21536f; font-size:11px; }
 .embedded-map #labels .tang-label[data-kind="reference"] { color:#655e51; font-size:11px; }
 
-.embedded-map #labels .fusion-place.battle{color:#fff2cf;background:#483a2e;border:1px solid #edc779;box-shadow:0 1px 8px #19171280;font-weight:700;z-index:4}
+.embedded-map #labels .fusion-place.battle{visibility:hidden;transform:translate(-50%,-50%);color:#fff2cf;background:#483a2e;border:1px solid #edc779;box-shadow:0 1px 8px #19171280;font:600 13px/1.4 "Microsoft YaHei","PingFang SC",sans-serif;z-index:4}
 .embedded-map #labels .fusion-place.battle::before{display:inline-block;background:#edc779}
 .embedded-map #labels .fusion-place.battle:hover,.embedded-map #labels .fusion-place.battle:focus-visible{color:#2c251e;background:#f3dfaa}
-
-.embedded-map #labels .battle-siege-symbol{position:absolute;width:36px;height:36px;transform:translate(-50%,-50%);border:3px dashed #f9df8d;border-radius:50%;box-shadow:0 0 0 2px #244956, inset 0 0 0 1px #244956;pointer-events:none;z-index:6}
-
-.embedded-map #labels .battle-label-leader{position:absolute;height:2px;background:#f9df8d;box-shadow:0 0 1px 1px #244956;transform-origin:left center;pointer-events:none;z-index:3}
