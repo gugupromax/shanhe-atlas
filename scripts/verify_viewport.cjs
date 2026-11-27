@@ -13,7 +13,11 @@ const data=ctx.window.TAIHANG_GRIDS.context,raw=Buffer.from(data.data,'base64');
 const manifest=JSON.parse(fs.readFileSync(path.join(root,'data/context_manifest.json'),'utf8'));assert.deepEqual(manifest.initialViewBounds,[66,14,142,55]);
 let limit=guard.constrain({theta:0,phi:.08,distance:80000,x:0,z:0},frame,1.92,40,-30,150);
 for(let i=0;i<10;i++){const next=guard.constrain({...limit,distance:limit.distance*1.25},frame,1.92,40,-30,150);assert.ok(Math.abs(next.distance-limit.distance)<.02,'zoom-out limit drifts or zooms inward');limit=next;}
-assert.ok(!fs.readFileSync(path.join(root,'terrain-app.js'),'utf8').includes('new THREE.BoxGeometry'));
+// Flat boxes are legitimate town models. The terrain itself must be built from its DEM.
+const terrainSource=fs.readFileSync(path.join(root,'terrain-app.js'),'utf8');
+const groundBuilders=terrainSource.slice(terrainSource.indexOf('  function terrainPatch('),terrainSource.indexOf('  function rebuildMarkers('));
+assert.ok(groundBuilders.includes('function buildEmbeddedMeshes(')&&groundBuilders.includes('function build(d)'));
+assert.ok(!groundBuilders.includes('new THREE.BoxGeometry'),'terrain must not introduce a slab under the DEM');
 const whole=geo.meshIndices(12,10),tiled=geo.meshIndices(12,10,4);
 const triangles=(indices)=>{
   const list=[];
@@ -49,7 +53,6 @@ for(const scale of [0,1,120]){
   }
 }
 // Exercise packed production geometry against the original full-grid vertices.
-const terrainSource=fs.readFileSync(path.join(root,'terrain-app.js'),'utf8');
 const sourceGrid=new T.BufferGeometry();
 const sourcePositions=new Float32Array(12*10*3);
 for(let i=0;i<sourcePositions.length;i++)sourcePositions[i]=i;

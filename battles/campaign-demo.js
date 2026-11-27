@@ -16,83 +16,81 @@
   const text=(kind,value,parent)=>{
     const node=document.createElement(kind);node.textContent=value;parent.append(node);return node;
   };
-  const terrainCanvas=get('terrain-canvas');
-  const terrainNotice=get('terrain-notice'), terrainStatus=get('terrain-status')||terrainNotice, terrainRetry=get('terrain-retry');
   const nationalAtlas=get('national-atlas');
-  let terrain=null, localLoad=null, localLoadFailed=false, sentMode=null;
-  const usesAtlas=()=>nationalAtlas && (view.kind==='national'||view.kind==='atlas');
-  function syncAtlas(force=false){
-    if(!nationalAtlas?.hasAttribute('src'))return;
-    const mode=view.kind==='national'?'overview':view.kind==='atlas'?'story':'hidden';
-    if(!force&&mode===sentMode)return;
-    sentMode=mode;
-    nationalAtlas.contentWindow?.postMessage({type:'atlas-changshe-map',mode},location.origin==='null'?'*':location.origin);
+  const intro=get('situation-intro');
+  const locationViews=['nanyang','story','shanzhou'];
+  const chapterViews={briefing:'story',courier:'nanyang',meeting:'yanling','march-yue':'story',contact:'changshe','reserve-exit':'story'};
+  const actionViews={briefing:'yanling',depart:'nanyang',yamen:'yanling',conference:'yanling'};
+  let atlasMode='overview', cardIndex=0, resumeAfterCard=false, followChapters=false, lastChapter=null;
+  function sendAtlasView(refocus=false){
+    nationalAtlas.contentWindow.postMessage({type:'atlas-changshe-map',mode:atlasMode,refocus},
+      location.origin==='null'?'*':location.origin);
   }
-  function enterStory(nextView){
+  function setAtlasView(mode){
+    atlasMode=mode;
+    if(mode!=='overview')cardIndex=mode==='shanzhou'?2:mode==='nanyang'?0:1;
+    sendAtlasView(true);
+    for(const button of get('views').querySelectorAll('[data-atlas-view]')){
+      button.setAttribute('aria-pressed',String(button.dataset.atlasView===mode));
+    }
+    get('west-note').hidden=mode!=='shanzhou';
+    get('polity-legend').hidden=mode!=='overview';
+  }
+  function closeSituation(){
     introDismissed=true;
-    view=nextView;
+    intro.hidden=true;
+    get('intro-open').hidden=false;
     paint(latest);
+    if(resumeAfterCard&&!play.disabled)start();
+    resumeAfterCard=false;
   }
-  if(nationalAtlas)window.addEventListener('message',event=>{
-    if(event.source!==nationalAtlas.contentWindow||event.origin!==location.origin)return;
-    if(event.data?.type==='atlas-changshe-ready'){syncAtlas(true);return;}
-    if(!usesAtlas())return;
-    if(event.data?.type==='atlas-changshe-front'){selectSituation(event.data.index);return;}
-    if(event.data?.type==='atlas-changshe-enter')enterStory({kind:'atlas'});
-  });
-
-  function loadLocalScript(src){
-    return new Promise((resolve,reject)=>{
-      const script=document.createElement('script');
-      script.src=src;
-      script.onload=resolve;
-      script.onerror=()=>reject(new Error('无法读取 '+src));
-      document.head.append(script);
-    });
-  }
-  function ensureLocalTerrain(){
-    if(!terrainCanvas||terrain||localLoad)return;
-    terrainStatus.textContent='正在加载 3D 战场，暂时显示平面图。';
-    if(terrainRetry)terrainRetry.hidden=true;
-    localLoad=(async()=>{
-      if(!window.THREE)await loadLocalScript('../vendor/three.min.js');
-      if(!window.changsheTerrainGrid)await loadLocalScript('changshe-terrain-data.js');
-      if(!window.createChangsheTerrain)await loadLocalScript('changshe-terrain.js');
-      if(!usesAtlas()){
-        terrain=window.createChangsheTerrain(terrainCanvas,get('terrain-labels'),cfg);
-        document.documentElement.dataset.terrain='webgl';
-      }
-    })().catch(error=>{
-      localLoadFailed=true;
-      terrainStatus.textContent='3D 战场加载失败，当前显示平面图。';
-      if(terrainRetry)terrainRetry.hidden=false;
-      console.warn(error);
-    }).finally(()=>{
-      // A later explicit return to the local view can retry a failed or cancelled load.
-      if(usesAtlas()&&!terrain)localLoad=null;
-      paint(latest);
-    });
-  }
-  if(terrainRetry)terrainRetry.onclick=()=>{
-    if(!localLoadFailed||usesAtlas())return;
-    localLoadFailed=false;
-    localLoad=null;
-    ensureLocalTerrain();
-  };
-  const mapBrief=get('map-brief'), mapPhase=get('map-phase'), mapSource=get('map-source'), mapHeadline=get('map-headline'), mapExplain=get('map-explain'), mapMotion=get('map-motion');
-  if(nationalAtlas)view={kind:'national'};
   function selectSituation(index){
-    if(!Number.isInteger(index)||index<0||index>2)return;
-    if(running)pause();
-    introDismissed=false;
-    get('situation-intro').hidden=false;
+    if(!Number.isInteger(index)||index<0||index>=locationViews.length)return;
+    cardIndex=index;
+    if(running){resumeAfterCard=true;pause();}
+    intro.hidden=false;
+    intro.classList.toggle('location-card',introDismissed);
     get('intro-open').hidden=true;
-    for(const button of document.querySelectorAll('#situation-tabs button'))button.setAttribute('aria-pressed',String(Number(button.dataset.front)===index));
-    for(let i=0;i<3;i++)get('situation-front-'+i).hidden=i!==index;
+    get('situation-close').hidden=!introDismissed;
+    get('intro-choices').hidden=introDismissed;
+    for(const button of get('situation-tabs').querySelectorAll('button')){
+      button.setAttribute('aria-pressed',String(Number(button.dataset.front)===index));
+    }
+    for(let i=0;i<locationViews.length;i++)get('situation-front-'+i).hidden=i!==index;
+    play.disabled=true;
   }
-  document.querySelectorAll('#situation-tabs button').forEach(button=>button.onclick=()=>selectSituation(Number(button.dataset.front)));
-  const situationStatus=get('situation-status');
-  const gateFocus={meeting:'yanling',contact:'ford','wang-arrival':'ford',banner:'ford',relief:'changshe'};
+  if(nationalAtlas){
+    window.addEventListener('message',event=>{
+      if(event.source!==nationalAtlas.contentWindow||event.origin!==location.origin)return;
+      if(event.data?.type==='atlas-changshe-ready')sendAtlasView();
+      else if(event.data?.type==='atlas-changshe-scale'&&typeof event.data.wide==='boolean'){
+        get('polity-legend').hidden=!event.data.wide;
+      }
+      else if(event.data?.type==='atlas-changshe-front'){
+        if(!Number.isInteger(event.data.index)||event.data.index<0||event.data.index>=locationViews.length)return;
+        introDismissed=true;
+        selectSituation(event.data.index);
+      }
+      else if(event.data?.type==='atlas-changshe-enter'){closeSituation();setAtlasView('changshe');}
+    });
+    for(const button of document.querySelectorAll('[data-atlas-view]')){
+      button.onclick=()=>{
+        followChapters=button.id==='intro-close';
+        closeSituation();setAtlasView(button.dataset.atlasView);
+      };
+    }
+    for(const button of get('situation-tabs').querySelectorAll('button')){
+      button.onclick=()=>{
+        const index=Number(button.dataset.front);
+        followChapters=false;
+        selectSituation(index);
+        setAtlasView(locationViews[index]);
+      };
+    }
+    get('intro-open').onclick=()=>selectSituation(atlasMode==='shanzhou'?2:cardIndex);
+    get('situation-close').onclick=closeSituation;
+  }
+  const mapPhase=get('map-phase'),mapSource=get('map-source'),mapHeadline=get('map-headline'),mapExplain=get('map-explain');
   let lastMapEvent=null;
   const sceneDialog=get('scene-dialog'), sceneOpen=get('scene-open');
   const sceneImage=get('scene-image'), sceneArt=get('scene-art');
@@ -144,32 +142,24 @@
     };
     reviewDialog.onclose=()=>{if(resumeAfterReview)start();};
   }
-  const frontNames=new Map(cfg.fronts.map(front=>[front.id,front.name]));
   function updateBrief(snapshot,waiting,finished){
     if(!mapHeadline)return;
     const event=snapshot.log.at(-1);
-    const route=snapshot.groups.find(unit=>unit.route&&unit.id===view.id)
-      ??snapshot.groups.find(unit=>unit.route&&unit.id===cfg.motionCues?.[event?.id])
-      ??snapshot.groups.find(unit=>unit.route);
     if(reviewOpen)reviewOpen.hidden=!event;
     const brief=cfg.mapCues?.[event?.id];
     if(sceneOpen)sceneOpen.hidden=!cfg.scenes?.[event?.id];
-    if(situationStatus){
-      const besieged=snapshot.fronts.find(front=>front.id===cfg.situation.siege).status!=='解围';
-      const united=event?.id==='joint'||event?.id==='standards-advance';
-      const clearing=united||snapshot.groups.some(group=>group.id==='han'&&group.route);
-      const pressure=!besieged?'长社已解围':united?'宋军会师，长社待解围':clearing?'韩世忠正在突围':besieged?'长社仍被围':'';
-      if(situationStatus.textContent!==pressure)situationStatus.textContent=pressure;
-      situationStatus.dataset.pressure=!besieged?'clear':clearing?'breaking':'siege';
-    }
     const chapters=cfg.chapters??[];
     const chapterIndex=Math.max(0,chapters.findLastIndex(([id])=>snapshot.log.some(item=>item.id===id)));
     const chapter=chapters[chapterIndex];
+    if(chapter&&chapter[0]!==lastChapter){
+      lastChapter=chapter[0];
+      const next=chapterViews[lastChapter];
+      if(followChapters&&introDismissed&&next&&atlasMode!==next)setAtlasView(next);
+    }
     const phase=chapter?(chapterIndex+1)+' / '+chapters.length+'　'+chapter[1]:finished?'本局结局':waiting?'等待下令':event?'战役进行中':'战役开场';
     const title=brief?.[0]??event?.title??cfg.openingBrief?.[0]??'战役开场';
     const detail=brief?.[1]??event?.detail??cfg.openingBrief?.[1]??'';
-    const motion=route&&!finished?route.name+' → '+frontNames.get(route.route.front):'';
-    for(const [element,value] of [[mapPhase,phase],[mapSource,chapter?.[2]??''],[mapHeadline,title],[mapExplain,detail],[mapMotion,motion]]){
+    for(const [element,value] of [[mapPhase,phase],[mapSource,chapter?.[2]??''],[mapHeadline,title],[mapExplain,detail]]){
       if(element&&element.textContent!==value)element.textContent=value;
     }
   }
@@ -178,8 +168,8 @@
     button.type='button';
     button.onclick=()=>{
       if(!introDismissed)return;
-      if(action.focus&&!usesAtlas())view={...action.focus};
       paint(campaign.report(action.signal));
+      if(nationalAtlas&&actionViews[action.signal])setAtlasView(actionViews[action.signal]);
       if(!running&&!play.disabled)start();
     };
     return {button,action};
@@ -194,48 +184,33 @@
     if(event?.people)text('p','人物 · '+event.people,panel);
     if(event?.source)text('small',event.source,panel);
   }
-  const views=[], unitView=get('unit-view');
+  const views=[];
   function viewButton(name,kind,id,parent){
     const button=text('button',name,parent);
     button.type='button';
     button.onclick=()=>{
-      if(nationalAtlas&&!introDismissed&&kind!=='national')return;
       view={kind,id};
       paint(latest);
     };
     views.push({button,kind,id});
   }
-  if(nationalAtlas){
-    viewButton('全国形势','national',undefined,get('views'));
-    viewButton('长社一带','atlas',undefined,get('views'));
-  }
-  viewButton(nationalAtlas?'3D 战场':'战役总览','all',undefined,get('views'));
-  if(terrainCanvas&&cfg.situation)viewButton('战局近景','situation',undefined,get('views'));
+  if(map)viewButton('战役总览','all',undefined,get('views'));
   const fronts=cfg.fronts.map(front=>{
-    if(!front.hiddenView&&!front.captionOnly)viewButton(front.name,'front',front.id,get('views'));
     const row=text('li',front.name,get('front-status')), status=text('strong','',row);
-    const siege=cfg.terrain&&front.id==='nanyang'
-      ?svg('circle',{class:'map-siege',cx:front.x,cy:front.y,r:3.3},get('landmarks')):null;
+    if(!map)return {status};
+    viewButton(front.name,'front',front.id,get('views'));
     const dot=svg('circle',{class:'front-dot',cx:front.x,cy:front.y,r:1.25},get('landmarks'));
     const label=svg('text',{class:'map-label',x:front.x+1.8,y:front.y-.8},get('landmarks'));
     label.textContent=front.name;
-    return {status,dot,label,siege};
-  });
-  const storyRoutes=(cfg.storyRoutes??[]).map(route=>{
-    const points=route.via.map(id=>cfg.fronts.find(front=>front.id===id));
-    const shapes=svg('g',{class:'map-story-route'},get('routes'));
-    svg('polyline',{points:points.map(({x,y})=>x+','+y).join(' '),'marker-end':'url(#story-arrow)'},shapes);
-    const anchor=points[Math.ceil((points.length-1)/2)];
-    const caption=svg('text',{class:'map-label',x:anchor.x,y:anchor.y-2},shapes);
-    caption.textContent=route.label;
-    return {route,shapes};
+    return {status,dot,label};
   });
   const statusNames={waiting:'待命',marching:'行军中',fighting:'交战中',arrived:'已抵达',holding:'守住阵地',routed:'阵溃',charge:'冲向徐庆阵',rout:'阵溃',standard:'举旗推进',withdraw:'沿河撤离',withdrawing:'撤离',isolated:'受阻'};
   const units=cfg.groups.map(group=>{
-    if(unitView)text('option',group.name,unitView).value=group.id;
     const row=text('li','',get('units'));
-    viewButton(group.name,'unit',group.id,row);
+    if(map)viewButton(group.name,'unit',group.id,row);
+    else text('span',group.name,row);
     const status=text('span','',row);status.className='role';
+    if(!map)return {status};
     const route=svg('line',{class:'route'},get('routes'));
     const parts=svg('g',{},get('forces'));
     const flag=svg('rect',{class:'flag '+group.side,x:-1.15,y:-.57,width:2.3,height:1.14,rx:.17},parts);
@@ -245,43 +220,14 @@
     label.textContent=group.name;
     return {status,route,parts,flag,label,scale,scaleFill};
   });
-  if(unitView)unitView.onchange=()=>{
-    if(unitView.value)view={kind:'unit',id:unitView.value};
-    else view={kind:'all'};
-    paint(latest);
-  };
-  function paint(snapshot,keepView=false){
+  function paint(snapshot){
     latest=snapshot;
     const done=new Set(snapshot.log.map(event=>event.id));
     const eventId=snapshot.log.at(-1)?.id??null;
     const sceneChanged=eventId!==lastMapEvent;
-    if(sceneChanged)lastMapEvent=eventId;
-    if(mapHeadline&&sceneChanged&&!keepView){
-      if(cfg.cameraCues?.[eventId]&&!usesAtlas())view={...cfg.cameraCues[eventId]};
-      else if(eventId==='meeting'&&terrain&&cfg.situation&&!usesAtlas())view={kind:'situation'};
-      else if(gateFocus[eventId]&&!usesAtlas())view={kind:'front',id:gateFocus[eventId]};
-    }
-    if(unitView)unitView.value=view.kind==='unit'?view.id:'';
-    const compact=view.kind==='front'||view.kind==='unit';
-    const national=Boolean(usesAtlas());
-    if(nationalAtlas){
-      const intro=get('situation-intro'), introOpen=get('intro-open');
-      if(intro){intro.hidden=!national||introDismissed;introOpen.hidden=!national||!introDismissed;}
-      if(national&&!nationalAtlas.hasAttribute('src')){
-        nationalAtlas.src='../index.html?embed=1&lock=1&year=1128&terrain=3d&battle=changshe';
-      }
-      syncAtlas();
-      if(national&&localLoadFailed){localLoad=null;localLoadFailed=false;}
-      if(!national)ensureLocalTerrain();
-      nationalAtlas.classList.toggle('is-active',national);
-      nationalAtlas.setAttribute('aria-hidden',String(!national));
-      nationalAtlas.tabIndex=national?0:-1;
-      get('terrain-labels').hidden=national;
-      if(terrainCanvas)terrainCanvas.hidden=national||!terrain;
-      map.toggleAttribute('hidden',national||Boolean(terrain));
-      terrainNotice.hidden=national||Boolean(terrain);
-    }
-    if(!terrain&&!national){
+    lastMapEvent=eventId;
+    if(map){
+      const compact=view.kind==='front'||view.kind==='unit';
       map.classList.toggle('compact',compact);
       if(compact){
         const focus=(view.kind==='front'?snapshot.fronts:snapshot.groups).find(item=>item.id===view.id);
@@ -289,29 +235,21 @@
       }else map.setAttribute('viewBox','0 0 100 68');
     }
     for(const {button,kind,id} of views)button.setAttribute('aria-pressed',String(view.kind===kind&&view.id===id));
-    const reachedYanling=cfg.terrain&&snapshot.log.some(event=>event.id==='meeting');
-    mapBrief?.toggleAttribute('data-night-detour',!national&&cfg.terrain&&view.kind==='all'&&!reachedYanling);
-    for(const {route,shapes} of storyRoutes)shapes.toggleAttribute('hidden',!done.has(route.after)||done.has(route.until));
     snapshot.fronts.forEach((front,i)=>{
-      const {status,label,dot,siege}=fronts[i];
+      const {status,label,dot}=fronts[i];
+      status.textContent=front.status;
+      if(!map)return;
       const hidden=Boolean(front.reveal&&!done.has(front.reveal));
       dot.toggleAttribute('hidden',hidden);
       label.toggleAttribute('hidden',hidden);
-      status.textContent=front.status;
-      if(siege){
-        siege.toggleAttribute('hidden',reachedYanling);
-        label.setAttribute('x',front.x+(reachedYanling?1.8:4.2));
-        label.textContent=reachedYanling?front.name:front.name+' · 金军围城';
-      }
     });
     snapshot.groups.forEach((group,i)=>{
       const {parts,status,route,label,scale,scaleFill}=units[i];
-      const strength=cfg.strengthFor?.(group,snapshot.log);
-      const strengthValue=cfg.strengthScale?.(group,snapshot.log);
-      scaleFill.setAttribute('width',strengthValue==null?0:6*Math.min(strengthValue,80000)/80000);
-      scale.setAttribute('stroke-dasharray',strengthValue==null?'.3 .2':'');
-      label.textContent='⚑ '+group.name+(strength?' · '+strength:'')+(group.id==='emperor'&&group.route&&!reachedYanling?' · 夜间绕行':'');
       status.textContent=(statusNames[group.route?.motion??group.status]??group.status)+' · '+group.morale;
+      if(!map)return;
+      scaleFill.setAttribute('width',0);
+      scale.setAttribute('stroke-dasharray','.3 .2');
+      label.textContent='⚑ '+group.name;
       parts.style.display=(group.reveal&&!snapshot.log.some(event=>event.id===group.reveal))||(group.displayUntil&&snapshot.log.some(event=>event.id===group.displayUntil))?'none':'';
       parts.setAttribute('transform','translate('+group.x+' '+group.y+')');
       parts.setAttribute('data-unit',group.id);
@@ -332,7 +270,11 @@
           button.onclick=()=>{
             selectedEvent=event.id;
             showStory(event);
-            if(terrain&&cfg.terrain)get('story').scrollIntoView({block:'nearest'});
+            if(nationalAtlas){
+              const chapter=[...snapshot.log.slice(0,snapshot.log.indexOf(event)+1)].reverse().find(item=>chapterViews[item.id]);
+              if(chapter){followChapters=false;setAtlasView(chapterViews[chapter.id]);}
+              get('story').scrollIntoView({block:'nearest'});
+            }
             showScene(event);
           };
         }else{
@@ -352,13 +294,7 @@
       play.textContent=finished?'战役结束':'等待下令';
     }
     updateBrief(snapshot,waiting,finished);
-    if(terrain&&!national)terrain.render(snapshot,view);
-    play.disabled=Boolean((national&&!introDismissed)||(cfg.controls&&(finished||waiting)));
-    for(const item of views){
-      item.button.disabled=Boolean(nationalAtlas&&!introDismissed&&item.kind!=='national');
-      if(nationalAtlas&&item.button.parentNode===get('views')&&['situation','front'].includes(item.kind))item.button.hidden=national;
-    }
-    if(unitView){unitView.hidden=national;unitView.disabled=!introDismissed;}
+    play.disabled=Boolean((intro&&!intro.hidden)||(cfg.controls&&(finished||waiting)));
     if(sceneChanged&&waiting)showScene(snapshot.log.at(-1));
   }
   function pause(){
@@ -376,15 +312,19 @@
     if(!introDismissed)return;
     if(running){pause();return;}
     if(!latest.log.length&&cfg.autoStartSignal){
-      const keepCloseup=view.kind==='front'||view.kind==='unit';
-      paint(campaign.report(cfg.autoStartSignal),keepCloseup);
+      paint(campaign.report(cfg.autoStartSignal));
     }
     if(!play.disabled)start();
   };
-  if(get('intro-close'))get('intro-close').onclick=()=>enterStory({kind:'atlas'});
-  if(get('intro-local'))get('intro-local').onclick=()=>enterStory({kind:'front',id:'changshe'});
-  if(get('intro-open'))get('intro-open').onclick=()=>{selectSituation(0);paint(latest);};
-  get('reset').onclick=()=>{pause();introDismissed=!get('situation-intro');campaign=createAtlasCampaign(cfg);view={kind:nationalAtlas?'national':'all'};selectedEvent=null;play.disabled=false;paint(campaign.snapshot());play.textContent='开始';};
+  get('reset').onclick=()=>{
+    pause();
+    campaign=createAtlasCampaign(cfg);view={kind:'all'};selectedEvent=null;lastMapEvent=null;
+    if(nationalAtlas){
+      introDismissed=false;resumeAfterCard=false;followChapters=false;lastChapter=null;
+      selectSituation(0);setAtlasView('overview');
+    }
+    paint(campaign.snapshot());play.textContent='开始';
+  };
   result?.addEventListener('click',()=>paint(campaign.report('east:won')));
   const detailsToggle=get('toggle-details');
   if(detailsToggle)detailsToggle.onclick=()=>{
@@ -395,5 +335,6 @@
     details.closest('.board').classList.toggle('details-hidden',details.hidden);
     paint(latest);
   };
+  if(nationalAtlas)selectSituation(0);
   paint(latest);
 })();

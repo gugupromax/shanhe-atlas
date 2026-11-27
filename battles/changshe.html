@@ -4,50 +4,27 @@
 *{box-sizing:border-box}body{margin:0;background:#e6ddc8;color:#243b35;font:14px/1.5 "Microsoft YaHei",sans-serif}.layout{min-height:100vh;display:grid;grid-template-rows:auto minmax(360px,1fr) auto auto;max-width:1560px;margin:auto;padding:16px 22px;gap:10px}
 header{display:flex;align-items:end;justify-content:space-between;gap:12px}h1{font:700 clamp(22px,4vw,38px)/1.2 SimSun,serif;margin:0}header p{margin:3px 0 0}.views,.play{display:flex;gap:7px;flex-wrap:wrap}button{font:inherit;cursor:pointer;border:1px solid #8b917f;border-radius:3px;background:#f3eddb;color:#263d36;padding:5px 9px}button:focus-visible{outline:2px solid #925438}button:hover{background:#dcdac3}button[aria-pressed=true]{background:#36564a;color:white}button:disabled{cursor:default;opacity:.55}
 .board{min-height:360px;display:grid;grid-template-columns:minmax(0,1fr) 295px;border:1px solid #9b9784;background:#f8f2e3}
-#map{width:100%;height:100%;min-height:360px;background:#b5bb95}.land{fill:#c1ba91}.river{fill:none;stroke:#739d95;stroke-width:2.4}.route{stroke:#8e7547;stroke-width:.44;stroke-dasharray:1.5 1.2}.front-dot{fill:#f6e5b3;stroke:#423e31;stroke-width:.6}.friendly{fill:#a44235}.opposing{fill:#2f5e65}.flag{stroke:#eee8d4;stroke-width:.31}.map-label{fill:#213c32;paint-order:stroke;stroke:#f5ebd3;stroke-width:.38;font-size:1.6px;font-weight:bold}.compact .map-label{font-size:1.1px;stroke-width:.24}.compact .flag{stroke-width:.24}
 aside{min-width:0;padding:12px;border-left:1px solid #b4ac94;display:flex;flex-direction:column;gap:5px;max-height:70vh;overflow:hidden}#story{background:#ede0c6;padding:7px 9px;border-left:3px solid #8c562e}#story p{margin:4px 0}#story small{color:#515747}#journal button{text-align:left;width:100%;background:transparent;border-color:transparent;padding:2px}
 aside h2{font:700 19px SimSun,serif;margin:3px 0}#front-status,#units,#journal{margin:0;padding:0;list-style:none}#front-status li,#units li{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:3px 0;border-bottom:1px solid #d7ceb7}#units button{padding:2px 5px;text-align:left}.role{color:#4d5d50;font-size:12px}#journal{overflow:auto;min-height:115px;flex:1} #story{flex-shrink:0} #journal li{padding:5px 0;border-bottom:1px solid #d7ceb7}#journal li small{display:block;color:#4d5d50}footer{display:flex;align-items:center;gap:12px;justify-content:space-between}footer p{margin:0}.clock{min-width:65px;font-variant-numeric:tabular-nums}
-@media(max-width:760px){header,footer{align-items:start;flex-direction:column}.board{grid-template-columns:1fr}aside{border-left:0;border-top:1px solid #b4ac94}.layout{padding:9px}.map-label{font-size:2.8px}}
-[hidden]{display:none!important}.terrain-pane{position:relative;min-height:430px;overflow:hidden}
-#national-atlas{position:absolute;inset:0;width:100%;height:100%;border:0;visibility:hidden;background:#e6ddc8}
-#national-atlas.is-active{visibility:visible}
-#national-atlas.is-active~#map-brief #map-motion{display:none}
-.terrain-pane:has(#national-atlas.is-active):has(#situation-intro[hidden]){
-  display:flex;flex-direction:column;
-}
-.terrain-pane:has(#situation-intro[hidden]) #national-atlas.is-active{
-  position:relative;inset:auto;flex:1 1 0;min-height:clamp(280px,48vh,560px);
-}
-.terrain-pane:has(#national-atlas.is-active):has(#situation-intro[hidden]) #map-brief{
-  position:static;width:100%;max-width:none;flex:none;border:0;border-radius:0;
-  background:#edf0e7;color:#263e37;box-shadow:none;border-top:1px solid #b5bdaa;
-}
-.terrain-pane:has(#national-atlas.is-active) #map-phase{color:#3c5647}
-.terrain-pane:has(#national-atlas.is-active) #map-source{color:#536451}
-.terrain-pane:has(#national-atlas.is-active) #situation-status{display:none}
-#terrain-canvas,#terrain-labels{position:absolute;inset:0;width:100%;height:100%}#terrain-canvas{touch-action:none;cursor:grab}#terrain-canvas:active{cursor:grabbing}
-#terrain-labels{pointer-events:none}.terrain-tag{position:absolute;transform:translate(-50%,-100%);white-space:nowrap;border-radius:3px;background:#30473def;color:#fcf1db;padding:2px 6px;font-size:12px;box-shadow:0 1px 3px #27342750}
-.terrain-tag.friendly{background:#863e30}.terrain-tag.opposing{background:#285865}.terrain-tag.engaged{outline:2px solid #e3c585}
-.terrain-unit-leader{position:absolute;height:2px;background:#ffdf96;box-shadow:0 0 1px #263b35;transform-origin:left center;pointer-events:none;z-index:0}.terrain-city{font-weight:bold}.terrain-route-label{background:#594b34;color:#fff4d6;border:1px solid #ffe19a;font-weight:bold}.unit-strength-scale{display:block;width:80px;height:5px;background:#24302c;border:1px solid #f0d8a2;margin-top:3px}.unit-strength-scale.unknown{border-style:dashed;background:transparent}.unit-strength-fill{display:block;height:100%;background:#ffe07a;min-width:1px}.unit-strength-scale.unknown .unit-strength-fill{display:none}.terrain-danger{background:#285865;color:#fff3d3;border:1px dashed #e6cf8d;font-weight:bold}.terrain-unit{font-weight:bold}
-#terrain-notice{position:absolute;z-index:3;top:52px;left:10px;max-width:calc(100% - 20px);background:#f5ead5;padding:5px 8px;margin:0}
-#terrain-retry{margin-left:4px}
-
-#map-brief{position:absolute;z-index:2;inset:auto auto 12px 12px;width:min(530px,calc(100% - 24px));padding:10px 13px;background:#263e37f5;color:#fff3db;border:1px solid #e1d0a0b0;border-radius:5px;box-shadow:0 4px 20px #243b3545;pointer-events:none}
-#map-brief[data-night-detour]{inset:auto 12px 12px auto;max-width:390px}
+[hidden]{display:none!important}
+.terrain-pane{position:relative;display:flex;flex-direction:column;min-width:0;min-height:430px;overflow:hidden}
+#national-atlas{display:block;width:100%;flex:1 1 0;min-height:clamp(300px,50vh,650px);border:0;background:#e6ddc8}
+#map-brief{padding:10px 14px;background:#edf0e7;color:#263e37;border-top:1px solid #b5bdaa}
+#west-note{margin:0;padding:10px 14px;color:#514534;background:#f7ecd5;border-top:1px solid #cbbd9b}
+#polity-legend{padding:4px 14px;color:#344b43;background:#f6f2e8;border-top:1px solid #c8c7b6}
+.terrain-pane:has(#situation-intro:not([hidden])) #national-atlas{min-height:clamp(430px,70vh,800px)}
 @media(max-width:760px){
-  .terrain-pane:has(#map-brief[data-night-detour]){padding-top:360px}
-  .terrain-pane:has(#map-brief[data-night-detour]) :is(#terrain-canvas,#terrain-labels,#map){position:absolute;inset:0 0 auto;height:360px}
-  #map-brief[data-night-detour]{position:relative;inset:auto;margin:0 12px 12px}
+ header,footer{align-items:start;flex-direction:column}
+ .board{grid-template-columns:1fr}
+ aside{border-left:0;border-top:1px solid #b4ac94}
+ .layout{padding:9px}
 }
+
 #map-chapter{display:flex;flex-wrap:wrap;justify-content:space-between;gap:3px 12px;margin-bottom:5px;padding-bottom:5px;border-bottom:1px solid #c8b78266}
-#map-phase{color:#ffe0a7;font-weight:700}#map-source{color:#e2d2ad}#map-headline{margin:2px 0 5px;font:700 clamp(20px,2.2vw,28px)/1.2 SimSun,serif}#map-explain,#map-motion{margin:4px 0}
-#map-motion{color:#f2d090;font-size:13px}#orders button{pointer-events:auto;background:#efda9e;border:1px solid #f9e9be;color:#243b35;font-weight:700}
+#map-phase{color:#3c5647;font-weight:700}#map-source{color:#536451}#map-headline{margin:2px 0 5px;font:700 clamp(20px,2.2vw,28px)/1.2 SimSun,serif}#map-explain{margin:4px 0}
+#orders button{pointer-events:auto;background:#efda9e;border:1px solid #f9e9be;color:#243b35;font-weight:700}
 #map-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:7px}#map-actions:not(:has(button:not([hidden]))),#orders:not(:has(button:not([hidden]))){display:none}
-#map-motion:empty{display:none}
-.terrain-story-route{background:#654725;color:#fff5d7;border:1px solid #ffe1a0;font-weight:700}
-.map-story-route polyline{fill:none;stroke:#704821;stroke-width:.55}
 #toggle-details{position:absolute;z-index:3;top:10px;right:10px}.board.details-hidden{grid-template-columns:1fr}
-.terrain-tag.marching{border-left:3px solid #ffd889}.terrain-tag.engaged{box-shadow:0 0 0 3px #563f32a0}.terrain-tag.highlighted{background:#f0daa4;color:#293d36;border:1px solid #453e2d}
 #review-open,#scene-open{pointer-events:auto}
 #scene-dialog{max-width:calc(100vw - 32px);max-height:calc(100dvh - 32px);padding:0;border:1px solid #6c6357;background:#202926;color:#fff0d9;box-shadow:0 20px 60px #0007}
 #scene-dialog::backdrop{background:#101915c9}
@@ -62,66 +39,70 @@ aside h2{font:700 19px SimSun,serif;margin:3px 0}#front-status,#units,#journal{m
 .scene-copy small{color:#ddba87}
 .scene-copy button{margin-top:6px;font-weight:700}
 @media(max-width:700px){.scene-layout{grid-template-columns:1fr}.scene-layout img{height:auto;max-height:48dvh}.scene-copy{padding:14px 18px}}
-#situation-status{position:absolute;z-index:1;top:10px;left:10px;padding:5px 9px;background:#46312a;color:#ffe6b4;border-left:4px solid #df9564;font-weight:bold;pointer-events:none}
-#situation-status[data-pressure="breaking"]{background:#863e30;border-color:#ffd889}
-#situation-status[data-pressure="clear"]{background:#36564a;border-color:#c9db8c}
-.terrain-advance-flag{color:#fff0d1;background:#803e31;border:1px solid #f7c787;font-weight:bold}
-.terrain-relief-banner{color:#352e22;background:#ffe19a;border:1px solid #81543f;font-weight:bold}
-.terrain-dispersal{color:#e2faff;background:#254e59;border:1px solid #78adae}
-.terrain-tag.besieged{color:#ffe5ae;background:#5b392b;border-color:#dd9b67}
-.map-siege{fill:none;stroke:#784127;stroke-width:.45;stroke-dasharray:1.25 .65}
 #review-dialog{width:min(30rem,85vw);max-height:70vh;overflow:auto}#review-list p{margin:.25rem 0 1rem;line-height:1.6}
 
 #situation-intro{position:absolute;z-index:3;top:12px;right:12px;width:min(390px,calc(100% - 24px));max-height:calc(100% - 24px);overflow:auto;background:#f8f1df;color:#293c35;border:1px solid #817a64;box-shadow:0 6px 22px #263b3650;padding:16px 18px;line-height:1.6}
-#situation-intro h2{font:700 21px/1.25 SimSun,serif;margin:0 0 6px}#situation-intro h3{font-size:15px;margin:12px 0 3px}#situation-intro p{margin:4px 0}#situation-intro ul{margin:4px 0;padding-left:1.2em}#situation-intro li{margin:5px 0}.situation-key{display:flex;gap:14px;flex-wrap:wrap}.situation-key i{display:inline-block;width:13px;height:13px;margin-right:5px;vertical-align:middle}.siege-key{border:2px dashed #c79430;border-radius:50%;background:#285865}.song-key{background:#a53e32}.jin-key{background:#286875}#intro-close{margin-top:10px;font-weight:bold}#intro-open{position:absolute;z-index:3;top:10px;left:10px} .terrain-pane:has(#situation-intro:not([hidden])) #toggle-details,.terrain-pane:has(#situation-intro:not([hidden])) #map-brief{visibility:hidden}
+#situation-intro h2{font:700 21px/1.25 SimSun,serif;margin:0 0 6px}#situation-intro h3{font-size:15px;margin:12px 0 3px}#situation-intro p{margin:4px 0}#situation-intro ul{margin:4px 0;padding-left:1.2em}#situation-intro li{margin:5px 0}.situation-key{display:flex;gap:14px;flex-wrap:wrap}.situation-key i{display:inline-block;width:13px;height:13px;margin-right:5px;vertical-align:middle}.song-key{background:#a53e32}.jin-key{background:#286875}#intro-open{position:absolute;z-index:3;top:10px;left:10px}
+.terrain-pane:has(#situation-intro:not([hidden])) :is(#toggle-details,#map-brief,#west-note){display:none}
 .intro-actions{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}
 .intro-actions button{min-height:44px}
-.intro-actions #intro-close{margin:0;font-weight:normal}
-#intro-local{background:#36564a;color:white;font-weight:bold}
+#intro-close{background:#36564a;color:white;font-weight:bold}
+.location-card .intro-overview,.location-card #intro-title{display:none}
+#situation-close{min-height:40px;margin-top:8px}
 @media(max-width:700px){
- .layout:has(#situation-intro:not([hidden])) header .views,.layout:has(#situation-intro:not([hidden])) footer{display:none}
- .terrain-pane:has(#situation-intro:not([hidden])){overflow:visible;padding-top:300px}
- .terrain-pane:has(#situation-intro:not([hidden])) #national-atlas{height:300px;bottom:auto}
+ .layout:has(#situation-intro:not([hidden]) #intro-choices:not([hidden])) header .views,.layout:has(#situation-intro:not([hidden])) footer{display:none}
+ .terrain-pane:has(#situation-intro:not([hidden])) #national-atlas{height:260px;min-height:260px;flex:none}
  #situation-intro{position:relative;inset:auto;width:100%;max-height:none;overflow:visible;padding:12px 14px 0;font-size:14px;box-shadow:none}
  #situation-intro h2{font-size:20px}.intro-actions button{flex:1 1 auto}
 }
 </style></head><body><main class="layout">
-<header><div><h1>长社之战</h1><p>《绍宋》小说改编 · 卷二 · 多战场试点  <a href="../">返回首页</a></p></div><div class="views" id="views"><select id="unit-view" aria-label="跟随部队"><option value="">跟随部队</option></select></div></header>
+<header><div><h1>长社之战</h1><p>《绍宋》小说改编 · 卷二　<a href="../">返回首页</a></p></div>
+<div class="views" id="views" role="group" aria-label="地图镜头">
+  <button type="button" data-atlas-view="overview" aria-pressed="true">全国形势</button>
+  <button type="button" data-atlas-view="changshe" aria-pressed="false">长社战场</button>
+  <button type="button" data-atlas-view="shanzhou" aria-pressed="false">关陕·陕州</button>
+</div></header>
 <div class="board details-hidden"><div class="terrain-pane">
-<iframe id="national-atlas" title="山河图集 · 南宋初年历史地图" aria-hidden="true" tabindex="-1"></iframe>
+<iframe id="national-atlas" class="is-active" title="山河图集 · 1128 年全国地图与长社战场" src="../index.html?embed=1&amp;lock=1&amp;year=1128&amp;terrain=3d&amp;battle=changshe"></iframe>
+<div id="polity-legend" class="situation-key" role="group" aria-label="1128 年疆域图例"><span><i class="song-key"></i>南宋</span><span><i class="jin-key"></i>金</span></div>
 <button id="intro-open" type="button" hidden>战前局势</button>
 <section id="situation-intro" aria-labelledby="intro-title" hidden>
 <h2 id="intro-title">鄢陵有八万援军，长社为什么还在等？</h2>
-<div class="intro-actions"><button id="intro-local" type="button">进入 3D 战场</button><button id="intro-close" type="button">全国地图看长社</button></div>
-<p>东京留守宗泽病重，朝廷命杜充统兵。王彦率八字军赶来，鄢陵集结八万余人。长社仍被挞懒围着。</p>
+<div class="intro-actions" id="intro-choices">
+  <button id="intro-close" type="button" data-atlas-view="changshe">进入长社战场</button>
+  <button type="button" data-atlas-view="overview">全国形势</button>
+  <button type="button" data-atlas-view="shanzhou">关陕·陕州</button>
+</div>
+<div class="intro-overview"><p>东京留守宗泽病重，朝廷命杜充统兵。王彦率八字军赶来，鄢陵集结八万余人。长社仍被挞懒围着。</p>
 <p><strong>杜充奏报</strong>　岳飞、王彦不和，强令出战恐怕生变。</p>
 <p><strong>杜岩连夜面陈</strong>　两将曾共同请战，是父亲与挞懒私约不战。他经西平、中阳山回到南阳，也给赵玖指出了一条去鄢陵的路。<small>卷二第62章《召见》</small></p>
 <p><strong>先前金军五路渡河：</strong>阿里偷渡济南、讹鲁补强渡濮州，两路得手；耶律马五进逼滑州、拔离速攻汜水关，两路包抄东京受阻；西路撒八进攻河东，在解州被李彦仙、翟兴、翟进击退。此后金军重新调动，形成眼下局面。<small> <a href="https://cn.ttkan.co/novel/pagea/shaosong-liudanpashui_126.html">卷二第39章</a></small></p>
-<div class="situation-key"><span><i class="song-key"></i>南宋</span><span><i class="jin-key"></i>金</span></div>
-<p><small>地图以 1128 年的疆域和地名交代小说背景，点选城名可阅读各地局势。</small></p>
+<p><small>地图以 1128 年的疆域和地名交代小说背景，点选城名可阅读各地局势。</small></p></div>
 <div id="situation-tabs" role="group" aria-label="选择战场">
 <button type="button" data-front="0" aria-pressed="true">南阳</button>
 <button type="button" data-front="1" aria-pressed="false">长社—鄢陵</button>
 <button type="button" data-front="2" aria-pressed="false">关陕</button></div>
-<div id="situation-front-0" class="situation-front"><h3>南阳｜兀术围攻赵玖</h3><p>兀术先在朱家曲伏击赶来救东京的韩世忠，又把韩部压进长社。他留下围城兵力，自己继续往南，想直接拿下宋廷所在的南阳。城墙、壕沟和粮储让攻城久拖不下。沙盘开场时，兀术仍在南阳城外。赵玖借约万人南向佯动，带约800骑夜出，避开约万骑金军主力，沿途仍可能遭遇零散金骑。</p><p><small><a href="https://hetushu.com/book/8942/6431387.html">卷二第42章</a> · <a href="https://hetushu.com/book/8942/6431397.html">第52章</a></small></p></div>
+<div id="situation-front-0" class="situation-front"><h3>南阳｜兀术围攻赵玖</h3><p>兀术先在朱家曲伏击赶来救东京的韩世忠，又把韩部压进长社。他留下围城兵力，自己继续往南，想直接拿下宋廷所在的南阳。城墙、壕沟和粮储让攻城久拖不下。故事开场时，兀术仍在南阳城外。赵玖借约万人南向佯动，带约800骑夜出，避开约万骑金军主力，沿途仍可能遭遇零散金骑。</p><p><small><a href="https://hetushu.com/book/8942/6431387.html">卷二第42章</a> · <a href="https://hetushu.com/book/8942/6431397.html">第52章</a></small></p></div>
 <div id="situation-front-1" class="situation-front" hidden><h3>长社—鄢陵｜挞懒围城，杜充握着援军</h3><p>韩世忠坚守长社，长葛、临颍、舞阳失守，襄城、郾城、西平仍有宋军坚守。挞懒从别处抽兵集中到长社，请兀术增援却没得到回应。鄢陵的杜充与挞懒私约不战，援军迟迟未动。岳飞想趁金军分散、回援未到，集中诸军解围。赵玖夜出南阳，正是要调动这支援军。</p><p><small><a href="https://hetushu.com/book/8942/6431406.html">卷二第61章</a> · <a href="https://hetushu.com/book/8942/6431409.html">第64章</a> · <a href="https://hetushu.com/book/8942/6431411.html">第66章</a></small></p></div>
-<div id="situation-front-2" class="situation-front" hidden><h3>关陕｜娄室牵制西线</h3><p>粘罕统筹，娄室率西路军进攻洛阳、陕州方向，战事延及关陕。李彦仙守陕州，晋宁军失守。长社急需援兵时，西线也面临金军压力。</p><p><small><a href="https://hetushu.com/book/8942/6431269.html">卷一第10章</a> · <a href="https://hetushu.com/book/8942/6431399.html">卷二第54章</a></small></p></div>
+<div id="situation-front-2" class="situation-front" hidden><h3>关陕｜李彦仙守陕州</h3>
+<p>《绍宋》写长社等待援军时，娄室也在西线用兵。李彦仙守着陕州，挡住向西推进的金军。</p>
+<p><small>小说出处　<a href="https://hetushu.com/book/8942/6431269.html">卷一第10章</a> · <a href="https://hetushu.com/book/8942/6431399.html">卷二第54章</a></small></p>
+<p>史实中，李彦仙曾任陕州知州，守城抗金，牵制金军西进。<a href="https://zh.wikisource.org/wiki/宋史/卷448#李彥仙">《宋史》卷四四八《李彦仙传》</a></p></div>
+<button id="situation-close" type="button" hidden>返回地图</button>
 </section>
-<output id="situation-status" aria-label="长社状态"></output><canvas id="terrain-canvas" aria-label="可旋转和缩放的 3D 地图" hidden></canvas><div id="terrain-labels"></div>
-<div id="terrain-notice" hidden><span id="terrain-status" role="status"></span> <button type="button" id="terrain-retry" hidden>重试 3D</button></div><svg id="map" role="img" aria-label="三个战场与各支部队的持续位置" viewBox="0 0 100 68" preserveAspectRatio="xMidYMid meet">
-<defs><marker id="story-arrow" markerWidth="4" markerHeight="4" refX="3" refY="2" orient="auto"><path d="M0,0 L4,2 L0,4 Z" fill="#704821"/></marker></defs>
-<rect class="land" x="-30" y="-30" width="160" height="130"/><path class="river" d="M 56,-20 C 48,7 64,13 53,29 S 59,58 45,90"/><text class="map-label" x="56" y="11">清潩水（示意）</text><g id="routes"></g><g id="landmarks"></g><g id="forces"></g></svg><section id="map-brief" aria-label="地图解说">
+<p id="west-note" hidden><strong>陕州 · 李彦仙</strong>　长社等援之际，小说的西线由李彦仙守陕州，牵制金军。点选城名可阅读小说出处和史实。</p>
+<section id="map-brief" aria-label="地图解说">
   <div id="map-chapter"><small id="map-phase"></small><small id="map-source"></small></div>
   <h2 id="map-headline"></h2>
-  <p id="map-explain"></p><p id="map-motion"></p>
+  <p id="map-explain"></p>
   <div id="map-actions">
     <div class="play" id="orders" aria-label="当前可用命令"></div>
     <button type="button" id="review-open" hidden>回看解说</button>
     <button type="button" id="scene-open" hidden>回看斧决杜充</button>
   </div>
 </section><button type="button" id="toggle-details" aria-expanded="false" aria-controls="campaign-details">显示右侧资料</button></div>
-<aside id="campaign-details" hidden><section id="story" aria-live="polite"></section><div><h2>战场状态</h2><ul id="front-status"></ul></div><div><h2>部队视角与士气</h2><ul id="units"></ul></div><h2>事件记录</h2><ol id="journal"></ol></aside></div>
-<footer><div class="play"><button type="button" id="play">开始</button><button type="button" id="reset">重置</button><output class="clock" id="clock">0:00</output></div><p id="help">全国地形以 1128 年为历史参照。3D 战场支持拖动旋转、滚轮缩放。 <a href="changshe-sources.md">情节核对与出处</a></p></footer>
+<aside id="campaign-details" hidden><section id="story" aria-live="polite"></section><div><h2>战场状态</h2><ul id="front-status"></ul></div><div><h2>部队状态与士气</h2><ul id="units"></ul></div><h2>事件记录</h2><ol id="journal"></ol></aside></div>
+<footer><div class="play"><button type="button" id="play">开始</button><button type="button" id="reset">重置</button><output class="clock" id="clock">0:00</output></div><p id="help">1128 年历史底图 · 滚轮缩放，拖动平移，右键拖动旋转。 <a href="changshe-sources.md">情节核对与出处</a></p></footer>
 </main><dialog id="review-dialog" aria-labelledby="review-title"><h2 id="review-title">回看解说</h2><form method="dialog"><button autofocus>返回地图</button></form><ol id="review-list" reversed></ol></dialog><dialog id="scene-dialog" aria-labelledby="scene-title">
   <div class="scene-layout">
     <figure id="scene-art" hidden><img id="scene-image" alt="赵玖举起斧头，杜充倒在堂上"><figcaption>《绍宋》漫画画面 · 用户提供</figcaption></figure>
@@ -132,4 +113,4 @@ aside h2{font:700 19px SimSun,serif;margin:3px 0}#front-status,#units,#journal{m
       <form method="dialog"><button autofocus>返回战场</button></form>
     </section>
   </div>
-</dialog><script src="battle-units.js"></script><script src="campaign-state.js"></script><script src="campaign-changshe-config.js"></script><script src="campaign-demo.js?v=3e43729f"></script></body></html>
+</dialog><script src="battle-units.js"></script><script src="campaign-state.js"></script><script src="campaign-changshe-config.js"></script><script src="campaign-demo.js?v=bf90d08f"></script></body></html>

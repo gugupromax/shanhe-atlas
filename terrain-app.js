@@ -34,12 +34,14 @@
   })();
   const pageParams=new URLSearchParams(location.search);
   const embedded=pageParams.get('embedded')==='1';
-  if(embedded&&pageParams.get('battle')==='changshe')$('coordinate').hidden=true;
+  const changsheAtlas=embedded&&pageParams.get('battle')==='changshe';
+  if(changsheAtlas)$('coordinate').hidden=true;
   let fusion=null,fusionState=null,fusionActive=!embedded,fusionLocations=[],fusionLayers={},fusionPaintedKey=null,fusionViewKey='',fusionHeightTimer=null,fusionViewTimer=null,fusionStarted=false;
   let atlasSurface=null,surfaceSceneKey='',surfaceBaseId=-1,surfaceDetailId=-1,surfaceLoads=0,pendingSurfaceDetail=null,pendingBaseDraw=null;
   let tangTiles=null,tangTileJob=0,tangTilePlanKey='',tangBaseApplied=false,tangAppliedTier='far';
   let areaOverlay=null,areaOverlayId=0;
   let adminLabelData=[],passLabelData=[],screenLabels=[],passGates=null;
+  let battleSites=[];
   let areaClickTimer;
   const passes = [
     ['zhiguan','轵关陉',112.38,35.16,'济源—垣曲一带','看王屋山南侧与黄河以北的山间通道。'],
@@ -291,7 +293,7 @@
     }
   }
   function rebuildMarkers() {
-    dispose(markerGroup);markerGroup=new THREE.Group();scene.add(markerGroup);labels=[];screenLabels=[];passGates=null;$('labels').replaceChildren();
+    dispose(markerGroup);markerGroup=new THREE.Group();scene.add(markerGroup);labels=[];screenLabels=[];battleSites=[];passGates=null;$('labels').replaceChildren();
     const overview=selected==='overview';
     if(selected==='national'){
       if(embedded){rebuildFusionPlaces();rebuildScreenLabels();rebuildRoutes();return;}
@@ -822,7 +824,8 @@
       const key=locationKey(p);if(occupied.has(key))continue;occupied.add(key);
       const active=priority(p)===0,el=document.createElement('button');el.className='map-label fusion-place '+p.kind+(active?' selected':'');
       el.textContent=p.kind==='event'?(p.year<0?'前'+Math.abs(p.year):p.year)+' · 史事':(p.kind==='journey'&&Number.isInteger(p.index)?(p.index+1)+' ':'')+(p.name.length>18?p.name.slice(0,18)+'…':p.name);
-      el.title=(Number.isInteger(p.year)?timeCore.yearLabel(p.year)+' · ':'')+p.name+(p.kind==='journey'?' · 跳到此站':p.kind==='event'?' · 查看事件':p.kind==='battle'?'':' · 查看城市沿革');
+      if(p.kind==='battle'&&p.caption)el.textContent=p.caption;
+      el.title=(Number.isInteger(p.year)?timeCore.yearLabel(p.year)+' · ':'')+(p.kind==='battle'&&p.caption?p.caption:p.name)+(p.kind==='journey'?' · 跳到此站':p.kind==='event'?' · 查看事件':p.kind==='battle'?'':' · 查看城市沿革');
       el.setAttribute('aria-label',el.title);
       el.onclick=event=>{
         if(event.isTrusted&&performance.now()<(el._fusionSuppressUntil||0))return;
@@ -835,7 +838,9 @@
       $('labels').append(el);
       if(p.kind==='battle'){
         // Use the atlas's projected city-label placement and shared collision boxes.
-        screenLabels.push({el,point:xyz(...p.coord),gateIndex:-1,seat:true});
+        const label={el,point:xyz(...p.coord),gateIndex:-1,seat:true};
+        screenLabels.push(label);
+        if(changsheAtlas)battleSites.push({name:p.name,label});
       }else{
         labels.push({el,lon:p.coord[0],lat:p.coord[1],type:'fusion-'+p.kind,fusionPoint:p,active});
       }
@@ -876,6 +881,68 @@
     // Size the building once against the reference relief. Only its footing
     // follows the terrain height slider.
     return {point,relief:(high-low)/exaggeration*defaultEmbeddedExaggeration};
+  }
+  // Regional map symbols, measured in the same projected kilometres as the terrain.
+  // The enclosed figures and banner identify a garrison; their count has no numerical meaning.
+  function createBattleCity(name,point){
+    const group=new THREE.Group();
+    group.name='ChangsheCity:'+name;
+    const halfWidth=1.6,halfDepth=1.13;
+    let low=Infinity,high=-Infinity;
+    for(const x of [-halfWidth,0,halfWidth])for(const z of [-halfDepth,0,halfDepth]){
+      const y=terrainSurfaceHeight(point.x+x,point.z+z,1);
+      low=Math.min(low,y);high=Math.max(high,y);
+    }
+    group.position.set(point.x,high+.025,point.z);
+    const baseHeight=high-low+.12;
+    const stone='#ad8965',timber='#794c36',tile='#3c514b',banner='#a34132';
+    const walls=[
+      [0,-baseHeight/2,0,3.2,baseHeight,2.26,'#ae9675'],
+      [0,.23,-1.04,3.05,.46,.16,stone],
+      [-1.47,.23,0,.16,.46,2.08,stone],[1.47,.23,0,.16,.46,2.08,stone],
+      [-.91,.22,1.04,1.14,.44,.16,stone],[.91,.22,1.04,1.14,.44,.16,stone],
+      [0,.55,1.04,.79,.26,.39,timber],
+      [-.72,.21,-.27,.61,.42,.52,timber],
+      [.89,.73,-.53,.055,1.46,.055,'#5c3a2b'],
+      [1.13,1.27,-.53,.46,.31,.045,banner],
+    ];
+    const roofs=[[0,.79,1.04,.68,.34,.45,tile],[-.72,.54,-.27,.57,.28,.49,tile]];
+    for(const x of [-1.46,1.46])for(const z of [-1.02,1.02]){
+      walls.push([x,.38,z,.28,.76,.28,stone]);
+      roofs.push([x,.87,z,.29,.26,.29,tile]);
+    }
+    const figures=[],heads=[];
+    for(const x of [-.32,.12,.56])for(const z of [-.1,.34]){
+      figures.push([x,.085,z,.16,.17,.15,'#443832'],[x,.28,z,.22,.23,.18,banner]);
+      heads.push([x,.46,z,.18,.20,.18,'#4a3730']);
+    }
+    const material=new THREE.MeshLambertMaterial();
+    const matrix=new THREE.Matrix4(),color=new THREE.Color();
+    function addParts(label,geometry,parts){
+      const mesh=new THREE.InstancedMesh(geometry,material,parts.length);
+      mesh.name=label;
+      parts.forEach(([x,y,z,w,h,d,tint],i)=>{
+        mesh.setMatrixAt(i,matrix.makeScale(w,h,d).setPosition(x,y,z));
+        mesh.setColorAt(i,color.set(tint));
+      });
+      group.add(mesh);
+    }
+    addParts('city-walls',new THREE.BoxGeometry(),walls);
+    addParts('city-roofs',new THREE.ConeGeometry(1,1,4).rotateY(Math.PI/4),roofs);
+    addParts('garrison-figures',new THREE.BoxGeometry(),figures);
+    addParts('garrison-heads',new THREE.SphereGeometry(.5,8,6),heads);
+    markerGroup.add(group);
+    return group;
+  }
+  function updateBattleCities(visibleWidth){
+    const show=visibleWidth<=200&&terrain.visible&&document.body.dataset.surfaceYear===String(historyYear);
+    const pixelsPerKm=$('stage').clientWidth/visibleWidth;
+    for(const site of battleSites){
+      if(show&&!site.model)site.model=createBattleCity(site.name,site.label.point);
+      if(site.model)site.model.visible=show;
+      // Keep a clear area beside the castle and flag for the clickable city name.
+      site.label.cityPadding=show?2.15*pixelsPerKm:0;
+    }
   }
   function sendScreenPlace(place) {
     fusion.send('place-pick',{coord:place.coord,label:place.pickName,
@@ -948,7 +1015,7 @@
       label.onScreen=Math.abs(point.z)<1&&label.screenX>=0&&label.screenX<=width&&label.screenY>=0&&label.screenY<=height;
       if(label.onScreen&&label.width===undefined){label.width=label.el.offsetWidth;label.height=label.el.offsetHeight;}
     }
-    for(const {el,dot,gateIndex,seat,width:w,height:h,onScreen,screenX:x,screenY:y} of screenLabels){
+    for(const {el,dot,gateIndex,cityPadding=0,seat,width:w,height:h,onScreen,screenX:x,screenY:y} of screenLabels){
       if(dot){
         const shown=onScreen&&!gateBoxes.some(([l,t,r,b])=>x>l&&x<r&&y>t&&y<b);
         dot.style.visibility=shown?'visible':'hidden';
@@ -957,7 +1024,7 @@
       let placed=false;
       if(onScreen){
         const clearance=passGates?.clearances[gateIndex];
-        const gapX=clearance?clearance.x+5:8,gapY=clearance?clearance.y+4:7;
+        const gapX=clearance?clearance.x+5:8+cityPadding,gapY=clearance?clearance.y+4:7+cityPadding;
         const offsets=seat?[[w/2+gapX,0],[-w/2-gapX,0],[0,-h/2-gapY],[0,h/2+gapY]]:
           el.dataset.kind==='polity'?[[0,0],[0,-18],[0,18],[-24,0],[24,0]]:[[0,0]];
         for(const [dx,dy] of offsets){
@@ -1015,6 +1082,7 @@
       }
       terrainDetail.visible=!terrainOverview.visible;
       prepareEmbeddedTerrain();
+      if(battleSites.length)updateBattleCities(visibleWidth);
       if(passGates){
         passGates.mesh.visible=terrain.visible&&document.body.dataset.surfaceYear===String(historyYear);
         if(passGates.mesh.visible){
@@ -1155,5 +1223,5 @@
     $('profile-close').onclick=clearProfile;
     initHistoryControls();animate();show('national');
   } catch(e) { fail(e.message||'浏览器不支持 WebGL。请用新版 Edge 或 Chrome 打开，并启用浏览器图形加速。'); }
-  function zoom(factor,event=null){if(!dataset)return;const before=desired.distance,anchor=event?hitAt(event)?.point:null;desired.distance=Math.max(Math.max(widthKm,depthKm)/240,desired.distance*factor);constrainDesired();if(anchor){const ratio=desired.distance/before;desired.x=anchor.x-(anchor.x-desired.x)*ratio;desired.z=anchor.z-(anchor.z-desired.z)*ratio;constrainDesired();}dirty=true;if(embedded)emitFusionView();}
+  function zoom(factor,event=null){if(!dataset)return;const before=desired.distance,anchor=event?hitAt(event)?.point:null;const minimum=changsheAtlas?6:Math.max(widthKm,depthKm)/240;desired.distance=Math.max(minimum,desired.distance*factor);constrainDesired();if(anchor){const ratio=desired.distance/before;desired.x=anchor.x-(anchor.x-desired.x)*ratio;desired.z=anchor.z-(anchor.z-desired.z)*ratio;constrainDesired();}dirty=true;if(embedded)emitFusionView();}
 })();

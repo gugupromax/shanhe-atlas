@@ -32,7 +32,14 @@
   }
   function validateState(value){
     if(!value||!Number.isInteger(value.year)||value.year===0||value.year<-403||value.year>3000||!validCoord(value.center)||!Number.isFinite(value.widthKm)||value.widthKm<.01||value.widthKm>200000)return null;
-    const locations=(Array.isArray(value.locations)?value.locations:[]).slice(0,1500).filter(p=>p&&validCoord(p.coord)&&typeof p.name==='string').map(p=>({name:p.name.slice(0,200),coord:[p.coord[0],p.coord[1]],kind:['city','journey','selected','event','battle'].includes(p.kind)?p.kind:'city',year:Number.isInteger(p.year)?p.year:undefined,index:Number.isInteger(p.index)?p.index:undefined,trackIdx:Number.isInteger(p.trackIdx)?p.trackIdx:undefined,tint:typeof p.tint==='string'?p.tint:undefined}));
+    const locations=(Array.isArray(value.locations)?value.locations:[]).slice(0,1500)
+      .filter(p=>p&&validCoord(p.coord)&&typeof p.name==='string').map(p=>({
+        name:p.name.slice(0,200),coord:[p.coord[0],p.coord[1]],
+        kind:['city','journey','selected','event','battle'].includes(p.kind)?p.kind:'city',
+        ...(p.kind==='battle'&&typeof p.caption==='string'?{caption:p.caption.slice(0,80)}:{}),
+        year:Number.isInteger(p.year)?p.year:undefined,index:Number.isInteger(p.index)?p.index:undefined,
+        trackIdx:Number.isInteger(p.trackIdx)?p.trackIdx:undefined,tint:typeof p.tint==='string'?p.tint:undefined,
+      }));
     const sel=value.selection||{},selection={personKey:typeof sel.personKey==='string'?sel.personKey.slice(0,300):'',personTitle:typeof sel.personTitle==='string'?sel.personTitle.slice(0,200):'',stopIndex:Number.isInteger(sel.stopIndex)?sel.stopIndex:-1,traceCoord:validCoord(sel.traceCoord)?sel.traceCoord.slice(0,2):null};
     const tileTier=value.year===741&&['far','mid','near'].includes(value.tileTier)?value.tileTier:null;
     const bounds=value.tileBounds;

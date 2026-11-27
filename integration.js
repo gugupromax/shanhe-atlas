@@ -80,15 +80,22 @@
     const params = new URLSearchParams(root.location.search);
     const parentBattle = app.embed && root.parent !== root && params.get('battle') === 'changshe';
     const battleTowns = [
-      { name: '长社', coord: [113.82, 34.02], index: 1, kind: 'battle' },
-      { name: '鄢陵', coord: [114.18, 34.10], index: 1, kind: 'battle' },
-      { name: '南阳', coord: [112.53, 32.99], index: 0, kind: 'battle' },
-      { name: '陕州', coord: [111.19, 34.77], index: 2, kind: 'battle' },
+      { key: 'changshe', name: '长社', coord: [113.82, 34.02], index: 1, kind: 'battle' },
+      { key: 'yanling', name: '鄢陵', coord: [114.18, 34.10], index: 1, kind: 'battle' },
+      { key: 'nanyang', name: '南阳', coord: [112.53, 32.99], index: 0, kind: 'battle' },
+      { key: 'shanzhou', name: '陕州', caption: '陕州 · 李彦仙', coord: [111.19, 34.77], index: 2, kind: 'battle' },
     ];
     let battleView = 'overview', battleHidden = false, resumeBattleTerrain = false;
     let overviewCamera;
     const flatTowns = [];
     const parentOrigin = root.location.protocol === 'file:' ? '*' : root.location.origin;
+    let lastBattleWide;
+    function updateBattleScale(widthKm) {
+      const wide = widthKm >= 1000;
+      if (wide === lastBattleWide) return;
+      lastBattleWide = wide;
+      root.parent.postMessage({ type: 'atlas-changshe-scale', wide }, parentOrigin);
+    }
     function openBattleChapter(index) {
       if (!battleHidden && battleTowns.some(town => town.index === index)) {
         root.parent.postMessage({ type: 'atlas-changshe-front', index }, parentOrigin);
@@ -105,7 +112,7 @@
       for (const town of battleTowns) {
         const button = doc.createElement('button');
         button.type = 'button';
-        button.textContent = town.name;
+        button.textContent = town.caption || town.name;
         button.onclick = () => openBattleChapter(town.index);
         overlay.append(button);
         flatTowns.push({ button, point: app.projector.toScreen(...town.coord) });
@@ -397,8 +404,10 @@
       return stops.concat(milestones, city);
     }
     function sync(reason = 'controller', force = false) {
-      if (!ready || applyingChild) return;
+      if (applyingChild || (!ready && !parentBattle)) return;
       const cameraView = readView(app, app.svg.getBoundingClientRect());
+      if (parentBattle) updateBattleScale(cameraView.widthKm);
+      if (!ready) return;
       const layerState = layers();
       if (app.year !== 741) tilesFailed = false;
       const tileTier = tilesPackaged && !tilesFailed ? tangTileTier(app, layerState, root.location.protocol) : null;
@@ -473,7 +482,7 @@
         app._applyCamera(true);
       } finally { applyingChild = false; }
     }
-    function changeBattleView(mode) {
+    function changeBattleView(mode, refocus) {
       if (mode === 'hidden') {
         if (battleHidden) return;
         battleHidden = true;
@@ -481,16 +490,18 @@
         if (active) setMode(false);
         return;
       }
-      if (mode !== 'overview' && mode !== 'story') return;
+      const town = battleTowns.find(place => place.key === mode);
+      if (mode !== 'overview' && mode !== 'story' && !town) return;
       const resume = battleHidden && resumeBattleTerrain;
       battleHidden = false;
-      if (mode !== battleView) {
+      if (mode !== battleView || refocus) {
         battleView = mode;
         const rect = app.svg.getBoundingClientRect();
-        // Fit Nanyang and the Changshe–Yanling area in both tall and wide map panes.
-        const widthKm = Math.max(285, 245 * rect.width / Math.max(1, rect.height));
+        const aspect = rect.width / Math.max(1, rect.height);
+        // A town close-up and the two-city regional view share the national camera.
+        const widthKm = town ? Math.max(26, Math.min(54, 27 * aspect)) : Math.max(64, 52 * aspect);
         const camera = mode === 'overview' ? { ...overviewCamera } :
-          cameraForView(app, rect, [113.39, 33.60], widthKm);
+          cameraForView(app, rect, town ? town.coord : [114, 34.06], widthKm);
         pendingChildCamera = null;
         applyChildCamera(camera);
         sync('battle-view');
@@ -646,6 +657,7 @@
       } else if (message.type === 'view-preview' && active) {
         const camera = cameraForView(app, app.svg.getBoundingClientRect(), message.center, message.widthKm);
         if (!camera) return;
+        if (parentBattle) updateBattleScale(message.widthKm);
         if (!pendingChildCamera) {
           clearTimeout(surfaceTimer);
           surfaceRequest++;
@@ -707,7 +719,7 @@
     if (parentBattle) {
       root.addEventListener('message', event => {
         if (event.source === root.parent && event.origin === root.location.origin &&
-            event.data?.type === 'atlas-changshe-map') changeBattleView(event.data.mode);
+            event.data?.type === 'atlas-changshe-map') changeBattleView(event.data.mode, event.data.refocus === true);
       });
       positionFlatTowns();
       if (params.get('terrain') === '3d') setMode(true);

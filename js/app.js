@@ -7818,20 +7818,18 @@
         (111.32 * Math.cos(clampedLat * DEG_TO_RAD)) / this.projector.scale;
       const kmPerCssPx = kmPerSvgUnit / Math.max(0.05, screenScale);
 
-      const candidates = [20, 50, 100, 200, 500, 1000, 1500];
-      let bestKm = 500;
-      let bestDiff = Infinity;
-      for (const km of candidates) {
-        const px = km / kmPerCssPx;
-        const diff = Math.abs(px - 86);
-        if (px >= 48 && px <= 145 && diff < bestDiff) {
-          bestDiff = diff;
-          bestKm = km;
-        }
+      const targetKm = kmPerCssPx * 86;
+      if (!(targetKm > 0) || !Number.isFinite(targetKm)) return;
+      const magnitude = 10 ** Math.floor(Math.log10(targetKm));
+      const candidates = magnitude === 1000 ? [1, 1.5, 2, 5, 10] : [1, 2, 5, 10];
+      let bestKm = magnitude;
+      for (const multiple of candidates) {
+        const km = multiple * magnitude;
+        if (Math.abs(km - targetKm) < Math.abs(bestKm - targetKm)) bestKm = km;
       }
-      const barPx = Math.max(44, Math.min(150, Math.round(bestKm / kmPerCssPx)));
+      const barPx = Math.round(bestKm / kmPerCssPx);
       const width = `${barPx}px`;
-      const label = `${bestKm} km`;
+      const label = bestKm < 1 ? `${Math.round(bestKm * 1000)} m` : `${bestKm} km`;
       if (barEl.style.width !== width) barEl.style.width = width;
       if (lblEl.textContent !== label) lblEl.textContent = label;
     }
