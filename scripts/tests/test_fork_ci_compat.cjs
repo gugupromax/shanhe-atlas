@@ -60,7 +60,8 @@ function fixture(t, newline = '\n') {
   for (const rel of assets) {
     const full = path.join(dir, rel);
     fs.mkdirSync(path.dirname(full), { recursive: true });
-    fs.writeFileSync(full, `/* ${rel}: 地图 */${newline}const value = 1;${newline}`);
+    fs.writeFileSync(full, rel.endsWith('.webp') ? Buffer.from([0x52,0x49,0x46,0x46,13,10]) :
+      `/* ${rel}: 地图 */${newline}const value = 1;${newline}`);
   }
   const html = versions.STATIC_TAG_ASSETS.map(rel => rel.endsWith('.css')
     ? `<link rel="stylesheet" href="${rel}?v=old" />`

@@ -51,6 +51,8 @@ const STATIC_TAG_ASSETS = [
 ];
 
 const LAZY_ATTR_ASSETS = [
+  { attr: 'data-v-changshe', datasetKey: 'vChangshe', relPath: 'assets/changshe-1128-base.webp' },
+  { attr: 'data-v-changshe-near', datasetKey: 'vChangsheNear', relPath: 'assets/changshe-1128-near.webp' },
   { attr: 'data-v-terrain', datasetKey: 'vTerrain', relPath: 'terrain.html' },
   { attr: 'data-v-tang741', datasetKey: 'vTang741', relPath: 'js/tang_741.js' },
   { attr: 'data-v-snapshots', datasetKey: 'vSnapshots', relPath: 'js/atlas_snapshots.js' },
@@ -135,6 +137,8 @@ function applyHashesToIndexHtml(indexHtml, hashes) {
     LAZY_ATTR_ASSETS.map(({ attr, relPath }) => ` ${attr}="${hashes[relPath]}"`).join('') +
     '></script>';
   out = out.replace(appTagRe, expectedAppTag);
+  out = out.replace(/(id="battle-terrain-boot" data-v-terrain=")[^"]+"/,
+    (_,prefix)=>prefix+hashes['terrain.html']+'"');
   for (const relPath of PRELOADED_LAZY_ASSETS) {
     const matches = out.match(preloadRe(relPath));
     assert(

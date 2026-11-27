@@ -22,6 +22,11 @@
   const chapterViews={briefing:'story',courier:'nanyang',meeting:'yanling','march-yue':'story',contact:'changshe','reserve-exit':'story'};
   const actionViews={briefing:'yanling',depart:'nanyang',yamen:'yanling',conference:'yanling'};
   let atlasMode='overview', cardIndex=0, resumeAfterCard=false, followChapters=false, lastChapter=null;
+  let castStage='siege';
+  function sendCastStage(){
+    nationalAtlas.contentWindow.postMessage({type:'atlas-changshe-cast',stage:castStage},
+      location.origin==='null'?'*':location.origin);
+  }
   function sendAtlasView(refocus=false){
     nationalAtlas.contentWindow.postMessage({type:'atlas-changshe-map',mode:atlasMode,refocus},
       location.origin==='null'?'*':location.origin);
@@ -62,7 +67,7 @@
   if(nationalAtlas){
     window.addEventListener('message',event=>{
       if(event.source!==nationalAtlas.contentWindow||event.origin!==location.origin)return;
-      if(event.data?.type==='atlas-changshe-ready')sendAtlasView();
+      if(event.data?.type==='atlas-changshe-ready'){sendAtlasView();sendCastStage();}
       else if(event.data?.type==='atlas-changshe-scale'&&typeof event.data.wide==='boolean'){
         get('polity-legend').hidden=!event.data.wide;
       }
@@ -223,6 +228,10 @@
   function paint(snapshot){
     latest=snapshot;
     const done=new Set(snapshot.log.map(event=>event.id));
+    if(nationalAtlas){
+      const next=done.has('relief')?'relieved':done.has('meeting')?'yanling':done.has('departure')?'journey':'siege';
+      if(next!==castStage){castStage=next;sendCastStage();}
+    }
     const eventId=snapshot.log.at(-1)?.id??null;
     const sceneChanged=eventId!==lastMapEvent;
     lastMapEvent=eventId;

@@ -5,6 +5,7 @@
   'use strict';
   const CHANNEL = 'jiangshan-fusion';
   const KM_PER_DEGREE = Math.PI * 6378.137 / 180;
+  const changsheNearBounds = [113.17, 33.60, 114.47, 34.44];
   const finite = Number.isFinite;
   function validCoord(value) {
     return Array.isArray(value) && value.length === 2 && value.every(finite) &&
@@ -67,7 +68,7 @@
       shiftKey: message.shiftKey === true, ctrlKey: message.ctrlKey === true, metaKey: message.metaKey === true };
   }
   const helpers = { validCoord, readView, cameraForView, shortcutInit, isCurrentMapPick,
-    renderedSettlementLocations, tangTileTier, CHANNEL };
+    renderedSettlementLocations, tangTileTier, changsheNearBounds, CHANNEL };
   if (typeof module === 'object' && module.exports) module.exports = helpers;
   if (!root || !root.document) return;
   root.JiangshanFusionGeometry = helpers;
@@ -88,6 +89,15 @@
     let battleView = 'overview', battleHidden = false, resumeBattleTerrain = false;
     let overviewCamera;
     const flatTowns = [];
+    let battleCastStage = 'siege';
+    function updateBattleCast(stage) {
+      if (!['siege','journey','yanling','relieved'].includes(stage) || stage === battleCastStage) return;
+      battleCastStage = stage;
+      const changshe = flatTowns.find(town => town.key === 'changshe');
+      changshe.caption.textContent = stage === 'relieved' ? '韩世忠 · 长社已解围' : '韩世忠守城 · 金军围城';
+      if (ready) post({ type:'battle-cast', stage });
+      positionFlatTowns();
+    }
     const parentOrigin = root.location.protocol === 'file:' ? '*' : root.location.origin;
     let lastBattleWide;
     function updateBattleScale(widthKm) {
@@ -113,9 +123,14 @@
         const button = doc.createElement('button');
         button.type = 'button';
         button.textContent = town.caption || town.name;
+        const caption = doc.createElement('small');
+        caption.hidden = true;
+        caption.textContent = {changshe:'韩世忠守城 · 金军围城', nanyang:'南阳守军 · 兀术围城',
+          shanzhou:'金国西路军'}[town.key] || '';
+        if (caption.textContent) button.append(caption);
         button.onclick = () => openBattleChapter(town.index);
         overlay.append(button);
-        flatTowns.push({ button, point: app.projector.toScreen(...town.coord) });
+        flatTowns.push({ key:town.key, button, caption, point:app.projector.toScreen(...town.coord) });
       }
       // Generic map taps and double clicks otherwise open hidden atlas cards and load city records.
       app.openMapAreaAt = () => false;
@@ -126,8 +141,10 @@
       const { width, height } = app.svg.getBoundingClientRect();
       const { x, y, w, h } = app.camera;
       const scale = Math.min(width / w, height / h);
+      const viewWidthKm = width / scale / app.projector.scale * KM_PER_DEGREE;
       const boxes = [];
-      for (const { button, point } of flatTowns) {
+      for (const { button, caption, point } of flatTowns) {
+        caption.hidden = !(viewWidthKm <= 200);
         const px = (width - w * scale) / 2 + (point[0] - x) * scale;
         const py = (height - h * scale) / 2 + (point[1] - y) * scale;
         const bw = button.offsetWidth, bh = button.offsetHeight;
@@ -164,6 +181,7 @@
     let detailAcknowledged = false;
     let startupTimer, presented = false;
     let pendingChildCamera = null;
+    const changsheArt = new Map();
     let lastTileTier = null, tilesFailed = false;
     const ids = new WeakMap();
     let nextId = 0;
@@ -173,12 +191,13 @@
       return ids.get(value);
     };
 
-    const frame = doc.createElement('iframe');
+    const earlyFrame = parentBattle && viewport.querySelector('iframe#fusion-terrain');
+    const frame = earlyFrame || doc.createElement('iframe');
     frame.id = 'fusion-terrain';
     frame.title = '三维地形历史地图';
     frame.setAttribute('aria-hidden', 'true');
     frame.tabIndex = -1;
-    viewport.insertBefore(frame, viewport.firstChild);
+    if (!earlyFrame) viewport.insertBefore(frame, viewport.firstChild);
 
     const strip = doc.querySelector('#nav-bar .control-strip');
     const modes = doc.createElement('div');
@@ -310,6 +329,26 @@
       if (!detailAcknowledged) surfaceKey = '';
       queuedSurface = null;
     }
+    async function readChangsheArt(kind, bounds) {
+      if (!changsheArt.has(kind)) {
+        const versions = doc.getElementById('atlas-app-script').dataset;
+        const version = kind === 'base' ? versions.vChangshe : versions.vChangsheNear;
+        const url = 'assets/changshe-1128-' + kind + '.webp' + (version ? '?v=' + encodeURIComponent(version) : '');
+        changsheArt.set(kind, root.fetch(url).then(response => {
+          if (!response.ok) throw new Error('Missing Changshe map image');
+          return response.blob();
+        }).catch(() => null));
+      }
+      const blob = await changsheArt.get(kind);
+      if (!blob) return null;
+      try {
+        const bitmap = await root.createImageBitmap(blob, { imageOrientation: 'flipY', premultiplyAlpha: 'none' });
+        return {bounds, width:bitmap.width, height:bitmap.height, bitmap};
+      } catch {
+        changsheArt.set(kind, null);
+        return null;
+      }
+    }
     function requestSurface(sceneKey, cameraView) {
       if (pendingChildCamera || lastTileTier) return;
       const key = JSON.stringify([sceneKey, cameraView]);
@@ -330,7 +369,10 @@
           if (surfaceBaseKey !== sceneKey && surfaceBasePendingId < 0) {
             const started = root.performance.now();
             const size = Math.min(1024, detailTextureLimit);
-            const base = await mapSurface.render({ bounds: surfaceBounds, width: size, height: size,
+            let base;
+            if (parentBattle && app.year === 1128 && app.locale === 'zh' && size === 1024 && surfaceBitmaps)
+              base = await readChangsheArt('base', surfaceBounds);
+            if (!base) base = await mapSurface.render({ bounds: surfaceBounds, width: size, height: size,
               bitmap: surfaceBitmaps, screenPasses: true, screenAdmin: true, screenLabels: app.year === 741 });
             if (!currentScene()) { base.bitmap?.close(); return; }
             surfaceBasePendingId = request * 2;
@@ -343,7 +385,18 @@
           const bounds = detailBounds(cameraView);
           if (!bounds) return;
           const started = root.performance.now();
-          const detail = await mapSurface.render({ bounds, width: detailTextureLimit, height: detailTextureLimit,
+          let detail;
+          if (parentBattle && app.year === 1128 && app.locale === 'zh' && surfaceBitmaps && detailTextureLimit >= 3072) {
+            const [w,s,e,n] = changsheNearBounds;
+            const pxPerKm = 3072 / ((e-w) * KM_PER_DEGREE);
+            // A live detail bitmap spans 2.4 viewport widths. At desktop
+            // resolutions its useful on-screen density is capped by the GPU.
+            const requiredPixels = Math.min(app.svg.clientWidth*.8, detailTextureLimit/2.4*.85);
+            if (bounds[0]>=w && bounds[1]>=s && bounds[2]<=e && bounds[3]<=n &&
+                cameraView.widthKm * pxPerKm >= requiredPixels)
+              detail = await readChangsheArt('near', changsheNearBounds);
+          }
+          if (!detail) detail = await mapSurface.render({ bounds, width: detailTextureLimit, height: detailTextureLimit,
             bitmap: surfaceBitmaps, screenPasses: true, screenAdmin: true, screenLabels: app.year === 741 });
           if (!currentScene() || request !== surfaceRequest) { detail.bitmap?.close(); return; }
           post({ type: 'surface', quality: 'detail', sceneKey, renderId: request * 2 + 1, renderMs: root.performance.now() - started, ...detail });
@@ -621,6 +674,7 @@
         tilesFailed = false;
         surfaceBaseKey = ''; surfaceBasePendingId = -1; surfaceKey = ''; surfaceRequest++; surfaceGeneration++;
         configure();
+        if (parentBattle) post({ type:'battle-cast', stage:battleCastStage });
         sync('activate', true);
       } else if (message.type === 'surface-applied' && message.quality === 'base' && message.sceneKey === lastSceneKey && message.renderId === surfaceBasePendingId) {
         surfaceBaseKey = message.sceneKey;
@@ -718,11 +772,21 @@
     root.atlasFusion = { setMode, sync, get active() { return active; }, get ready() { return ready; } };
     if (parentBattle) {
       root.addEventListener('message', event => {
-        if (event.source === root.parent && event.origin === root.location.origin &&
-            event.data?.type === 'atlas-changshe-map') changeBattleView(event.data.mode, event.data.refocus === true);
+        if (event.source !== root.parent || event.origin !== root.location.origin) return;
+        if (event.data?.type === 'atlas-changshe-map') changeBattleView(event.data.mode, event.data.refocus === true);
+        else if (event.data?.type === 'atlas-changshe-cast') updateBattleCast(event.data.stage);
       });
       positionFlatTowns();
       if (params.get('terrain') === '3d') setMode(true);
+      if (earlyFrame) {
+        frame.finishEarlyBoot();
+        if (frame.earlyTerrainMessage) {
+          const {data,origin,source} = frame.earlyTerrainMessage;
+          delete frame.earlyTerrainMessage;
+          root.dispatchEvent(new MessageEvent('message',{data,origin,source}));
+        }
+        delete frame.finishEarlyBoot;
+      }
       root.parent.postMessage({ type: 'atlas-changshe-ready' }, parentOrigin);
     }
   }

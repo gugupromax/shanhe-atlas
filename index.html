@@ -334,7 +334,7 @@
        stay blank until the request times out. The system fonts in css/style.css show first. -->
   <link rel="stylesheet" href="css/style.css?v=ebf95b39" />
   <!-- Analytics: Vercount, anonymous click counter (workers/stats) & Cloudflare Web Analytics -->
-  <link rel="stylesheet" href="integration.css?v=79aa79cd" />
+  <link rel="stylesheet" href="integration.css?v=655e79ed" />
 </head>
 <body>
   <div id="atlas-shell">
@@ -453,6 +453,23 @@
 
     <main id="workspace-body">
       <div id="viewport-frame">
+        <script id="battle-terrain-boot" data-v-terrain="e3736270">
+          (() => {
+            const p=new URLSearchParams(location.search);
+            if(parent===window || p.get('embed')!=='1' || p.get('battle')!=='changshe' || p.get('terrain')!=='3d') return;
+            const script=document.currentScript, frame=document.createElement('iframe');
+            frame.id='fusion-terrain';frame.tabIndex=-1;frame.setAttribute('aria-hidden','true');
+            // Remember an early ready/error until the national map controller is listening.
+            const remember=e=>{
+              if(e.source===frame.contentWindow && e.origin===location.origin && e.data?.channel==='jiangshan-fusion' &&
+                 (e.data.type==='ready' || e.data.type==='terrain-error')) frame.earlyTerrainMessage=e;
+            };
+            addEventListener('message',remember);
+            frame.finishEarlyBoot=()=>removeEventListener('message',remember);
+            frame.src='terrain.html?embedded=1&v='+script.dataset.vTerrain+(p.get('aa')==='0'?'&aa=0':'')+'&battle=changshe';
+            script.before(frame);
+          })();
+        </script>
         <div id="svg-stage-wrap">
           <svg id="atlas-svg" class="terrain-active" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="中国历史地图">
             <defs>
@@ -879,12 +896,12 @@
   <script src="js/atlas_boot.js?v=cfa92817"></script>
   <script src="js/map_data.js?v=8034ae14"></script>
   <script src="js/lore_core.js?v=da651ec6"></script>
-  <script id="atlas-app-script" src="js/app.js?v=38c69941" data-v-terrain="0ff78384" data-v-tang741="74f11217" data-v-snapshots="ce9b8735" data-v-i18n="fa6b7864" data-v-lore="6df01e96" data-v-pinyin="e6de2341" data-v-hant="3afdab47" data-v-quiz="706065c1" data-v-narrator="fe4f4e00" data-v-sources="5030d12e"></script>
+  <script id="atlas-app-script" src="js/app.js?v=ad053b44" data-v-changshe="e9b3a465" data-v-changshe-near="6bf66280" data-v-terrain="e3736270" data-v-tang741="74f11217" data-v-snapshots="ce9b8735" data-v-i18n="fa6b7864" data-v-lore="6df01e96" data-v-pinyin="e6de2341" data-v-hant="3afdab47" data-v-quiz="706065c1" data-v-narrator="fe4f4e00" data-v-sources="5030d12e"></script>
   <script src="js/atlas_trace.js?v=ffeddd6c"></script>
   <script defer src="js/atlas_search.js?v=d13521b3"></script>
   <script src="js/atlas_api.js?v=294bbc11"></script>
   <script defer src="js/atlas_area.js?v=3fd43c8c"></script>
   <script defer src="map-surface.js?v=081590ab"></script>
-  <script defer src="integration.js?v=8f24cc42"></script>
+  <script defer src="integration.js?v=1ff70991"></script>
 </body>
 </html>

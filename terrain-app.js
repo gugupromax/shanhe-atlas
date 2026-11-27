@@ -41,7 +41,7 @@
   let tangTiles=null,tangTileJob=0,tangTilePlanKey='',tangBaseApplied=false,tangAppliedTier='far';
   let areaOverlay=null,areaOverlayId=0;
   let adminLabelData=[],passLabelData=[],screenLabels=[],passGates=null;
-  let battleSites=[];
+  let battleSites=[],battleCastStage='siege';
   let areaClickTimer;
   const passes = [
     ['zhiguan','轵关陉',112.38,35.16,'济源—垣曲一带','看王屋山南侧与黄河以北的山间通道。'],
@@ -602,6 +602,8 @@
     fusion=window.JiangshanFusion.createChild(window,{onState:state=>{fusionState=state;fusionActive=state.active;if(dataset)applyFusionState(state);},onSurface:applyOriginalSurface,onSurfaceError:key=>{
       if(key!==fusionState?.sceneKey)return;
       $('fusion-unavailable').hidden=false;$('fusion-unavailable').dataset.reason='surface';$('fusion-unavailable').querySelector('p').textContent='原版地图贴图暂未载入。请返回平面地图继续查看，或重新载入页面。';
+    },onBattleCast:stage=>{
+      if(changsheAtlas)setBattleCast(stage);
     },onConfig:config=>{
       if(Number.isFinite(config.exaggeration)&&config.exaggeration!==exaggeration){clearTimeout(fusionHeightTimer);fusionHeightTimer=setTimeout(()=>{if(!geometry)return;$('exaggeration').value=config.exaggeration;updateHeight();},70);}
       if(config.view&&mapFrame){desired.theta=config.view==='east'?Math.PI/2:0;desired.phi=config.view==='top'?.012:config.view==='relief'||config.view==='east'?.7:.08;constrainDesired();dirty=true;}
@@ -741,7 +743,9 @@
         texture.flipY=false;
         texture.addEventListener('dispose',()=>surface.bitmap.close());
       }
-      texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),8);texture.needsUpdate=true;
+      texture.colorSpace=THREE.SRGBColorSpace;
+      if(!changsheAtlas)texture.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),8);
+      texture.needsUpdate=true;
       if(surface.quality==='base'){
         if(surfaceSceneKey!==surface.sceneKey)atlasSurface.clearDetail();
         atlasSurface.base(texture);surfaceBaseId=surface.renderId;
@@ -883,8 +887,19 @@
     return {point,relief:(high-low)/exaggeration*defaultEmbeddedExaggeration};
   }
   // Regional map symbols, measured in the same projected kilometres as the terrain.
-  // The enclosed figures and banner identify a garrison; their count has no numerical meaning.
-  function createBattleCity(name,point){
+  // Figures are literary map symbols anchored to a town vignette, not troop coordinates.
+  const cityCast={
+    '长社':[['song-changshe','韩世忠 · 守城宋军'],['jin-changshe','挞懒 · 围城金军','jin']],
+    '鄢陵':[['yue','岳飞 · 鄢陵宋军']],
+    '南阳':[['zhao','赵玖 · 南阳'],['jin-nanyang','兀术 · 围城金军','jin']],
+    '陕州':[['li','李彦仙 · 陕州守军'],['jin-west','金国西路军','jin']],
+  };
+  function setBattleCast(stage){
+    if(!changsheAtlas||stage===battleCastStage||!['siege','journey','yanling','relieved'].includes(stage))return;
+    battleCastStage=stage;dirty=true;
+  }
+  function createBattleCity(site){
+    const {name,label:{point}}=site;
     const group=new THREE.Group();
     group.name='ChangsheCity:'+name;
     const halfWidth=1.6,halfDepth=1.13;
@@ -895,7 +910,7 @@
     }
     group.position.set(point.x,high+.025,point.z);
     const baseHeight=high-low+.12;
-    const stone='#ad8965',timber='#794c36',tile='#3c514b',banner='#a34132';
+    const stone='#ad8965',timber='#794c36',tile='#3c514b';
     const walls=[
       [0,-baseHeight/2,0,3.2,baseHeight,2.26,'#ae9675'],
       [0,.23,-1.04,3.05,.46,.16,stone],
@@ -903,34 +918,76 @@
       [-.91,.22,1.04,1.14,.44,.16,stone],[.91,.22,1.04,1.14,.44,.16,stone],
       [0,.55,1.04,.79,.26,.39,timber],
       [-.72,.21,-.27,.61,.42,.52,timber],
-      [.89,.73,-.53,.055,1.46,.055,'#5c3a2b'],
-      [1.13,1.27,-.53,.46,.31,.045,banner],
     ];
     const roofs=[[0,.79,1.04,.68,.34,.45,tile],[-.72,.54,-.27,.57,.28,.49,tile]];
     for(const x of [-1.46,1.46])for(const z of [-1.02,1.02]){
       walls.push([x,.38,z,.28,.76,.28,stone]);
       roofs.push([x,.87,z,.29,.26,.29,tile]);
     }
-    const figures=[],heads=[];
-    for(const x of [-.32,.12,.56])for(const z of [-.1,.34]){
-      figures.push([x,.085,z,.16,.17,.15,'#443832'],[x,.28,z,.22,.23,.18,banner]);
-      heads.push([x,.46,z,.18,.20,.18,'#4a3730']);
-    }
     const material=new THREE.MeshLambertMaterial();
     const matrix=new THREE.Matrix4(),color=new THREE.Color();
-    function addParts(label,geometry,parts){
+    function addParts(target,label,geometry,parts){
       const mesh=new THREE.InstancedMesh(geometry,material,parts.length);
       mesh.name=label;
       parts.forEach(([x,y,z,w,h,d,tint],i)=>{
         mesh.setMatrixAt(i,matrix.makeScale(w,h,d).setPosition(x,y,z));
         mesh.setColorAt(i,color.set(tint));
       });
-      group.add(mesh);
+      target.add(mesh);
     }
-    addParts('city-walls',new THREE.BoxGeometry(),walls);
-    addParts('city-roofs',new THREE.ConeGeometry(1,1,4).rotateY(Math.PI/4),roofs);
-    addParts('garrison-figures',new THREE.BoxGeometry(),figures);
-    addParts('garrison-heads',new THREE.SphereGeometry(.5,8,6),heads);
+    addParts(group,'city-walls',new THREE.BoxGeometry(),walls);
+    addParts(group,'city-roofs',new THREE.ConeGeometry(1,1,4).rotateY(Math.PI/4),roofs);
+    site.actors=[];
+    for(const [id,title,side] of cityCast[name]||[]){
+      const mounted=side==='jin',actor=new THREE.Group();
+      actor.name='ChangsheCast:'+id;
+      // Place the two casts on either side of the city label in model space.
+      const ox=mounted?-5.2:0,oz=mounted?1.3:0;
+      const figures=[],heads=[],robes=[];
+      const coat=mounted?'#216980':'#b63e30',trim=mounted?'#e8c16a':'#f3cf94';
+      const metal=mounted?'#3a5558':'#543c38',boots='#42342c';
+      const ground=(x,z)=>mounted?terrainSurfaceHeight(point.x+ox+x,point.z+oz+z,1)-group.position.y:0;
+      actor.position.set(ox,0,oz);
+      // Three identifiable figurines per cast. Their count has no strength meaning.
+      const spacing=mounted?1.35:.62;
+      for(const [i,depth] of [[-1,-.16],[0,.26],[1,-.16]]){
+        const x=i*spacing+(mounted?0:.13),z=depth+.1,y=ground(x,z);
+        let lift=y;
+        if(mounted){
+          const hide=i===0?'#b18650':'#865e3d';
+          figures.push([x,y+.52,z,1.06,.37,.43,hide],
+            [x+.39,y+.76,z,.28,.48,.33,hide],[x+.59,y+.94,z,.40,.22,.30,hide],
+            [x-.53,y+.45,z,.16,.46,.24,'#513c30'],[x,y+.72,z,.48,.10,.47,boots]);
+          for(const dx of [-.35,.33])for(const dz of [-.14,.14]){
+            figures.push([x+dx,y+.23,z+dz,.14,.46,.12,hide]);
+          }
+          lift+=.58;
+        }
+        const tall=i===0?1.16:1;
+        for(const dx of [-.108,.108])figures.push([x+dx,lift+.19,z,.135,.38,.18,boots]);
+        robes.push([x,lift+.46*tall,z,.52,.47*tall,.42,coat]);
+        figures.push([x,lift+.68*tall,z,.40,.28*tall,.29,coat],[x,lift+.61*tall,z,.43,.074,.31,trim]);
+        for(const dx of [-.255,.255])heads.push([x+dx,lift+.74*tall,z,.19,.24,.24,metal]);
+        heads.push([x,lift+.94*tall,z,.31,.34,.31,'#e6be90'],
+          [x,lift+1.07*tall,z-.023,.41,.24,.38,metal]);
+        if(!i)heads.push([x,lift+1.21*tall,z-.045,.14,.20,.14,trim]);
+      }
+      const fx=mounted?-1.85:-1.04,fz=-.62,fy=ground(fx,fz);
+      figures.push([fx,fy+1.25,fz,.073,2.5,.075,boots],[fx+.46,fy+2.07,fz,.90,.66,.054,coat],
+        [fx+.47,fy+2.33,fz+.005,.92,.10,.067,trim],[fx+.15,fy+1.69,fz,.17,.28,.05,coat]);
+      if(mounted)figures.push([fx+.74,fy+1.68,fz,.19,.32,.05,coat]);
+      addParts(actor,'garrison-figures',new THREE.BoxGeometry(),figures);
+      addParts(actor,'cast-heads',new THREE.SphereGeometry(.5,8,6),heads);
+      addParts(actor,'cast-coats',new THREE.CylinderGeometry(.34,.5,1,6),robes);
+      group.add(actor);
+      const caption=document.createElement('span');
+      caption.className='battle-cast-caption '+(mounted?'jin':'song');caption.dataset.cast=id;
+      caption.textContent=title;$('labels').append(caption);
+      const actorLabel={el:caption,point:new THREE.Vector3(point.x+ox,
+        group.position.y+fy+2.7,point.z+oz+fz),cast:true,show:false};
+      screenLabels.push(actorLabel);
+      site.actors.push({id,title,actor,label:actorLabel});
+    }
     markerGroup.add(group);
     return group;
   }
@@ -938,8 +995,18 @@
     const show=visibleWidth<=200&&terrain.visible&&document.body.dataset.surfaceYear===String(historyYear);
     const pixelsPerKm=$('stage').clientWidth/visibleWidth;
     for(const site of battleSites){
-      if(show&&!site.model)site.model=createBattleCity(site.name,site.label.point);
+      if(show&&!site.model)site.model=createBattleCity(site);
       if(site.model)site.model.visible=show;
+      for(const {id,title,actor,label} of site.actors||[]){
+        const shown=show&&!(id==='jin-changshe'&&battleCastStage==='relieved');
+        actor.visible=shown;
+        label.show=shown&&visibleWidth<115;
+        const caption=id==='zhao'&&battleCastStage!=='siege'?'南阳守军':
+          id==='song-changshe'&&battleCastStage==='relieved'?'宋军 · 长社解围':
+          id==='yue'&&battleCastStage==='yanling'?'岳飞与赵玖 · 鄢陵会合':
+          id==='yue'&&battleCastStage==='relieved'?'鄢陵宋军':title;
+        if(label.el.textContent!==caption){label.el.textContent=caption;label.width=undefined;}
+      }
       // Keep a clear area beside the castle and flag for the clickable city name.
       site.label.cityPadding=show?2.15*pixelsPerKm:0;
     }
@@ -1012,10 +1079,10 @@
       point.copy(label.point).project(camera);
       label.screenX=Math.round((point.x*.5+.5)*width);
       label.screenY=Math.round((.5-point.y*.5)*height);
-      label.onScreen=Math.abs(point.z)<1&&label.screenX>=0&&label.screenX<=width&&label.screenY>=0&&label.screenY<=height;
+      label.onScreen=(!label.cast||label.show)&&Math.abs(point.z)<1&&label.screenX>=0&&label.screenX<=width&&label.screenY>=0&&label.screenY<=height;
       if(label.onScreen&&label.width===undefined){label.width=label.el.offsetWidth;label.height=label.el.offsetHeight;}
     }
-    for(const {el,dot,gateIndex,cityPadding=0,seat,width:w,height:h,onScreen,screenX:x,screenY:y} of screenLabels){
+    for(const {el,dot,gateIndex,cityPadding=0,seat,cast,width:w,height:h,onScreen,screenX:x,screenY:y} of screenLabels){
       if(dot){
         const shown=onScreen&&!gateBoxes.some(([l,t,r,b])=>x>l&&x<r&&y>t&&y<b);
         dot.style.visibility=shown?'visible':'hidden';
@@ -1025,14 +1092,18 @@
       if(onScreen){
         const clearance=passGates?.clearances[gateIndex];
         const gapX=clearance?clearance.x+5:8+cityPadding,gapY=clearance?clearance.y+4:7+cityPadding;
-        const offsets=seat?[[w/2+gapX,0],[-w/2-gapX,0],[0,-h/2-gapY],[0,h/2+gapY]]:
+        const offsets=cast?[[0,-h/2-6],[-w/2-4,-h/2-6],[w/2+4,-h/2-6],[0,-1.5*h-12],[0,-2.5*h-18]]:
+          seat?[[w/2+gapX,0],[-w/2-gapX,0],[0,-h/2-gapY],[0,h/2+gapY]]:
           el.dataset.kind==='polity'?[[0,0],[0,-18],[0,18],[-24,0],[24,0]]:[[0,0]];
         for(const [dx,dy] of offsets){
-          const left=x+dx-w/2-3,right=x+dx+w/2+3,top=y+dy-h/2-1,bottom=y+dy+h/2+1;
+          // On a narrow map a sideways offset can run past the edge. Slide
+          // the caption into the free margin before discarding that candidate.
+          const cx=cast?Math.max(w/2+6,Math.min(width-w/2-6,x+dx)):x+dx;
+          const left=cx-w/2-3,right=cx+w/2+3,top=y+dy-h/2-1,bottom=y+dy+h/2+1;
           if(left<2||right>width-2||top<2||bottom>height-2||
             boxes.some(([l,t,r,b])=>left<r&&right>l&&top<b&&bottom>t))continue;
           boxes.push([left,top,right,bottom]);
-          el.style.left=(x+dx)+'px';
+          el.style.left=cx+'px';
           el.style.top=(y+dy)+'px';
           placed=true;
           break;
@@ -1077,7 +1148,7 @@
         // Screen labels retain world coordinates between frames. Their height changes
         // when the displayed mesh changes from full-resolution to four-cell triangles.
         for(const label of screenLabels){
-          if(label.gateIndex<0)label.point.y=terrainSurfaceHeight(label.point.x,label.point.z,overview?4:1);
+          if(label.gateIndex<0&&!label.cast)label.point.y=terrainSurfaceHeight(label.point.x,label.point.z,overview?4:1);
         }
       }
       terrainDetail.visible=!terrainOverview.visible;

@@ -75,10 +75,17 @@ const output = bridge.renderedSettlementLocations({
 assert.deepEqual(output,[{name:'长安',coord:[108.94,34.26],kind:'city'}],'parent SVG is hidden in 3D, but current display tiers are authoritative');
 const sent=[],parent={postMessage:m=>sent.push(m)},handlers={};let received=0;
 const fake={parent,addEventListener:(k,v)=>handlers[k]=v};
-const child=protocol.createChild(fake,{onState:()=>received++,onConfig:()=>{}});child.ready();child.ready();assert.equal(sent.length,1);
+const castUpdates=[];
+const child=protocol.createChild(fake,{onState:()=>received++,onConfig:()=>{},onBattleCast:stage=>castUpdates.push(stage)});child.ready();child.ready();assert.equal(sent.length,1);
 handlers.message({source:{},data:good});assert.equal(received,0);
 handlers.message({source:parent,data:good});assert.equal(received,1);
 handlers.message({source:parent,data:{...good,seq:0}});assert.equal(received,1);
+const cast={channel:protocol.CHANNEL,type:'battle-cast',stage:'relieved'};
+handlers.message({source:{},data:cast});
+handlers.message({source:parent,data:{...cast,stage:'invalid'}});
+handlers.message({source:parent,data:cast});
+handlers.message({source:parent,data:{...cast,stage:'siege'}});
+assert.deepEqual(castUpdates,['relieved','siege']);
 // Accept transferred bitmaps only from the paired parent, within the same renderer budget.
 class BitmapFixture {
   constructor(width=16){this.width=width;this.height=16;this.closed=false;}

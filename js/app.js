@@ -413,6 +413,8 @@
         typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams()
       );
       if (this.embed) this._applyEmbedYearRange();
+      this.battleGeography = Boolean(this.embed && window.parent !== window &&
+        new URLSearchParams(location.search).get('battle') === 'changshe');
       this._initTimelineBands();
 
       const rawLang = (new URLSearchParams(location.search).get('lang') || '').toLowerCase();
@@ -485,8 +487,10 @@
       this._runWithDeferredTypography(() => {
         this._applyCamera(true);
         this._buildTerrainRivers();
-        this._buildModernProvinces();
-        this._buildNeighborCountries();
+        if (!this.battleGeography) {
+          this._buildModernProvinces();
+          this._buildNeighborCountries();
+        }
         this._buildScrubberBands();
         this._attachListeners();
         this.applyLocale();
@@ -537,7 +541,7 @@
         reliefShown();
       }
       this._updateTerrainTiles();
-      if (!this._isLoreDetailLoaded()) {
+      if (!this.battleGeography && !this._isLoreDetailLoaded()) {
         const scheduleIdle =
           typeof window.requestIdleCallback === 'function'
             ? (fn) => window.requestIdleCallback(fn, { timeout: 200 })
@@ -3309,6 +3313,7 @@
       const ownPaths = [];
 
       for (const pol of sorted) {
+        if (this.battleGeography && pol.title !== '南宋' && pol.title !== '金') continue;
         const isN = pol.role === 'neighbor';
         const attrs = {
           d: this.projector.shapeToSvgPath(pol.shape),
@@ -3350,7 +3355,7 @@
       const clipPath = this.prefClipPath;
       if (clipPath && typeof clipPath.setAttribute === 'function') clipPath.setAttribute('d', ownPaths.join(''));
 
-      const prefHidden = Boolean(
+      const prefHidden = this.battleGeography || Boolean(
         this.grpPrefectures &&
           this.grpPrefectures.classList &&
           this.grpPrefectures.classList.contains('is-hidden')
@@ -3717,6 +3722,7 @@
     }
 
     _renderSettlements(dynasty) {
+      if (this.battleGeography) return;
       this.activeSettlementMask = this._settlementMask(dynasty, this.year);
       this.grpSettlements.innerHTML = '';
       const group = this._svgNode('g', {}, this.grpSettlements);
@@ -3931,6 +3937,7 @@
     }
 
     _renderCorridors() {
+      if (this.battleGeography) return;
       const y = this.year;
       const mask =
         this.locale +
@@ -7982,7 +7989,7 @@
       const showMobilePrefDetail = !isMobile || z >= 3.55;
       const effZ = z / (isNarrowMobile ? 1.42 : isMobile ? 1.18 : 1.0);
       const adminDetail = this._syncTang741Detail?.(effZ);
-      if (adminDetail && adminDetail !== 'overview') this._loadPeriodAdminPlaces?.();
+      if (!this.battleGeography && adminDetail && adminDetail !== 'overview') this._loadPeriodAdminPlaces?.();
       const tier2Decay = showTier2
         ? Math.pow(Math.max(0, Math.min(1, (5.8 - effZ) / (5.8 - 2.22))), 1.15)
         : 1;

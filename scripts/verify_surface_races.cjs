@@ -136,6 +136,7 @@ function checkStartupDeadline() {
 function childFixture() {
   const context = {};
   vm.runInNewContext(`
+    const changsheAtlas=false;
     let atlasSurface,surfaceSceneKey='',surfaceLoads=0,surfaceBaseId=-1,surfaceDetailId=-1,pendingSurfaceDetail=null,pendingBaseDraw=null;
     let fusionState=null,fusionPaintedKey=null,fusionLocations=[],fusionLayers={},fusionOverlays={},currentSnapshot=null,selectedEvent=null,historyYear=0;
     let desired={theta:0,phi:.7,distance:10,x:0,z:0},theta,phi,distance,target,fusionViewKey='',fusionStarted=true,fusionActive=true,dirty=false;
