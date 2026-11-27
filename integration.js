@@ -205,6 +205,20 @@
       clearTimeout(statusTimer);
       if (!keepVisible) statusTimer = setTimeout(() => status.classList.remove('is-visible'), 4500);
     }
+    function terrainLoadProgress() {
+      // Read only at the slow-start deadlines. Completed downloads can advance even
+      // while the HTML parser is blocked on an earlier, larger script.
+      try {
+        const child = frame.contentDocument;
+        if (!child) return '';
+        const resources = frame.contentWindow.performance.getEntriesByType('resource');
+        const scripts = resources.filter(entry => entry.initiatorType === 'script').length;
+        return [child.readyState, child.scripts.length, scripts].join('/');
+      } catch {
+        // Local file previews can deny access to the child document.
+        return '';
+      }
+    }
     function armTerrainStartup(stage) {
       clearTimeout(startupTimer);
       const terrainStage = stage === 'terrain';
@@ -212,11 +226,25 @@
       const sceneKey = lastSceneKey, renderId = surfaceBasePendingId;
       if (!presented) announce(terrainStage ? '正在载入三维地形…' :
         applying ? '正在显示当前年份的三维地图…' : '正在同步当前年份的地图…', true);
-      startupTimer = setTimeout(() => {
+      const downloadDeadline = terrainStage ? root.performance.now() + 240000 : 0;
+      let previousProgress;
+      function check() {
         if (!active || (applying ? lastSceneKey !== sceneKey || surfaceBasePendingId !== renderId : presented)) return;
+        if (terrainStage) {
+          if (ready) return;
+          const remaining = downloadDeadline - root.performance.now();
+          const progress = terrainLoadProgress();
+          if (remaining > 0 && progress !== previousProgress) {
+            if (previousProgress === undefined) announce('三维地形仍在加载，可先查看平面地图。', true);
+            previousProgress = progress;
+            startupTimer = setTimeout(check, Math.min(60000, remaining));
+            return;
+          }
+        }
         failTerrain(terrainStage ? '三维地形初始化超时，已返回平面地图。' :
           applying ? '当前年份的三维首图未能显示，已返回平面地图。' : '当前年份的三维地图加载超时，已返回平面地图。');
-      }, terrainStage ? 60000 : 45000);
+      }
+      startupTimer = setTimeout(check, terrainStage ? 60000 : 45000);
     }
     function presentTerrain(show) {
       presented = show;

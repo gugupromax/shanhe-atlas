@@ -155,6 +155,7 @@ function adapterFixture(readyState, appExists, search = '', vTerrain) {
   doc.getElementById('atlas-app-script').dataset = { vTerrain };
   const win = {
     document: doc,
+    performance,
     location: { search, protocol: "https:", origin: "https://example.test" },
     addEventListener(type, handler) {
       if (!listeners.has(type)) listeners.set(type, []);

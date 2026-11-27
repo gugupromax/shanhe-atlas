@@ -95,12 +95,31 @@ function parentFixture(useTangTiles = false, tilesPackaged = true) {
 function checkStartupDeadline() {
   const context={};
   vm.runInNewContext(`
-    const failures=[],timers=new Map();let n=0,startupTimer,presented=false,active=true;
+    const failures=[],timers=new Map();let n=0,startupTimer,presented=false,active=true,ready=false,now=0,completed=0;
+    const root={performance:{now:()=>now}};
+    const frame={contentDocument:{readyState:'loading',scripts:[]},contentWindow:{
+      performance:{getEntriesByType:()=>Array(completed).fill({initiatorType:'script'})}
+    }};
     let lastSceneKey='A',surfaceBasePendingId=12;
     const setTimeout=(fn,ms)=>{timers.set(++n,{fn,ms});return n},clearTimeout=id=>timers.delete(id);
     const announce=()=>{},failTerrain=message=>failures.push(message);
-    ${section(parentSource,'    function armTerrainStartup(stage)', '    function presentTerrain(show)')}
+    ${section(parentSource,'    function terrainLoadProgress()', '    function presentTerrain(show)')}
+    function expire(){const timer=timers.get(startupTimer);timers.delete(startupTimer);now+=timer.ms;timer.fn();}
     armTerrainStartup('terrain');const terrainMS=timers.get(startupTimer).ms;
+    completed++;expire();if(failures.length)throw Error('slow download should keep the flat map usable');
+    completed++;expire();if(failures.length)throw Error('genuine loading progress must extend startup');
+    expire();if(failures.length!==1)throw Error('a stalled download must fall back');
+    failures.length=0;
+    armTerrainStartup('terrain');
+    for(let i=0;i<4;i++){completed++;expire();}
+    if(failures.length!==1)throw Error('ongoing progress must still respect the hard deadline');
+    failures.length=0;
+    armTerrainStartup('terrain');ready=true;expire();
+    if(failures.length||timers.size)throw Error('a ready renderer must stop the download watchdog');
+    ready=false;armTerrainStartup('terrain');active=false;expire();
+    if(failures.length||timers.size)throw Error('switching to flat must cancel download monitoring');
+    active=true;armTerrainStartup('terrain');expire();
+    if(failures.length||timers.size!==1)throw Error('a new activation must receive its own startup window');
     armTerrainStartup('map');const mapMS=timers.get(startupTimer).ms;
     armTerrainStartup('apply');presented=true;
     const priorDeadline=timers.get(startupTimer).fn;
