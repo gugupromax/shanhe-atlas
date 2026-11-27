@@ -17,7 +17,8 @@
     const node=document.createElement(kind);node.textContent=value;parent.append(node);return node;
   };
   const terrainCanvas=get('terrain-canvas');
-  const terrainNotice=get('terrain-notice'), nationalAtlas=get('national-atlas');
+  const terrainNotice=get('terrain-notice'), terrainStatus=get('terrain-status')||terrainNotice, terrainRetry=get('terrain-retry');
+  const nationalAtlas=get('national-atlas');
   let terrain=null, localLoad=null, localLoadFailed=false, sentMode=null;
   const usesAtlas=()=>nationalAtlas && (view.kind==='national'||view.kind==='atlas');
   function syncAtlas(force=false){
@@ -27,9 +28,9 @@
     sentMode=mode;
     nationalAtlas.contentWindow?.postMessage({type:'atlas-changshe-map',mode},location.origin==='null'?'*':location.origin);
   }
-  function enterStory(){
+  function enterStory(nextView){
     introDismissed=true;
-    view={kind:'atlas'};
+    view=nextView;
     paint(latest);
   }
   if(nationalAtlas)window.addEventListener('message',event=>{
@@ -37,7 +38,7 @@
     if(event.data?.type==='atlas-changshe-ready'){syncAtlas(true);return;}
     if(!usesAtlas())return;
     if(event.data?.type==='atlas-changshe-front'){selectSituation(event.data.index);return;}
-    if(event.data?.type==='atlas-changshe-enter')enterStory();
+    if(event.data?.type==='atlas-changshe-enter')enterStory({kind:'atlas'});
   });
 
   function loadLocalScript(src){
@@ -51,7 +52,8 @@
   }
   function ensureLocalTerrain(){
     if(!terrainCanvas||terrain||localLoad)return;
-    terrainNotice.textContent='正在加载局部地形…';
+    terrainStatus.textContent='正在加载 3D 战场，暂时显示平面图。';
+    if(terrainRetry)terrainRetry.hidden=true;
     localLoad=(async()=>{
       if(!window.THREE)await loadLocalScript('../vendor/three.min.js');
       if(!window.changsheTerrainGrid)await loadLocalScript('changshe-terrain-data.js');
@@ -62,7 +64,8 @@
       }
     })().catch(error=>{
       localLoadFailed=true;
-      terrainNotice.textContent='局部地形未能加载，当前显示示意图。';
+      terrainStatus.textContent='3D 战场加载失败，当前显示平面图。';
+      if(terrainRetry)terrainRetry.hidden=false;
       console.warn(error);
     }).finally(()=>{
       // A later explicit return to the local view can retry a failed or cancelled load.
@@ -70,6 +73,12 @@
       paint(latest);
     });
   }
+  if(terrainRetry)terrainRetry.onclick=()=>{
+    if(!localLoadFailed||usesAtlas())return;
+    localLoadFailed=false;
+    localLoad=null;
+    ensureLocalTerrain();
+  };
   const mapBrief=get('map-brief'), mapPhase=get('map-phase'), mapSource=get('map-source'), mapHeadline=get('map-headline'), mapExplain=get('map-explain'), mapMotion=get('map-motion');
   if(nationalAtlas)view={kind:'national'};
   function selectSituation(index){
@@ -200,7 +209,7 @@
     viewButton('全国形势','national',undefined,get('views'));
     viewButton('长社一带','atlas',undefined,get('views'));
   }
-  viewButton(nationalAtlas?'局部沙盘':'战役总览','all',undefined,get('views'));
+  viewButton(nationalAtlas?'3D 战场':'战役总览','all',undefined,get('views'));
   if(terrainCanvas&&cfg.situation)viewButton('战局近景','situation',undefined,get('views'));
   const fronts=cfg.fronts.map(front=>{
     if(!front.hiddenView&&!front.captionOnly)viewButton(front.name,'front',front.id,get('views'));
@@ -241,13 +250,13 @@
     else view={kind:'all'};
     paint(latest);
   };
-  function paint(snapshot){
+  function paint(snapshot,keepView=false){
     latest=snapshot;
     const done=new Set(snapshot.log.map(event=>event.id));
     const eventId=snapshot.log.at(-1)?.id??null;
     const sceneChanged=eventId!==lastMapEvent;
-    if(mapHeadline&&sceneChanged){
-      lastMapEvent=eventId;
+    if(sceneChanged)lastMapEvent=eventId;
+    if(mapHeadline&&sceneChanged&&!keepView){
       if(cfg.cameraCues?.[eventId]&&!usesAtlas())view={...cfg.cameraCues[eventId]};
       else if(eventId==='meeting'&&terrain&&cfg.situation&&!usesAtlas())view={kind:'situation'};
       else if(gateFocus[eventId]&&!usesAtlas())view={kind:'front',id:gateFocus[eventId]};
@@ -367,12 +376,13 @@
     if(!introDismissed)return;
     if(running){pause();return;}
     if(!latest.log.length&&cfg.autoStartSignal){
-      if(!usesAtlas())view={kind:'all'};
-      paint(campaign.report(cfg.autoStartSignal));
+      const keepCloseup=view.kind==='front'||view.kind==='unit';
+      paint(campaign.report(cfg.autoStartSignal),keepCloseup);
     }
     if(!play.disabled)start();
   };
-  if(get('intro-close'))get('intro-close').onclick=enterStory;
+  if(get('intro-close'))get('intro-close').onclick=()=>enterStory({kind:'atlas'});
+  if(get('intro-local'))get('intro-local').onclick=()=>enterStory({kind:'front',id:'changshe'});
   if(get('intro-open'))get('intro-open').onclick=()=>{selectSituation(0);paint(latest);};
   get('reset').onclick=()=>{pause();introDismissed=!get('situation-intro');campaign=createAtlasCampaign(cfg);view={kind:nationalAtlas?'national':'all'};selectedEvent=null;play.disabled=false;paint(campaign.snapshot());play.textContent='开始';};
   result?.addEventListener('click',()=>paint(campaign.report('east:won')));

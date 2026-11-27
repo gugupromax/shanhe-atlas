@@ -29,7 +29,8 @@ aside h2{font:700 19px SimSun,serif;margin:3px 0}#front-status,#units,#journal{m
 #terrain-labels{pointer-events:none}.terrain-tag{position:absolute;transform:translate(-50%,-100%);white-space:nowrap;border-radius:3px;background:#30473def;color:#fcf1db;padding:2px 6px;font-size:12px;box-shadow:0 1px 3px #27342750}
 .terrain-tag.friendly{background:#863e30}.terrain-tag.opposing{background:#285865}.terrain-tag.engaged{outline:2px solid #e3c585}
 .terrain-unit-leader{position:absolute;height:2px;background:#ffdf96;box-shadow:0 0 1px #263b35;transform-origin:left center;pointer-events:none;z-index:0}.terrain-city{font-weight:bold}.terrain-route-label{background:#594b34;color:#fff4d6;border:1px solid #ffe19a;font-weight:bold}.unit-strength-scale{display:block;width:80px;height:5px;background:#24302c;border:1px solid #f0d8a2;margin-top:3px}.unit-strength-scale.unknown{border-style:dashed;background:transparent}.unit-strength-fill{display:block;height:100%;background:#ffe07a;min-width:1px}.unit-strength-scale.unknown .unit-strength-fill{display:none}.terrain-danger{background:#285865;color:#fff3d3;border:1px dashed #e6cf8d;font-weight:bold}.terrain-unit{font-weight:bold}
-#terrain-notice{position:absolute;z-index:1;bottom:8px;left:9px;background:#f5ead5;padding:4px 8px;margin:0}
+#terrain-notice{position:absolute;z-index:3;top:52px;left:10px;max-width:calc(100% - 20px);background:#f5ead5;padding:5px 8px;margin:0}
+#terrain-retry{margin-left:4px}
 
 #map-brief{position:absolute;z-index:2;inset:auto auto 12px 12px;width:min(530px,calc(100% - 24px));padding:10px 13px;background:#263e37f5;color:#fff3db;border:1px solid #e1d0a0b0;border-radius:5px;box-shadow:0 4px 20px #243b3545;pointer-events:none}
 #map-brief[data-night-detour]{inset:auto 12px 12px auto;max-width:390px}
@@ -73,13 +74,16 @@ aside h2{font:700 19px SimSun,serif;margin:3px 0}#front-status,#units,#journal{m
 
 #situation-intro{position:absolute;z-index:3;top:12px;right:12px;width:min(390px,calc(100% - 24px));max-height:calc(100% - 24px);overflow:auto;background:#f8f1df;color:#293c35;border:1px solid #817a64;box-shadow:0 6px 22px #263b3650;padding:16px 18px;line-height:1.6}
 #situation-intro h2{font:700 21px/1.25 SimSun,serif;margin:0 0 6px}#situation-intro h3{font-size:15px;margin:12px 0 3px}#situation-intro p{margin:4px 0}#situation-intro ul{margin:4px 0;padding-left:1.2em}#situation-intro li{margin:5px 0}.situation-key{display:flex;gap:14px;flex-wrap:wrap}.situation-key i{display:inline-block;width:13px;height:13px;margin-right:5px;vertical-align:middle}.siege-key{border:2px dashed #c79430;border-radius:50%;background:#285865}.song-key{background:#a53e32}.jin-key{background:#286875}#intro-close{margin-top:10px;font-weight:bold}#intro-open{position:absolute;z-index:3;top:10px;left:10px} .terrain-pane:has(#situation-intro:not([hidden])) #toggle-details,.terrain-pane:has(#situation-intro:not([hidden])) #map-brief{visibility:hidden}
+.intro-actions{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}
+.intro-actions button{min-height:44px}
+.intro-actions #intro-close{margin:0;font-weight:normal}
+#intro-local{background:#36564a;color:white;font-weight:bold}
 @media(max-width:700px){
  .layout:has(#situation-intro:not([hidden])) header .views,.layout:has(#situation-intro:not([hidden])) footer{display:none}
  .terrain-pane:has(#situation-intro:not([hidden])){overflow:visible;padding-top:300px}
  .terrain-pane:has(#situation-intro:not([hidden])) #national-atlas{height:300px;bottom:auto}
  #situation-intro{position:relative;inset:auto;width:100%;max-height:none;overflow:visible;padding:12px 14px 0;font-size:14px;box-shadow:none}
- #situation-intro h2{font-size:20px}.intro-actions{position:sticky;bottom:0;background:#f8f1df;padding:8px 0 10px;z-index:4;border-top:1px solid #c9beaa}
- #intro-close{margin:0;width:100%}
+ #situation-intro h2{font-size:20px}.intro-actions button{flex:1 1 auto}
 }
 </style></head><body><main class="layout">
 <header><div><h1>长社之战</h1><p>《绍宋》小说改编 · 卷二 · 多战场试点  <a href="../">返回首页</a></p></div><div class="views" id="views"><select id="unit-view" aria-label="跟随部队"><option value="">跟随部队</option></select></div></header>
@@ -88,6 +92,7 @@ aside h2{font:700 19px SimSun,serif;margin:3px 0}#front-status,#units,#journal{m
 <button id="intro-open" type="button" hidden>战前局势</button>
 <section id="situation-intro" aria-labelledby="intro-title" hidden>
 <h2 id="intro-title">鄢陵有八万援军，长社为什么还在等？</h2>
+<div class="intro-actions"><button id="intro-local" type="button">进入 3D 战场</button><button id="intro-close" type="button">全国地图看长社</button></div>
 <p>东京留守宗泽病重，朝廷命杜充统兵。王彦率八字军赶来，鄢陵集结八万余人。长社仍被挞懒围着。</p>
 <p><strong>杜充奏报</strong>　岳飞、王彦不和，强令出战恐怕生变。</p>
 <p><strong>杜岩连夜面陈</strong>　两将曾共同请战，是父亲与挞懒私约不战。他经西平、中阳山回到南阳，也给赵玖指出了一条去鄢陵的路。<small>卷二第62章《召见》</small></p>
@@ -101,10 +106,9 @@ aside h2{font:700 19px SimSun,serif;margin:3px 0}#front-status,#units,#journal{m
 <div id="situation-front-0" class="situation-front"><h3>南阳｜兀术围攻赵玖</h3><p>兀术先在朱家曲伏击赶来救东京的韩世忠，又把韩部压进长社。他留下围城兵力，自己继续往南，想直接拿下宋廷所在的南阳。城墙、壕沟和粮储让攻城久拖不下。沙盘开场时，兀术仍在南阳城外。赵玖借约万人南向佯动，带约800骑夜出，避开约万骑金军主力，沿途仍可能遭遇零散金骑。</p><p><small><a href="https://hetushu.com/book/8942/6431387.html">卷二第42章</a> · <a href="https://hetushu.com/book/8942/6431397.html">第52章</a></small></p></div>
 <div id="situation-front-1" class="situation-front" hidden><h3>长社—鄢陵｜挞懒围城，杜充握着援军</h3><p>韩世忠坚守长社，长葛、临颍、舞阳失守，襄城、郾城、西平仍有宋军坚守。挞懒从别处抽兵集中到长社，请兀术增援却没得到回应。鄢陵的杜充与挞懒私约不战，援军迟迟未动。岳飞想趁金军分散、回援未到，集中诸军解围。赵玖夜出南阳，正是要调动这支援军。</p><p><small><a href="https://hetushu.com/book/8942/6431406.html">卷二第61章</a> · <a href="https://hetushu.com/book/8942/6431409.html">第64章</a> · <a href="https://hetushu.com/book/8942/6431411.html">第66章</a></small></p></div>
 <div id="situation-front-2" class="situation-front" hidden><h3>关陕｜娄室牵制西线</h3><p>粘罕统筹，娄室率西路军进攻洛阳、陕州方向，战事延及关陕。李彦仙守陕州，晋宁军失守。长社急需援兵时，西线也面临金军压力。</p><p><small><a href="https://hetushu.com/book/8942/6431269.html">卷一第10章</a> · <a href="https://hetushu.com/book/8942/6431399.html">卷二第54章</a></small></p></div>
-<div class="intro-actions"><button id="intro-close" type="button">进入长社战役</button></div>
 </section>
 <output id="situation-status" aria-label="长社状态"></output><canvas id="terrain-canvas" aria-label="可旋转和缩放的 3D 地图" hidden></canvas><div id="terrain-labels"></div>
-<p id="terrain-notice">正在加载真实高程…</p><svg id="map" role="img" aria-label="三个战场与各支部队的持续位置" viewBox="0 0 100 68" preserveAspectRatio="xMidYMid meet">
+<div id="terrain-notice" hidden><span id="terrain-status" role="status"></span> <button type="button" id="terrain-retry" hidden>重试 3D</button></div><svg id="map" role="img" aria-label="三个战场与各支部队的持续位置" viewBox="0 0 100 68" preserveAspectRatio="xMidYMid meet">
 <defs><marker id="story-arrow" markerWidth="4" markerHeight="4" refX="3" refY="2" orient="auto"><path d="M0,0 L4,2 L0,4 Z" fill="#704821"/></marker></defs>
 <rect class="land" x="-30" y="-30" width="160" height="130"/><path class="river" d="M 56,-20 C 48,7 64,13 53,29 S 59,58 45,90"/><text class="map-label" x="56" y="11">清潩水（示意）</text><g id="routes"></g><g id="landmarks"></g><g id="forces"></g></svg><section id="map-brief" aria-label="地图解说">
   <div id="map-chapter"><small id="map-phase"></small><small id="map-source"></small></div>
@@ -117,7 +121,7 @@ aside h2{font:700 19px SimSun,serif;margin:3px 0}#front-status,#units,#journal{m
   </div>
 </section><button type="button" id="toggle-details" aria-expanded="false" aria-controls="campaign-details">显示右侧资料</button></div>
 <aside id="campaign-details" hidden><section id="story" aria-live="polite"></section><div><h2>战场状态</h2><ul id="front-status"></ul></div><div><h2>部队视角与士气</h2><ul id="units"></ul></div><h2>事件记录</h2><ol id="journal"></ol></aside></div>
-<footer><div class="play"><button type="button" id="play">开始</button><button type="button" id="reset">重置</button><output class="clock" id="clock">0:00</output></div><p id="help">全国地形以 1128 年为历史参照。「局部沙盘」可查看小说场景。 <a href="changshe-sources.md">情节核对与出处</a></p></footer>
+<footer><div class="play"><button type="button" id="play">开始</button><button type="button" id="reset">重置</button><output class="clock" id="clock">0:00</output></div><p id="help">全国地形以 1128 年为历史参照。3D 战场支持拖动旋转、滚轮缩放。 <a href="changshe-sources.md">情节核对与出处</a></p></footer>
 </main><dialog id="review-dialog" aria-labelledby="review-title"><h2 id="review-title">回看解说</h2><form method="dialog"><button autofocus>返回地图</button></form><ol id="review-list" reversed></ol></dialog><dialog id="scene-dialog" aria-labelledby="scene-title">
   <div class="scene-layout">
     <figure id="scene-art" hidden><img id="scene-image" alt="赵玖举起斧头，杜充倒在堂上"><figcaption>《绍宋》漫画画面 · 用户提供</figcaption></figure>
@@ -128,4 +132,4 @@ aside h2{font:700 19px SimSun,serif;margin:3px 0}#front-status,#units,#journal{m
       <form method="dialog"><button autofocus>返回战场</button></form>
     </section>
   </div>
-</dialog><script src="battle-units.js"></script><script src="campaign-state.js"></script><script src="campaign-changshe-config.js"></script><script src="campaign-demo.js"></script></body></html>
+</dialog><script src="battle-units.js"></script><script src="campaign-state.js"></script><script src="campaign-changshe-config.js"></script><script src="campaign-demo.js?v=3e43729f"></script></body></html>
