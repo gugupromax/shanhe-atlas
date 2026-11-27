@@ -73,7 +73,7 @@
       }else if(message.type==='surface-error' && typeof handlers.onSurfaceError==='function'){
         if(typeof message.sceneKey==='string')handlers.onSurfaceError(message.sceneKey);
       }else if(message.type==='battle-cast'){
-        if(['siege','journey','yanling','relieved'].includes(message.stage))handlers.onBattleCast?.(message.stage);
+        if(['siege','journey','yanling','reinforcing','joined','relieved','aftermath'].includes(message.stage))handlers.onBattleCast?.(message.stage);
       }else if(message.type==='config'){
         const config={};if(['map','relief','top','east'].includes(message.view))config.view=message.view;
         if(Number.isFinite(message.exaggeration)&&message.exaggeration>=1&&message.exaggeration<=120)config.exaggeration=message.exaggeration;

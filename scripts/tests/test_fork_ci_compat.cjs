@@ -68,8 +68,26 @@ function fixture(t, newline = '\n') {
     : `<script src="${rel}?v=old"></script>`).join(newline) +
     `${newline}<script>preload('js/atlas_snapshots.js?v=old')</script>`;
   fs.writeFileSync(path.join(dir, 'index.html'), html);
+  fs.mkdirSync(path.join(dir, 'battles'), {recursive:true});
+  fs.writeFileSync(path.join(dir, 'battles/changshe.html'), '<script src="battle-units.js?v=old"></script>');
+  fs.writeFileSync(path.join(dir, 'battles/battle-units.js'), 'window.atlasBattleUnits={};');
   return dir;
 }
+
+test('both Changshe entry points use the same version of the shared figures', t => {
+  const dir = fixture(t);
+  const child = path.join(dir, 'terrain.html'), battle = path.join(dir, 'battles/changshe.html');
+  fs.writeFileSync(child, '<script data-figure-src="battles/battle-units.js"></script>');
+  const stamp = file => fs.readFileSync(file,'utf8').match(/battle-units\.js\?v=([a-f\d]{8})/)[1];
+  versions.syncIndexHtmlAssetHashes(dir, {configureGitMergeDriver:false});
+  const before = stamp(child);
+  assert.equal(stamp(battle), before);
+  fs.appendFileSync(path.join(dir,'battles/battle-units.js'), '\n// changed model');
+  assert.throws(() => versions.verifyIndexHtmlAssetHashes(dir, null, ''), /Stale terrain/);
+  versions.syncIndexHtmlAssetHashes(dir, {configureGitMergeDriver:false});
+  assert.notEqual(stamp(child), before);
+  assert.equal(stamp(battle), stamp(child));
+});
 
 test('terrain renderer changes invalidate both the iframe and its script URL', t => {
   const dir = fixture(t);

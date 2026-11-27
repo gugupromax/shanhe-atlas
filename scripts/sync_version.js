@@ -85,14 +85,14 @@ function shortSha256(filePath) {
 
 // Stamp the child page first, then use its resulting content hash in the parent
 // launcher. A cached terrain renderer and its message protocol must update together.
-function syncTerrainHtml(rootDir, checkOnly) {
-  const file = path.join(rootDir, 'terrain.html');
+function syncPageAssets(rootDir, page, checkOnly) {
+  const file = path.join(rootDir, page);
   const html = fs.readFileSync(file, 'utf8');
-  const tags = /(<(?:script|link)\b[^>]*?\b(?:src|href)=")([\w./-]+\.(?:js|css))(?:\?v=[\w.-]+)?(")/g;
+  const tags = /(<(?:script|link)\b[^>]*?\s(?:src|href|data-figure-src)=")([\w./-]+\.(?:js|css))(?:\?v=[\w.-]+)?(")/g;
   const updated = html.replace(tags, (_, prefix, asset, quote) =>
-    prefix + asset + '?v=' + shortSha256(path.join(rootDir, asset)) + quote);
+    prefix + asset + '?v=' + shortSha256(path.join(path.dirname(file), asset)) + quote);
   if (updated === html) return false;
-  assert(!checkOnly, 'Stale terrain.html asset hashes. Run node scripts/sync_version.js --write-only');
+  assert(!checkOnly, 'Stale ' + page + ' asset hashes. Run node scripts/sync_version.js --write-only');
   fs.writeFileSync(file, updated, 'utf8');
   return true;
 }
@@ -213,7 +213,8 @@ function ensureGitMergeDriverConfig(rootDir = ROOT) {
 }
 
 function verifyIndexHtmlAssetHashes(rootDir = ROOT, indexHtmlInput = null, appCodeInput = null) {
-  syncTerrainHtml(rootDir, true);
+  syncPageAssets(rootDir, 'terrain.html', true);
+  syncPageAssets(rootDir, 'battles/changshe.html', true);
   const indexHtml =
     indexHtmlInput !== null ? indexHtmlInput : fs.readFileSync(path.join(rootDir, 'index.html'), 'utf8');
   const controllerSrc =
@@ -275,7 +276,8 @@ function verifyIndexHtmlAssetHashes(rootDir = ROOT, indexHtmlInput = null, appCo
 }
 
 function syncIndexHtmlAssetHashes(rootDir = ROOT, { configureGitMergeDriver = true } = {}) {
-  const terrainChanged = syncTerrainHtml(rootDir, false);
+  const terrainChanged = syncPageAssets(rootDir, 'terrain.html', false);
+  const battleChanged = syncPageAssets(rootDir, 'battles/changshe.html', false);
   const indexPath = path.join(rootDir, 'index.html');
   const before = fs.readFileSync(indexPath, 'utf8');
   const hashes = computeAssetHashes(rootDir);
@@ -285,7 +287,7 @@ function syncIndexHtmlAssetHashes(rootDir = ROOT, { configureGitMergeDriver = tr
     fs.writeFileSync(indexPath, after, 'utf8');
   }
   if (configureGitMergeDriver) ensureGitMergeDriverConfig(rootDir);
-  return { changed:changed || terrainChanged, hashes };
+  return { changed:changed || terrainChanged || battleChanged, hashes };
 }
 
 if (require.main === module) {

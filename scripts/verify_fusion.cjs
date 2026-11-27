@@ -83,9 +83,9 @@ handlers.message({source:parent,data:{...good,seq:0}});assert.equal(received,1);
 const cast={channel:protocol.CHANNEL,type:'battle-cast',stage:'relieved'};
 handlers.message({source:{},data:cast});
 handlers.message({source:parent,data:{...cast,stage:'invalid'}});
-handlers.message({source:parent,data:cast});
-handlers.message({source:parent,data:{...cast,stage:'siege'}});
-assert.deepEqual(castUpdates,['relieved','siege']);
+const chapterStages=['journey','yanling','reinforcing','joined','relieved','aftermath','siege'];
+for (const stage of chapterStages) handlers.message({source:parent,data:{...cast,stage}});
+assert.deepEqual(castUpdates,chapterStages);
 // Accept transferred bitmaps only from the paired parent, within the same renderer budget.
 class BitmapFixture {
   constructor(width=16){this.width=width;this.height=16;this.closed=false;}

@@ -90,11 +90,27 @@
     let overviewCamera;
     const flatTowns = [];
     let battleCastStage = 'siege';
+    const partyCaptions = {
+      siege:['nanyang','赵玖 · 赤心队'], journey:['nanyang','赵玖 · 赤心队赴鄢陵途中'],
+      yanling:['yanling','赵玖 · 赤心队与岳飞会合'], reinforcing:['changshe','赵玖 · 赤心队进援途中'],
+      joined:['changshe','赵玖 · 赤心队与援军会合'], relieved:['changshe','赵玖 · 赤心队'],
+      aftermath:['changshe','赵玖 · 赤心队拟返东京'],
+    };
+    function updateFlatCast() {
+      const relieved = battleCastStage === 'relieved' || battleCastStage === 'aftermath';
+      const [partyTown, partyText] = partyCaptions[battleCastStage];
+      for (const {key,button,caption} of flatTowns) {
+        const besieged = key === 'nanyang' || (key === 'changshe' && !relieved);
+        button.toggleAttribute('data-besieged',besieged);
+        const detail = key === 'changshe' ? (relieved ? '长社已解围' : '长社被围 · 韩世忠守城') :
+          key === 'nanyang' ? '南阳被围 · 兀术围城' : key === 'shanzhou' ? '金国西路军' : '鄢陵宋军';
+        caption.textContent = key === partyTown ? detail + '\n' + partyText : detail;
+      }
+    }
     function updateBattleCast(stage) {
-      if (!['siege','journey','yanling','relieved'].includes(stage) || stage === battleCastStage) return;
+      if (!Object.prototype.hasOwnProperty.call(partyCaptions,stage) || stage === battleCastStage) return;
       battleCastStage = stage;
-      const changshe = flatTowns.find(town => town.key === 'changshe');
-      changshe.caption.textContent = stage === 'relieved' ? '韩世忠 · 长社已解围' : '韩世忠守城 · 金军围城';
+      updateFlatCast();
       if (ready) post({ type:'battle-cast', stage });
       positionFlatTowns();
     }
@@ -125,13 +141,12 @@
         button.textContent = town.caption || town.name;
         const caption = doc.createElement('small');
         caption.hidden = true;
-        caption.textContent = {changshe:'韩世忠守城 · 金军围城', nanyang:'南阳守军 · 兀术围城',
-          shanzhou:'金国西路军'}[town.key] || '';
-        if (caption.textContent) button.append(caption);
+        button.append(caption);
         button.onclick = () => openBattleChapter(town.index);
         overlay.append(button);
         flatTowns.push({ key:town.key, button, caption, point:app.projector.toScreen(...town.coord) });
       }
+      updateFlatCast();
       // Generic map taps and double clicks otherwise open hidden atlas cards and load city records.
       app.openMapAreaAt = () => false;
       app.openGenealogyAt = () => {};

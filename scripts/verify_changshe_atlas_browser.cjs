@@ -9,8 +9,10 @@ const {clickControl,terrainTestUrl} = require('./tests/terrain_browser_controls.
 const selector = mode => `#views [data-atlas-view="${mode}"]`;
 const legacyTerrain = /\/changshe-terrain(?:-data)?\.js$/;
 
-async function openBattle(browser, base, viewport) {
-  const page = await browser.newPage({viewport,reducedMotion:'reduce'});
+async function openBattle(browser, base, viewport, {storyClock=false,partyLink=false}={}) {
+  const context = await browser.newContext({viewport,reducedMotion:'reduce'});
+  const page = await context.newPage();
+  if(storyClock)await page.clock.install();
   const errors = [], oldRequests = [], adminRequests = [], firstMaps = [];
   page.on('pageerror',e=>errors.push(e.message));
   page.on('request',r=>{
@@ -21,8 +23,12 @@ async function openBattle(browser, base, viewport) {
   page.on('response',r=>{
     if(new URL(r.url()).pathname.endsWith('/assets/changshe-1128-base.webp'))firstMaps.push(r.status());
   });
-  await page.addInitScript(()=>{
-    if (!location.pathname.endsWith('/terrain.html')) return;
+  await context.addInitScript(()=>{
+    window.testBattleMessages=[];
+    window.addEventListener('message',event=>{
+      if(event.source===parent&&['atlas-changshe-map','atlas-changshe-cast'].includes(event.data?.type))
+        window.testBattleMessages.push(event.data);
+    });
     // Three.js notifies its developer tools when the production scene is created.
     // Observe it without creating another renderer or changing the draw call.
     window.addEventListener('message',event=>{
@@ -43,8 +49,10 @@ async function openBattle(browser, base, viewport) {
       };
     });
   });
-  await page.goto(new URL('battles/changshe.html',base).href,{waitUntil:'domcontentloaded'});
-  await page.locator('#intro-close').waitFor();
+  const target=new URL('battles/changshe.html',base);
+  if(partyLink)target.searchParams.set('view','zhao');
+  await page.goto(target.href,{waitUntil:'domcontentloaded'});
+  await page.locator(partyLink?selector('zhao')+'[aria-pressed=true]':'#intro-close').waitFor();
   assert.equal(await page.locator('#terrain-canvas,svg#map').count(),0);
   return {page,errors,oldRequests,adminRequests,firstMaps};
 }
@@ -65,6 +73,9 @@ async function openTerrain(page) {
   const terrain = await (await geographic.locator('#fusion-terrain').elementHandle()).contentFrame();
   const canvas = terrain.locator('#canvas-host canvas');
   await canvas.waitFor();
+  assert.equal(await geographic.locator('#fusion-terrain').count(),1);
+  assert.equal(await terrain.locator('#canvas-host canvas').count(),1);
+  await terrain.waitForFunction(()=>typeof window.ChangsheFigures?.slots==='function',null,{timeout:45000});
   assert.ok(await canvas.evaluate(c=>{
     const gl=c.getContext('webgl2') || c.getContext('webgl');
     return gl && !gl.isContextLost() && gl.drawingBufferWidth>0 && gl.getParameter(gl.CURRENT_PROGRAM)!==null;
@@ -113,26 +124,67 @@ async function checkCast(terrain,expected) {
         .filter(el=>getComputedStyle(el).visibility==='visible' && el.getClientRects().length)
         .map(el=>el.getBoundingClientRect());
       const transform=new THREE.Matrix4(),p=new THREE.Vector3();
+      const columns=new Set(),rows=new Set();
       let clear=0;
       for(let i=0;i<heads.count;i++){
         heads.getMatrixAt(i,transform);
-        p.setFromMatrixPosition(transform).applyMatrix4(heads.matrixWorld).project(window.testTerrainCamera);
+        p.setFromMatrixPosition(transform);
+        columns.add(p.x.toFixed(4));rows.add(p.z.toFixed(4));
+        p.applyMatrix4(heads.matrixWorld).project(window.testTerrainCamera);
         if(Math.abs(p.x)>1||Math.abs(p.y)>1||Math.abs(p.z)>1)continue;
         const x=stage.x+(p.x+1)*stage.width/2,y=stage.y+(1-p.y)*stage.height/2;
         if(!labels.some(r=>x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom))clear++;
       }
-      return {visible:true,clear,total:heads.count};
+      const mounts=group.getObjectByName(id==='zhao'?'party-horses':'mounts');
+      return {visible:true,clear,total:heads.count,rows:rows.size,columns:columns.size,mounts:mounts?.count||0};
     },id);
     assert.equal(result.visible,visible,id+' geometry visibility');
-    if(visible)assert.ok(result.clear>=result.total/2,id+' heads visible and clear of labels: '+JSON.stringify(result));
+    if(visible){
+      assert.ok(result.clear>=result.total/2,id+' heads visible and clear of labels: '+JSON.stringify(result));
+      // Changshe's original actor table gives the emperor a column, Jin horsemen
+      // a mounted formation, and Han's foot soldiers a block.
+      const mounted=id==='zhao'||id.startsWith('jin-');
+      const [rows,columns]=id==='zhao'?[4,3]:mounted?[3,4]:[3,5];
+      assert.deepEqual([result.rows,result.columns,result.total,result.mounts],
+        [rows,columns,rows*columns,mounted?rows*columns:0],id+' retains its original formation and mount count');
+    }
   }
-  if(expected.every(([, ,visible])=>visible)){
-    const [a,b]=await Promise.all(expected.map(([id])=>terrain.locator('[data-cast="'+id+'"]').evaluate(el=>el.getBoundingClientRect().toJSON())));
-    assert.ok(a&&b&&(a.bottom<=b.top||b.bottom<=a.top||a.right<=b.left||b.right<=a.left),'Both factions need readable, separate labels');
+  const boxes=await Promise.all(expected.filter(([, ,visible])=>visible).map(([id])=>
+    terrain.locator('[data-cast="'+id+'"]').evaluate(el=>el.getBoundingClientRect().toJSON())));
+  for (const [i,a] of boxes.entries()) for (const b of boxes.slice(i+1)) {
+    assert.ok(a.bottom<=b.top||b.bottom<=a.top||a.right<=b.left||b.right<=a.left,'Character labels must not overlap');
   }
 }
 
+async function checkSiegeRing(terrain,city,besieged){
+  await terrain.waitForFunction(({city,besieged})=>{
+    const site=window.testTerrainScene?.getObjectByName('ChangsheCity:'+city);
+    const ring=site?.getObjectByName('ChangsheSiege:'+city);
+    if(!site||!ring)return false;
+    if(!besieged)return !ring.visible;
+    if(!ring.visible||!site.visible||!ring.getObjectByName('siege-pennants')?.isInstancedMesh)return false;
+    const outline=new THREE.Box3().setFromObject(ring);
+    const walls=new THREE.Box3().setFromObject(site.getObjectByName('city-walls'));
+    return outline.min.x<walls.min.x&&outline.max.x>walls.max.x&&
+      outline.min.z<walls.min.z&&outline.max.z>walls.max.z;
+  },{city,besieged},{timeout:30000});
+}
+
+async function checkPartyCity(terrain,city){
+  await terrain.waitForFunction(city=>{
+    const parties=[];
+    window.testTerrainScene.traverseVisible(node=>{
+      if(node.name==='ChangsheCast:zhao')parties.push(node);
+    });
+    const party=parties[0], horses=party?.getObjectByName('party-horses');
+    return parties.length===1 && party.parent.name==='ChangsheCity:'+city &&
+      horses?.isInstancedMesh && horses.count>1;
+  },city,{timeout:30000});
+}
+
 const changsheCast=besieged=>[['song-changshe',besieged?'韩世忠':'长社解围',true],['jin-changshe','挞懒',besieged]];
+const party=['zhao','赤心队',true];
+const nanyangCast=[['song-nanyang','南阳守军',true],['jin-nanyang','兀术',true]];
 const westCast=[['li','李彦仙',true],['jin-west','西路军',true]];
 async function setCastStage(page,terrain,stage) {
   await page.evaluate(stage=>document.getElementById('national-atlas').contentWindow
@@ -193,13 +245,17 @@ async function desktop(browser,base) {
     await checkScale(geographic,true);
     await terrain.waitForFunction(()=>window.testCastStages?.includes('siege'));
     await checkCast(terrain,changsheCast(true));
-    await capture(page,'长社城');
+    await checkSiegeRing(terrain,'长社',true);
+    await capture(page,'长社被围');
     await checkCloserDetail(page,terrain,canvas);
     // Replay the story's two boundary messages through the real parent bridge without
     // advancing the gameplay clock or changing the camera.
     for(const stage of ['relieved','siege']){
       await setCastStage(page,terrain,stage);
       await checkCast(terrain,changsheCast(stage==='siege'));
+      await checkSiegeRing(terrain,'长社',stage==='siege');
+      await checkSiegeRing(terrain,'南阳',true);
+      await checkPartyCity(terrain,stage==='siege'?'南阳':'长社');
     }
     await clickTown(page,terrain,'长社',1);
     assert.ok(await page.locator('#play').isEnabled(),'Playback enabled after closing the town card');
@@ -241,20 +297,48 @@ async function desktop(browser,base) {
     await page.locator('#situation-tabs [data-front="0"]').click();
     await page.locator('#situation-close').click();
     await waitDetail(terrain,112.53);
-    await checkCast(terrain,[['zhao','南阳守军',true],['jin-nanyang','兀术',true]]);
+    await checkCast(terrain,nanyangCast);
+    // Restore the bridge after the independent western-view relief probe.
+    await setCastStage(page,terrain,'siege');
+    await page.locator('#reset').click();
+    await page.locator('#situation-intro [data-atlas-view="zhao"]').click();
+    await waitDetail(terrain,112.53);
+    await checkPartyCity(terrain,'南阳');
+    await checkCast(terrain,[...nanyangCast,party]);
+    assert.equal(await page.locator(selector('zhao')).getAttribute('aria-pressed'),'true');
+    await capture(page,'南阳赵玖赤心队');
+    await clickControl(page,'#play');
+    const depart=page.getByRole('button',{name:'南阳佯动 · 赵玖绕行',exact:true});
+    await depart.click({timeout:45000});
+    await terrain.waitForFunction(()=>window.testCastStages.includes('journey'));
+    await terrain.waitForFunction(()=>window.testCastStages.at(-1)==='yanling',null,{timeout:60000});
+    await waitDetail(terrain,114.18);
+    await checkPartyCity(terrain,'鄢陵');
+    await checkCast(terrain,[['yue','岳飞',true],party]);
+    await capture(page,'鄢陵会合');
+    await page.locator(selector('changshe')).click();
+    await waitDetail(terrain,113.82);
+    for(const stage of ['reinforcing','joined','relieved','aftermath']){
+      await setCastStage(page,terrain,stage);
+      const besieged=stage==='reinforcing'||stage==='joined';
+      await checkPartyCity(terrain,'长社');
+      await checkCast(terrain,[...changsheCast(besieged),party]);
+      await checkSiegeRing(terrain,'长社',besieged);
+      if(stage==='relieved')await capture(page,'长社解围');
+    }
     assert.deepEqual(errors,[]);
     assert.deepEqual(oldRequests,[]);
     assert.deepEqual(adminRequests,[],'A battle map with hidden county labels must skip the county package');
     assert.ok(firstMaps.some(status=>status===200||status===304),'The prepared 1128 first map must load');
     console.log('PASS desktop: one national WebGL scene, city models at both sites, national overview, city cards, wheel, drag and playback.');
-  } finally { await page.close(); }
+  } finally { await page.context().close(); }
 }
 
 async function mobile(browser,base,flat) {
-  const {page,errors,oldRequests}=await openBattle(browser,base,{width:390,height:844});
+  const {page,errors,oldRequests}=await openBattle(browser,base,{width:390,height:844},{partyLink:!flat});
   try {
-    await page.locator('#situation-intro [data-atlas-view="shanzhou"]').click();
     if(flat){
+      await page.locator('#situation-intro [data-atlas-view="shanzhou"]').click();
       const atlas=page.frameLocator('#national-atlas');
       await atlas.locator('#fusion-status').filter({hasText:/失败|平面/}).waitFor({state:'attached',timeout:90000});
       await atlas.locator('.changshe-towns button').filter({hasText:'陕州'}).click();
@@ -265,6 +349,12 @@ async function mobile(browser,base,flat) {
       await page.locator('#situation-front-1').waitFor();
     }else{
       const {terrain}=await openTerrain(page);
+      await waitDetail(terrain,112.53);
+      await checkPartyCity(terrain,'南阳');
+      await checkCast(terrain,[...nanyangCast,party]);
+      await checkSiegeRing(terrain,'南阳',true);
+      await capture(page,'赵玖赤心队手机');
+      await page.locator(selector('shanzhou')).click();
       await waitForCity(terrain,'陕州',true);
       await waitDetail(terrain,111.19);
       await capture(page,'陕州手机');
@@ -272,12 +362,57 @@ async function mobile(browser,base,flat) {
       await page.locator(selector('changshe')).click();
       await waitDetail(terrain,113.82);
       await checkCast(terrain,changsheCast(true));
-      await capture(page,'长社手机');
+      await checkSiegeRing(terrain,'长社',true);
+      await capture(page,'长社被围手机');
     }
     assert.deepEqual(errors,[]);
     assert.deepEqual(oldRequests,[]);
     console.log('PASS mobile: '+(flat?'WebGL unavailable, both flat-map cards accessible.':'WebGL western front and Li Yanxian card.'));
-  } finally { await page.close(); }
+  } finally { await page.context().close(); }
+}
+
+// Advance only the test browser clock; controls, novel events and focus messages
+// are still produced by the same public UI and story engine as normal playback.
+async function followStory(browser,base){
+  const {page,errors}=await openBattle(browser,base,{width:1100,height:790},{storyClock:true});
+  try{
+    await page.locator('#situation-intro [data-atlas-view="zhao"]').click();
+    const atlas=await (await page.locator('#national-atlas').elementHandle()).contentFrame();
+    const expectFocus=async(mode,stage)=>{
+      await atlas.waitForFunction(({mode,stage})=>{
+        const m=window.testBattleMessages??[];
+        return m.filter(msg=>msg.type==='atlas-changshe-map').at(-1)?.mode===mode &&
+          m.filter(msg=>msg.type==='atlas-changshe-cast').at(-1)?.stage===stage;
+      },{mode,stage});
+    };
+    const action=index=>page.locator('#orders button').nth(index);
+    await expectFocus('nanyang','siege');
+    await page.locator('#play').click();
+    await page.clock.fastForward(16000);
+    await action(1).click();
+    await expectFocus('nanyang','journey');
+    await page.clock.fastForward(19000);
+    await expectFocus('yanling','yanling');
+    await action(2).click();
+    await action(3).click();
+    await page.locator('#scene-dialog form button').click();
+    await action(4).click();
+    await page.clock.fastForward(90000);
+    await expectFocus('changshe','reinforcing');
+    await page.locator(selector('shanzhou')).click();
+    await action(5).click();
+    for(let i=0;i<60;++i){
+      await page.clock.fastForward(1500);
+      if((await page.locator('#play').innerText())==='战役结束')break;
+    }
+    await expectFocus('shanzhou','aftermath');
+    const messages=await atlas.evaluate(()=>window.testBattleMessages);
+    const stages=messages.filter(m=>m.type==='atlas-changshe-cast').map(m=>m.stage);
+    assert.ok(stages.includes('joined')&&stages.includes('relieved'),'Playback reached meeting and relief');
+    assert.equal(await page.locator(selector('zhao')).getAttribute('aria-pressed'),'false');
+    assert.deepEqual(errors,[]);
+    console.log('PASS story: following Zhao uses actual chapter changes, manual western view stays selected through the ending.');
+  }finally{await page.context().close();}
 }
 
 async function main(){
@@ -289,8 +424,8 @@ async function main(){
   const browser=await chromium.launch({executablePath,args});
   try{await desktop(browser,base);await mobile(browser,base,false);}finally{await browser.close();}
   const flat=await chromium.launch({executablePath,args:['--disable-webgl']});
-  try{await mobile(flat,base,true);}finally{await flat.close();}
+  try{await mobile(flat,base,true);await followStory(flat,base);}finally{await flat.close();}
 }
 
 if(require.main===module)main().catch(error=>{console.error(error);process.exitCode=1;});
-module.exports={desktop,mobile};
+module.exports={desktop,mobile,followStory};

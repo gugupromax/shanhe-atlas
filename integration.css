@@ -34,7 +34,8 @@
   background:#fbf4e3; color:#493a2d; font:600 13px/1.4 "Microsoft YaHei","PingFang SC",sans-serif;
 }
 .changshe-towns button:focus-visible { outline:2px solid #884b26; outline-offset:2px; }
-.changshe-towns small:not([hidden]) { display:block; font-weight:normal; }
+.changshe-towns small:not([hidden]) { display:block; font-weight:normal; white-space:pre-line; }
+.changshe-towns button[data-besieged]:has(small:not([hidden])) { outline:2px dashed #275d66; outline-offset:2px; }
 @media(max-width:900px) {
   .fusion-mode-switch button { padding:6px 8px; font-size:11px; }
   #nav-bar .control-strip { flex-wrap:wrap; }

@@ -61,3 +61,5 @@ html,body{height:100%;overflow:hidden}.topbar{height:54px;padding:0 18px;gap:14p
 .embedded-map #labels .fusion-place.battle:hover,.embedded-map #labels .fusion-place.battle:focus-visible{color:#2c251e;background:#f3dfaa}
 .embedded-map #labels .battle-cast-caption{position:absolute;visibility:hidden;transform:translate(-50%,-50%);pointer-events:none;white-space:nowrap;padding:2px 7px;border-radius:3px;font:600 12px/1.5 "Microsoft YaHei","PingFang SC",sans-serif;color:#fff5dd;border:1px solid #d3b58a;box-shadow:0 1px 4px #32281452;background:#82362b}
 .embedded-map #labels .battle-cast-caption.jin{background:#245763;border-color:#acc8bd}
+.embedded-map #labels .battle-cast-caption.royal{background:#74223c;border-color:#edc265;color:#fff0c7}
+.embedded-map #labels .fusion-place.battle.siege-status{border-color:#eb9a71;color:#ffdfbd}

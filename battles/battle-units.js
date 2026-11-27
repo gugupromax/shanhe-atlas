@@ -16,3 +16,39 @@ window.atlasBattleFormations = {
   mounted: {name:'骑队', columns:4, rows:3, frontage:1},
   loose: {name:'疏列', columns:5, rows:2, frontage:.9}
 };
+
+// The local sand table and the national atlas draw the same Changshe miniatures.
+// Each part lists its role, primitive, material and transform in the original model units.
+window.ChangsheFigures = (() => {
+  function soldier(mounted) {
+    const lift = mounted ? .18 : 0;
+    const parts = mounted ? [
+      ['horse','box','wood',0,.12,0,.19,.18,.26],
+      ['horse-head','head','wood',0,.23,.13,.64,.95,.70],
+      ['body','box','dark',-.06,.055,-.02,.055,.12,.15],
+      ['body','box','dark',.06,.055,-.02,.055,.12,.15],
+    ] : [['body','box','dark',0,.095,0,.12,.18,.11]];
+    parts.push(
+      ['body','box','cloth',0,.22+lift,0,.17,.16,.13],
+      ['head','head','dark',0,.34+lift,0,.62,.74,.62],
+      ['body','box','wood',.10,.26+lift,0,.026,.39,.026],
+    );
+    return parts;
+  }
+  const foot = soldier(false), rider = soldier(true);
+  return {
+    parts(mounted) { return mounted ? rider : foot; },
+    standard: [
+      ['body','box','wood',-1.05,.38,0,.045,.77,.045],
+      ['body','box','cloth',-.84,.64,0,.39,.29,.035],
+    ],
+    slots(formation) {
+      const {rows,columns} = window.atlasBattleFormations[formation], slots = [];
+      for (let row=0; row<rows; row++) for (let col=0; col<columns; col++) {
+        slots.push([(col-(columns-1)/2)*.29,(row-(rows-1)/2)*.28]);
+      }
+      return slots;
+    },
+    siegeSectors: Array.from({length:12},(_,i)=>({start:i*Math.PI/6+.055,span:.40})),
+  };
+})();

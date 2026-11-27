@@ -41,7 +41,7 @@
   let tangTiles=null,tangTileJob=0,tangTilePlanKey='',tangBaseApplied=false,tangAppliedTier='far';
   let areaOverlay=null,areaOverlayId=0;
   let adminLabelData=[],passLabelData=[],screenLabels=[],passGates=null;
-  let battleSites=[],battleCastStage='siege';
+  let battleSites=[],battleCastStage='siege',partySite=null;
   let areaClickTimer;
   const passes = [
     ['zhiguan','轵关陉',112.38,35.16,'济源—垣曲一带','看王屋山南侧与黄河以北的山间通道。'],
@@ -69,6 +69,13 @@
   const viewportGeometry=window.JiangshanViewport;
   let mapFrame,viewportGuard;
   let labels = [], selected = 'national', loadingToken = 0, dirty = true;
+  if(changsheAtlas)window.changsheFiguresReady?.then(loaded=>{
+    dirty=true;
+    if(!loaded){
+      $('coordinate').textContent='兵俑模型未能载入，刷新可重试。';
+      $('coordinate').hidden=false;
+    }
+  });
   const historyData=window.JIANGSHAN_HISTORY,timeCore=window.JiangshanTime;
   let historyYear=741,historyToken=0,currentSnapshot=null,selectedEvent=null,timeTimer=null,timeDebounce=null;
   const snapshotPromises=new Map();
@@ -293,7 +300,7 @@
     }
   }
   function rebuildMarkers() {
-    dispose(markerGroup);markerGroup=new THREE.Group();scene.add(markerGroup);labels=[];screenLabels=[];battleSites=[];passGates=null;$('labels').replaceChildren();
+    dispose(markerGroup);markerGroup=new THREE.Group();scene.add(markerGroup);labels=[];screenLabels=[];battleSites=[];partySite=null;passGates=null;$('labels').replaceChildren();
     const overview=selected==='overview';
     if(selected==='national'){
       if(embedded){rebuildFusionPlaces();rebuildScreenLabels();rebuildRoutes();return;}
@@ -891,12 +898,65 @@
   const cityCast={
     '长社':[['song-changshe','韩世忠 · 守城宋军'],['jin-changshe','挞懒 · 围城金军','jin']],
     '鄢陵':[['yue','岳飞 · 鄢陵宋军']],
-    '南阳':[['zhao','赵玖 · 南阳'],['jin-nanyang','兀术 · 围城金军','jin']],
+    '南阳':[['song-nanyang','南阳守军'],['jin-nanyang','兀术 · 围城金军','jin']],
     '陕州':[['li','李彦仙 · 陕州守军'],['jin-west','金国西路军','jin']],
   };
+  // The place is the chapter's map reference. The figurines do not trace a route.
+  const partyScenes={
+    siege:['南阳','赵玖 · 赤心队'],
+    journey:['南阳','赵玖 · 赤心队｜途中'],
+    yanling:['鄢陵','赵玖 · 赤心队｜会合'],
+    reinforcing:['长社','赵玖 · 赤心队｜进援途中'],
+    joined:['长社','赵玖 · 赤心队｜与援军会合'],
+    relieved:['长社','赵玖 · 赤心队｜解围'],
+    aftermath:['长社','赵玖 · 赤心队｜拟返东京'],
+  };
   function setBattleCast(stage){
-    if(!changsheAtlas||stage===battleCastStage||!['siege','journey','yanling','relieved'].includes(stage))return;
+    if(!changsheAtlas||stage===battleCastStage||!Object.hasOwn(partyScenes,stage))return;
     battleCastStage=stage;dirty=true;
+  }
+  function createSiegeRing(name,point,originY){
+    // A broken, ground-hugging seal around the town icon denotes its story status.
+    const positions=[],indices=[];
+    for(const sector of window.ChangsheFigures.siegeSectors){
+      const start=positions.length/3;
+      for(let i=0;i<=6;i++){
+        const a=sector.start+sector.span*i/6;
+        for(const radius of [1,1.15]){
+          const x=2.85*radius*Math.cos(a),z=2.12*radius*Math.sin(a);
+          positions.push(x,terrainSurfaceHeight(point.x+x,point.z+z,1)-originY+.055,z);
+        }
+        if(i){const j=start+i*2;indices.push(j-2,j-1,j,j,j-1,j+1);}
+      }
+    }
+    const geometry=new THREE.BufferGeometry();
+    geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+    geometry.setIndex(indices);
+    const ring=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({color:0x286372,side:THREE.DoubleSide,
+      polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
+    ring.name='ChangsheSiege:'+name;
+    // Repeated pennants tie the state symbol to the besiegers' banner.
+    const flags=new THREE.InstancedMesh(new THREE.BoxGeometry(),new THREE.MeshBasicMaterial(),16);
+    flags.name='siege-pennants';
+    const matrix=new THREE.Matrix4(),color=new THREE.Color();
+    for(let quarter=0;quarter<4;quarter++){
+      const angle=(quarter+.5)*Math.PI/2;
+      const x=3.06*Math.cos(angle),z=2.28*Math.sin(angle);
+      const y=terrainSurfaceHeight(point.x+x,point.z+z,1)-originY+.065;
+      const details=[
+        [0,.48,.068,.96,.068,0x31474c],
+        [.29,.75,.58,.40,.055,0x216980],
+        [.29,.95,.60,.066,.064,0xe8c16a],
+        [.09,.53,.14,.11,.048,0x216980],
+      ];
+      details.forEach(([dx,dy,w,h,d,tint],i)=>{
+        const index=quarter*details.length+i;
+        flags.setMatrixAt(index,matrix.makeScale(w,h,d).setPosition(x+dx,y+dy,z));
+        flags.setColorAt(index,color.set(tint));
+      });
+    }
+    ring.add(flags);
+    return ring;
   }
   function createBattleCity(site){
     const {name,label:{point}}=site;
@@ -937,74 +997,97 @@
     }
     addParts(group,'city-walls',new THREE.BoxGeometry(),walls);
     addParts(group,'city-roofs',new THREE.ConeGeometry(1,1,4).rotateY(Math.PI/4),roofs);
+    if(name==='长社'||name==='南阳'){
+      site.siegeRing=createSiegeRing(name,point,group.position.y);
+      group.add(site.siegeRing);
+    }
     site.actors=[];
-    for(const [id,title,side] of cityCast[name]||[]){
-      const mounted=side==='jin',actor=new THREE.Group();
+    function addActor(id,title,side){
+      const royal=id==='zhao',jin=side==='jin',actor=new THREE.Group();
+      // Match the character's original campaign type and formation. Generic town guards
+      // use the same infantry block as Han Shizhong's defenders.
+      const type=royal?'light':jin?'elite':'infantry',formation=royal?'column':jin?'mounted':'block';
+      const mounted=Boolean(window.atlasBattleUnits[type].mounted),recipe=window.ChangsheFigures;
+      const slots=recipe.slots(formation),scale=mounted?3.25:1.92;
+      const ox=royal?3.6:jin?-5.2:0,oz=royal?3.4:jin?1.3:0;
       actor.name='ChangsheCast:'+id;
-      // Place the two casts on either side of the city label in model space.
-      const ox=mounted?-5.2:0,oz=mounted?1.3:0;
-      const figures=[],heads=[],robes=[];
-      const coat=mounted?'#216980':'#b63e30',trim=mounted?'#e8c16a':'#f3cf94';
-      const metal=mounted?'#3a5558':'#543c38',boots='#42342c';
-      const ground=(x,z)=>mounted?terrainSurfaceHeight(point.x+ox+x,point.z+oz+z,1)-group.position.y:0;
       actor.position.set(ox,0,oz);
-      // Three identifiable figurines per cast. Their count has no strength meaning.
-      const spacing=mounted?1.35:.62;
-      for(const [i,depth] of [[-1,-.16],[0,.26],[1,-.16]]){
-        const x=i*spacing+(mounted?0:.13),z=depth+.1,y=ground(x,z);
-        let lift=y;
-        if(mounted){
-          const hide=i===0?'#b18650':'#865e3d';
-          figures.push([x,y+.52,z,1.06,.37,.43,hide],
-            [x+.39,y+.76,z,.28,.48,.33,hide],[x+.59,y+.94,z,.40,.22,.30,hide],
-            [x-.53,y+.45,z,.16,.46,.24,'#513c30'],[x,y+.72,z,.48,.10,.47,boots]);
-          for(const dx of [-.35,.33])for(const dz of [-.14,.14]){
-            figures.push([x+dx,y+.23,z+dz,.14,.46,.12,hide]);
-          }
-          lift+=.58;
+      const ground=(x,z)=>mounted?terrainSurfaceHeight(point.x+ox+x,point.z+oz+z,1)-group.position.y:0;
+      const palette={cloth:royal?'#882542':jin?'#285c66':'#a74635',wood:'#a78155',dark:'#342b27'};
+      const batches={body:[],head:[],horse:[],'horse-head':[]};
+      function collect(parts,x,z,lead=false){
+        const y=ground(x,z);
+        for(const [role,,tint,dx,dy,dz,w,h,d] of parts){
+          const color=lead&&(role==='horse'||role==='horse-head')?'#e9d8ae':palette[tint];
+          batches[role].push([x+dx*scale,y+dy*scale,z+dz*scale,w*scale,h*scale,d*scale,color]);
         }
-        const tall=i===0?1.16:1;
-        for(const dx of [-.108,.108])figures.push([x+dx,lift+.19,z,.135,.38,.18,boots]);
-        robes.push([x,lift+.46*tall,z,.52,.47*tall,.42,coat]);
-        figures.push([x,lift+.68*tall,z,.40,.28*tall,.29,coat],[x,lift+.61*tall,z,.43,.074,.31,trim]);
-        for(const dx of [-.255,.255])heads.push([x+dx,lift+.74*tall,z,.19,.24,.24,metal]);
-        heads.push([x,lift+.94*tall,z,.31,.34,.31,'#e6be90'],
-          [x,lift+1.07*tall,z-.023,.41,.24,.38,metal]);
-        if(!i)heads.push([x,lift+1.21*tall,z-.045,.14,.20,.14,trim]);
       }
-      const fx=mounted?-1.85:-1.04,fz=-.62,fy=ground(fx,fz);
-      figures.push([fx,fy+1.25,fz,.073,2.5,.075,boots],[fx+.46,fy+2.07,fz,.90,.66,.054,coat],
-        [fx+.47,fy+2.33,fz+.005,.92,.10,.067,trim],[fx+.15,fy+1.69,fz,.17,.28,.05,coat]);
-      if(mounted)figures.push([fx+.74,fy+1.68,fz,.19,.32,.05,coat]);
-      addParts(actor,'garrison-figures',new THREE.BoxGeometry(),figures);
-      addParts(actor,'cast-heads',new THREE.SphereGeometry(.5,8,6),heads);
-      addParts(actor,'cast-coats',new THREE.CylinderGeometry(.34,.5,1,6),robes);
+      slots.forEach(([x,z],i)=>collect(recipe.parts(mounted),x*scale,z*scale,royal&&i===1));
+      // The legacy banner has one pole and one panel. Anchor it to the same
+      // patch of ground as the standard bearer when drawing it on the atlas.
+      const poleX=recipe.standard[0][3]*scale,fy=ground(poleX,0);
+      for(const [, ,tint,x,y,z,w,h,d] of recipe.standard){
+        batches.body.push([x*scale,fy+y*scale,z*scale,w*scale,h*scale,d*scale,palette[tint]]);
+      }
+      if(royal)batches.body.push([-.84*scale,fy+.64*scale,.026*scale,.14*scale,.14*scale,.03*scale,'#ffd35d']);
+      addParts(actor,'garrison-figures',new THREE.BoxGeometry(),batches.body);
+      addParts(actor,'cast-heads',new THREE.SphereGeometry(.1,7,5),batches.head);
+      if(mounted){
+        addParts(actor,royal?'party-horses':'mounts',new THREE.BoxGeometry(),batches.horse);
+        addParts(actor,'mount-heads',new THREE.SphereGeometry(.1,7,5),batches['horse-head']);
+      }
       group.add(actor);
       const caption=document.createElement('span');
-      caption.className='battle-cast-caption '+(mounted?'jin':'song');caption.dataset.cast=id;
+      caption.className='battle-cast-caption '+(royal?'royal':jin?'jin':'song');caption.dataset.cast=id;
       caption.textContent=title;$('labels').append(caption);
+      const labelZ=royal?slots[slots.length-1][1]*scale+.4:0;
       const actorLabel={el:caption,point:new THREE.Vector3(point.x+ox,
-        group.position.y+fy+2.7,point.z+oz+fz),cast:true,show:false};
+        group.position.y+(royal?ground(0,labelZ):fy+.82*scale),point.z+oz+labelZ),
+        cast:true,below:royal,show:false};
       screenLabels.push(actorLabel);
       site.actors.push({id,title,actor,label:actorLabel});
     }
+    for(const entry of cityCast[name]||[])addActor(...entry);
+    site.addParty=()=>addActor('zhao',partyScenes[battleCastStage][1],'song');
     markerGroup.add(group);
     return group;
+  }
+  function moveBattleParty(site){
+    if(site===partySite)return;
+    if(partySite){
+      const index=partySite.actors.findIndex(entry=>entry.id==='zhao');
+      const [{actor,label}]=partySite.actors.splice(index,1);
+      actor.removeFromParent();label.el.remove();
+      screenLabels.splice(screenLabels.indexOf(label),1);
+      // Each instanced batch owns its geometry; its material belongs to the city.
+      for(const mesh of actor.children){mesh.geometry.dispose();mesh.dispose();}
+    }
+    site.addParty();partySite=site;
   }
   function updateBattleCities(visibleWidth){
     const show=visibleWidth<=200&&terrain.visible&&document.body.dataset.surfaceYear===String(historyYear);
     const pixelsPerKm=$('stage').clientWidth/visibleWidth;
+    const [partyTown,partyTitle]=partyScenes[battleCastStage];
+    const relieved=battleCastStage==='relieved'||battleCastStage==='aftermath';
     for(const site of battleSites){
-      if(show&&!site.model)site.model=createBattleCity(site);
+      if(show&&!site.model&&window.ChangsheFigures)site.model=createBattleCity(site);
       if(site.model)site.model.visible=show;
+      if(show&&site.model&&site.name===partyTown)moveBattleParty(site);
+      if(site.siegeRing){
+        const besieged=site.name==='南阳'||!relieved;
+        site.siegeRing.visible=show&&besieged;
+        const title=show?site.name+(besieged?' · 被围':' · 已解围'):site.name;
+        if(title!==site.label.el.textContent){
+          site.label.el.textContent=title;site.label.el.title=title;site.label.el.setAttribute('aria-label',title);
+          site.label.el.classList.toggle('siege-status',show&&besieged);site.label.width=undefined;
+        }
+      }
       for(const {id,title,actor,label} of site.actors||[]){
-        const shown=show&&!(id==='jin-changshe'&&battleCastStage==='relieved');
+        const shown=show&&!(id==='jin-changshe'&&relieved);
         actor.visible=shown;
         label.show=shown&&visibleWidth<115;
-        const caption=id==='zhao'&&battleCastStage!=='siege'?'南阳守军':
-          id==='song-changshe'&&battleCastStage==='relieved'?'宋军 · 长社解围':
-          id==='yue'&&battleCastStage==='yanling'?'岳飞与赵玖 · 鄢陵会合':
-          id==='yue'&&battleCastStage==='relieved'?'鄢陵宋军':title;
+        const caption=id==='zhao'?partyTitle:id==='song-changshe'&&relieved?'宋军 · 长社解围':
+          id==='yue'&&(battleCastStage==='reinforcing'||battleCastStage==='joined'||relieved)?'鄢陵宋军':title;
         if(label.el.textContent!==caption){label.el.textContent=caption;label.width=undefined;}
       }
       // Keep a clear area beside the castle and flag for the clickable city name.
@@ -1082,7 +1165,7 @@
       label.onScreen=(!label.cast||label.show)&&Math.abs(point.z)<1&&label.screenX>=0&&label.screenX<=width&&label.screenY>=0&&label.screenY<=height;
       if(label.onScreen&&label.width===undefined){label.width=label.el.offsetWidth;label.height=label.el.offsetHeight;}
     }
-    for(const {el,dot,gateIndex,cityPadding=0,seat,cast,width:w,height:h,onScreen,screenX:x,screenY:y} of screenLabels){
+    for(const {el,dot,gateIndex,cityPadding=0,seat,cast,below,width:w,height:h,onScreen,screenX:x,screenY:y} of screenLabels){
       if(dot){
         const shown=onScreen&&!gateBoxes.some(([l,t,r,b])=>x>l&&x<r&&y>t&&y<b);
         dot.style.visibility=shown?'visible':'hidden';
@@ -1095,7 +1178,8 @@
         const offsets=cast?[[0,-h/2-6],[-w/2-4,-h/2-6],[w/2+4,-h/2-6],[0,-1.5*h-12],[0,-2.5*h-18]]:
           seat?[[w/2+gapX,0],[-w/2-gapX,0],[0,-h/2-gapY],[0,h/2+gapY]]:
           el.dataset.kind==='polity'?[[0,0],[0,-18],[0,18],[-24,0],[24,0]]:[[0,0]];
-        for(const [dx,dy] of offsets){
+        for(const [dx,offsetY] of offsets){
+          const dy=below?-offsetY:offsetY;
           // On a narrow map a sideways offset can run past the edge. Slide
           // the caption into the free margin before discarding that candidate.
           const cx=cast?Math.max(w/2+6,Math.min(width-w/2-6,x+dx)):x+dx;

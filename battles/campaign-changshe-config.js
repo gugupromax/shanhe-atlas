@@ -9,7 +9,7 @@ window.atlasCampaignDemo={
     ['contact','渡河解围','卷二第 68–70 章'],
     ['reserve-exit','战后去向','卷二第 71 章']
   ],
-  openingBrief:['长社被围，援军从哪里来？','韩世忠守长社，兀术又在围南阳。能驰援的是东京留守司的兵，但宗泽病重，谁能把各路兵调到一起？'],
+  openingBrief:['长社被围，援军从哪里来？','韩世忠在长社守城。赵玖和刘晏的赤心队此时在南阳，兀术也围住了这座城。宗泽病重，谁能调动鄢陵的援军？'],
   storyRoutes:[
     {after:'briefing',until:'courier',via:['tokyo','yanling'],label:'东京留守司诸军赴鄢陵'},
     {after:'courier',until:'departure',via:['yanling','xiping','hills','nanyang'],label:'杜岩回南阳 · 西平 → 中阳山'},

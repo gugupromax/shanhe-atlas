@@ -21,10 +21,20 @@
   const locationViews=['nanyang','story','shanzhou'];
   const chapterViews={briefing:'story',courier:'nanyang',meeting:'yanling','march-yue':'story',contact:'changshe','reserve-exit':'story'};
   const actionViews={briefing:'yanling',depart:'nanyang',yamen:'yanling',conference:'yanling'};
-  let atlasMode='overview', cardIndex=0, resumeAfterCard=false, followChapters=false, lastChapter=null;
-  let castStage='siege';
+  // A stop identifies the chapter's reference area, including when the party is in transit.
+  const partyStages=[
+    {event:null,stage:'siege',view:'nanyang'},
+    {event:'departure',stage:'journey',view:'nanyang'},
+    {event:'meeting',stage:'yanling',view:'yanling'},
+    {event:'yue-turn',stage:'reinforcing',view:'changshe'},
+    {event:'joint',stage:'joined',view:'changshe'},
+    {event:'relief',stage:'relieved',view:'changshe'},
+    {event:'reserve-exit',stage:'aftermath',view:'changshe'},
+  ];
+  let atlasMode='overview', cardIndex=0, resumeAfterCard=false, followMode=null, lastChapter=null;
+  let partyStage=partyStages[0];
   function sendCastStage(){
-    nationalAtlas.contentWindow.postMessage({type:'atlas-changshe-cast',stage:castStage},
+    nationalAtlas.contentWindow.postMessage({type:'atlas-changshe-cast',stage:partyStage.stage},
       location.origin==='null'?'*':location.origin);
   }
   function sendAtlasView(refocus=false){
@@ -36,7 +46,7 @@
     if(mode!=='overview')cardIndex=mode==='shanzhou'?2:mode==='nanyang'?0:1;
     sendAtlasView(true);
     for(const button of get('views').querySelectorAll('[data-atlas-view]')){
-      button.setAttribute('aria-pressed',String(button.dataset.atlasView===mode));
+      button.setAttribute('aria-pressed',String(button.dataset.atlasView===(followMode==='zhao'?'zhao':mode)));
     }
     get('west-note').hidden=mode!=='shanzhou';
     get('polity-legend').hidden=mode!=='overview';
@@ -48,6 +58,11 @@
     paint(latest);
     if(resumeAfterCard&&!play.disabled)start();
     resumeAfterCard=false;
+  }
+  function enterAtlasView(target,fromChapterEntrance=false){
+    followMode=target==='zhao'?'zhao':fromChapterEntrance?'chapter':null;
+    closeSituation();
+    setAtlasView(target==='zhao'?partyStage.view:target);
   }
   function selectSituation(index){
     if(!Number.isInteger(index)||index<0||index>=locationViews.length)return;
@@ -76,18 +91,15 @@
         introDismissed=true;
         selectSituation(event.data.index);
       }
-      else if(event.data?.type==='atlas-changshe-enter'){closeSituation();setAtlasView('changshe');}
+      else if(event.data?.type==='atlas-changshe-enter')enterAtlasView('changshe',true);
     });
     for(const button of document.querySelectorAll('[data-atlas-view]')){
-      button.onclick=()=>{
-        followChapters=button.id==='intro-close';
-        closeSituation();setAtlasView(button.dataset.atlasView);
-      };
+      button.onclick=()=>enterAtlasView(button.dataset.atlasView,button.id==='intro-close');
     }
     for(const button of get('situation-tabs').querySelectorAll('button')){
       button.onclick=()=>{
         const index=Number(button.dataset.front);
-        followChapters=false;
+        followMode=null;
         selectSituation(index);
         setAtlasView(locationViews[index]);
       };
@@ -159,7 +171,7 @@
     if(chapter&&chapter[0]!==lastChapter){
       lastChapter=chapter[0];
       const next=chapterViews[lastChapter];
-      if(followChapters&&introDismissed&&next&&atlasMode!==next)setAtlasView(next);
+      if(followMode==='chapter'&&introDismissed&&next&&atlasMode!==next)setAtlasView(next);
     }
     const phase=chapter?(chapterIndex+1)+' / '+chapters.length+'　'+chapter[1]:finished?'本局结局':waiting?'等待下令':event?'战役进行中':'战役开场';
     const title=brief?.[0]??event?.title??cfg.openingBrief?.[0]??'战役开场';
@@ -174,7 +186,7 @@
     button.onclick=()=>{
       if(!introDismissed)return;
       paint(campaign.report(action.signal));
-      if(nationalAtlas&&actionViews[action.signal])setAtlasView(actionViews[action.signal]);
+      if(nationalAtlas&&followMode!=='zhao'&&actionViews[action.signal])setAtlasView(actionViews[action.signal]);
       if(!running&&!play.disabled)start();
     };
     return {button,action};
@@ -228,9 +240,13 @@
   function paint(snapshot){
     latest=snapshot;
     const done=new Set(snapshot.log.map(event=>event.id));
-    if(nationalAtlas){
-      const next=done.has('relief')?'relieved':done.has('meeting')?'yanling':done.has('departure')?'journey':'siege';
-      if(next!==castStage){castStage=next;sendCastStage();}
+    if(nationalAtlas&&snapshot.log.length!==shownEvents){
+      const next=partyStages.findLast(step=>step.event===null||done.has(step.event));
+      if(next!==partyStage){
+        partyStage=next;
+        sendCastStage();
+        if(followMode==='zhao'&&atlasMode!==next.view)setAtlasView(next.view);
+      }
     }
     const eventId=snapshot.log.at(-1)?.id??null;
     const sceneChanged=eventId!==lastMapEvent;
@@ -281,7 +297,7 @@
             showStory(event);
             if(nationalAtlas){
               const chapter=[...snapshot.log.slice(0,snapshot.log.indexOf(event)+1)].reverse().find(item=>chapterViews[item.id]);
-              if(chapter){followChapters=false;setAtlasView(chapterViews[chapter.id]);}
+              if(chapter){followMode=null;setAtlasView(chapterViews[chapter.id]);}
               get('story').scrollIntoView({block:'nearest'});
             }
             showScene(event);
@@ -329,7 +345,7 @@
     pause();
     campaign=createAtlasCampaign(cfg);view={kind:'all'};selectedEvent=null;lastMapEvent=null;
     if(nationalAtlas){
-      introDismissed=false;resumeAfterCard=false;followChapters=false;lastChapter=null;
+      introDismissed=false;resumeAfterCard=false;followMode=null;lastChapter=null;
       selectSituation(0);setAtlasView('overview');
     }
     paint(campaign.snapshot());play.textContent='开始';
@@ -344,6 +360,10 @@
     details.closest('.board').classList.toggle('details-hidden',details.hidden);
     paint(latest);
   };
-  if(nationalAtlas)selectSituation(0);
-  paint(latest);
+  if(nationalAtlas&&new URLSearchParams(location.search).get('view')==='zhao'){
+    enterAtlasView('zhao');
+  }else{
+    if(nationalAtlas)selectSituation(0);
+    paint(latest);
+  }
 })();

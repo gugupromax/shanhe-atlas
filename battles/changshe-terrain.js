@@ -123,26 +123,23 @@
     const shaftGeometry=new T.CylinderGeometry(1,1,1,6);
     function makeUnit(group){
       const model=new T.Group(), mounted=window.atlasBattleUnits[group.type].mounted;
-      const shape=window.atlasBattleFormations[group.formation], runners=[];
-      for(let row=0;row<shape.rows;row++)for(let col=0;col<shape.columns;col++){
-        const x=(col-(shape.columns-1)/2)*.29,z=(row-(shape.rows-1)/2)*.28,lift=mounted?.18:0;
+      const figures=window.ChangsheFigures, runners=[];
+      const geometries={box,head}, palette={cloth:cloth[group.side],dark,wood};
+      function drawParts(target,parts,x,z){
+        for(const [,primitive,tint,dx,y,dz,w,h,d] of parts){
+          mesh(target,geometries[primitive],palette[tint],x+dx,y,z+dz,w,h,d);
+        }
+      }
+      for(const [x,z] of figures.slots(group.formation)){
         const soldier=['xu','river-jin'].includes(group.id)?new T.Group():model;
         if(soldier!==model){
           model.add(soldier);
           runners.push(soldier);
         }
-        if(mounted){
-          mesh(soldier,box,wood,x,.12,z,.19,.18,.26);
-          mesh(soldier,head,wood,x,.23,z+.13,.64,.95,.70);
-          for(const dx of [-.06,.06])mesh(soldier,box,dark,x+dx,.055,z-.02,.055,.12,.15);
-        }else mesh(soldier,box,dark,x,.095,z,.12,.18,.11);
-        mesh(soldier,box,cloth[group.side],x,.22+lift,z,.17,.16,.13);
-        mesh(soldier,head,dark,x,.34+lift,z,.62,.74,.62);
-        mesh(soldier,box,wood,x+.10,.26+lift,z,.026,.39,.026);
+        drawParts(soldier,figures.parts(mounted),x,z);
       }
       const standard=new T.Group();
-      mesh(standard,box,wood,-1.05,.38,0,.045,.77,.045);
-      mesh(standard,box,cloth[group.side],-.84,.64,0,.39,.29,.035);
+      drawParts(standard,figures.standard,0,0);
       model.add(standard);
       markerGroup.add(model);
       const text=label('','terrain-unit '+group.side);
@@ -238,8 +235,8 @@
       siegeMarks.position.copy(center);
       const base=new T.RingGeometry(4.55,4.98,48).rotateX(-Math.PI/2);
       siegeMarks.add(new T.Mesh(base,siegeGlow));
-      for(let i=0;i<12;i++){
-        const sector=new T.RingGeometry(4.45,5.08,6,1,i*Math.PI/6+.055,.40).rotateX(-Math.PI/2);
+      for(const {start,span} of window.ChangsheFigures.siegeSectors){
+        const sector=new T.RingGeometry(4.45,5.08,6,1,start,span).rotateX(-Math.PI/2);
         const segment=new T.Mesh(sector,siegeMaterial);
         segment.position.y=.15;
         siegeMarks.add(segment);
