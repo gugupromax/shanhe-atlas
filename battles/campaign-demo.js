@@ -21,30 +21,46 @@
   const locationViews=['nanyang','story','shanzhou'];
   const chapterViews={briefing:'story',courier:'nanyang',meeting:'yanling','march-yue':'story',contact:'changshe','reserve-exit':'story'};
   const actionViews={briefing:'yanling',depart:'nanyang',yamen:'yanling',conference:'yanling'};
-  // A stop identifies the chapter's reference area, including when the party is in transit.
+  // Movement uses the story clock and the march durations already defined in the campaign.
   const partyStages=[
     {event:null,stage:'siege',view:'nanyang'},
-    {event:'departure',stage:'journey',view:'nanyang'},
+    {event:'departure',stage:'journey',view:'nanyang',arrival:'meeting'},
     {event:'meeting',stage:'yanling',view:'yanling'},
-    {event:'yue-turn',stage:'reinforcing',view:'changshe'},
+    {event:'yue-turn',stage:'reinforcing',view:'changshe',arrival:'emperor-approach'},
     {event:'joint',stage:'joined',view:'changshe'},
     {event:'relief',stage:'relieved',view:'changshe'},
     {event:'reserve-exit',stage:'aftermath',view:'changshe'},
   ];
+  if(nationalAtlas){
+    for(const stage of partyStages.filter(step=>step.arrival)){
+      const first=cfg.events.findIndex(event=>event.id===stage.event);
+      const last=cfg.events.findIndex(event=>event.id===stage.arrival);
+      stage.duration=cfg.events.slice(first,last).flatMap(event=>event.effects)
+        .filter(effect=>effect.kind==='march'&&effect.unit==='emperor')
+        .reduce((total,effect)=>total+effect.duration,0);
+    }
+  }
   let atlasMode='overview', cardIndex=0, resumeAfterCard=false, followMode=null, lastChapter=null;
-  let partyStage=partyStages[0];
-  function sendCastStage(){
-    nationalAtlas.contentWindow.postMessage({type:'atlas-changshe-cast',stage:partyStage.stage},
+  let partyStage=partyStages[0], departureTime=0, progress=0, lastCast=null;
+  function sendCastStage(force=false){
+    const stage=partyStage.stage,follow=followMode==='zhao';
+    if(!force&&lastCast?.stage===stage&&lastCast.follow===follow){
+      if(lastCast.progress===progress)return;
+      if(progress<1&&latest.time-lastCast.time<1/24)return;
+    }
+    lastCast={stage,progress,follow,time:latest.time};
+    nationalAtlas.contentWindow.postMessage({type:'atlas-changshe-cast',stage,progress,follow},
       location.origin==='null'?'*':location.origin);
   }
   function sendAtlasView(refocus=false){
-    nationalAtlas.contentWindow.postMessage({type:'atlas-changshe-map',mode:atlasMode,refocus},
+    nationalAtlas.contentWindow.postMessage({type:'atlas-changshe-map',mode:atlasMode,refocus,follow:followMode==='zhao'},
       location.origin==='null'?'*':location.origin);
   }
   function setAtlasView(mode){
     atlasMode=mode;
     if(mode!=='overview')cardIndex=mode==='shanzhou'?2:mode==='nanyang'?0:1;
     sendAtlasView(true);
+    sendCastStage(true);
     for(const button of get('views').querySelectorAll('[data-atlas-view]')){
       button.setAttribute('aria-pressed',String(button.dataset.atlasView===(followMode==='zhao'?'zhao':mode)));
     }
@@ -82,7 +98,7 @@
   if(nationalAtlas){
     window.addEventListener('message',event=>{
       if(event.source!==nationalAtlas.contentWindow||event.origin!==location.origin)return;
-      if(event.data?.type==='atlas-changshe-ready'){sendAtlasView();sendCastStage();}
+      if(event.data?.type==='atlas-changshe-ready'){sendCastStage(true);sendAtlasView();}
       else if(event.data?.type==='atlas-changshe-scale'&&typeof event.data.wide==='boolean'){
         get('polity-legend').hidden=!event.data.wide;
       }
@@ -240,13 +256,19 @@
   function paint(snapshot){
     latest=snapshot;
     const done=new Set(snapshot.log.map(event=>event.id));
-    if(nationalAtlas&&snapshot.log.length!==shownEvents){
-      const next=partyStages.findLast(step=>step.event===null||done.has(step.event));
-      if(next!==partyStage){
-        partyStage=next;
-        sendCastStage();
-        if(followMode==='zhao'&&atlasMode!==next.view)setAtlasView(next.view);
+    if(nationalAtlas){
+      let stageChanged=false;
+      if(snapshot.log.length!==shownEvents){
+        const next=partyStages.findLast(step=>step.event===null||done.has(step.event));
+        if(next!==partyStage){
+          partyStage=next;
+          departureTime=snapshot.log.find(event=>event.id===next.event)?.time??0;
+          stageChanged=true;
+        }
       }
+      progress=partyStage.duration?Math.min(1,Math.max(0,(snapshot.time-departureTime)/partyStage.duration)):0;
+      sendCastStage();
+      if(stageChanged&&followMode==='zhao'&&atlasMode!==partyStage.view)setAtlasView(partyStage.view);
     }
     const eventId=snapshot.log.at(-1)?.id??null;
     const sceneChanged=eventId!==lastMapEvent;
@@ -323,6 +345,7 @@
     if(sceneChanged&&waiting)showScene(snapshot.log.at(-1));
   }
   function pause(){
+    if(running&&nationalAtlas&&partyStage.duration&&lastCast?.progress!==progress)sendCastStage(true);
     running=false;cancelAnimationFrame(frame);play.textContent=latest.time?'继续':'开始';
   }
   function tick(now){

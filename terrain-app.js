@@ -42,6 +42,7 @@
   let areaOverlay=null,areaOverlayId=0;
   let adminLabelData=[],passLabelData=[],screenLabels=[],passGates=null;
   let battleSites=[],battleCastStage='siege',partySite=null;
+  let partyProgress=0,followParty=false,partyCameraPending=false,lastPartyViewAt=0,partyViewTimer=null;
   let areaClickTimer;
   const passes = [
     ['zhiguan','轵关陉',112.38,35.16,'济源—垣曲一带','看王屋山南侧与黄河以北的山间通道。'],
@@ -609,8 +610,8 @@
     fusion=window.JiangshanFusion.createChild(window,{onState:state=>{fusionState=state;fusionActive=state.active;if(dataset)applyFusionState(state);},onSurface:applyOriginalSurface,onSurfaceError:key=>{
       if(key!==fusionState?.sceneKey)return;
       $('fusion-unavailable').hidden=false;$('fusion-unavailable').dataset.reason='surface';$('fusion-unavailable').querySelector('p').textContent='原版地图贴图暂未载入。请返回平面地图继续查看，或重新载入页面。';
-    },onBattleCast:stage=>{
-      if(changsheAtlas)setBattleCast(stage);
+    },onBattleCast:(stage,progress,follow)=>{
+      if(changsheAtlas)setBattleCast(stage,progress,follow);
     },onConfig:config=>{
       if(Number.isFinite(config.exaggeration)&&config.exaggeration!==exaggeration){clearTimeout(fusionHeightTimer);fusionHeightTimer=setTimeout(()=>{if(!geometry)return;$('exaggeration').value=config.exaggeration;updateHeight();},70);}
       if(config.view&&mapFrame){desired.theta=config.view==='east'?Math.PI/2:0;desired.phi=config.view==='top'?.012:config.view==='relief'||config.view==='east'?.7:.08;constrainDesired();dirty=true;}
@@ -784,6 +785,7 @@
       surfaceLoads++;pendingBaseDraw=null;
       pendingSurfaceDetail?.bitmap?.close();pendingSurfaceDetail=null;
       clearTimeout(fusionViewTimer);fusionViewTimer=null;
+      clearTimeout(partyViewTimer);partyViewTimer=null;
       if(tangTilePlanKey){tangTileJob++;tangTilePlanKey='';}
       return;
     }
@@ -817,6 +819,7 @@
       desired.distance=state.widthKm/(2*Math.tan(camera.fov*Math.PI/360)*camera.aspect);
       if(!fusionStarted){desired.theta=0;desired.phi=.7;fusionStarted=true;}
       constrainDesired();theta=desired.theta;phi=desired.phi;distance=desired.distance;target={x:desired.x,z:desired.z};
+      if(followParty)partyCameraPending=true;
     }
     fusionViewKey=viewKey;dirty=true;
     if(state.tileTier)applyTangTiles(state);
@@ -901,7 +904,7 @@
     '南阳':[['song-nanyang','南阳守军'],['jin-nanyang','兀术 · 围城金军','jin']],
     '陕州':[['li','李彦仙 · 陕州守军'],['jin-west','金国西路军','jin']],
   };
-  // The place is the chapter's map reference. The figurines do not trace a route.
+  // These town anchors describe the literary journey at atlas scale.
   const partyScenes={
     siege:['南阳','赵玖 · 赤心队'],
     journey:['南阳','赵玖 · 赤心队｜途中'],
@@ -911,9 +914,45 @@
     relieved:['长社','赵玖 · 赤心队｜解围'],
     aftermath:['长社','赵玖 · 赤心队｜拟返东京'],
   };
-  function setBattleCast(stage){
-    if(!changsheAtlas||stage===battleCastStage||!Object.hasOwn(partyScenes,stage))return;
-    battleCastStage=stage;dirty=true;
+  const partyLegs={journey:['南阳','鄢陵'],reinforcing:['鄢陵','长社']};
+  function setBattleCast(stage,progress=0,follow=false){
+    if(!changsheAtlas||!Object.hasOwn(partyScenes,stage))return;
+    if(stage===battleCastStage&&progress===partyProgress&&follow===followParty)return;
+    // Keep the latest clock value at national scale without redrawing invisible riders.
+    if(stage!==battleCastStage||follow!==followParty||follow||partySite?.model.visible)dirty=true;
+    if(!follow||stage!==battleCastStage){clearTimeout(partyViewTimer);partyViewTimer=null;}
+    battleCastStage=stage;partyProgress=progress;followParty=follow;partyCameraPending=follow;
+  }
+  function partyCenter(){
+    const leg=partyLegs[battleCastStage];
+    if(!leg)return null;
+    const from=battleSites.find(site=>site.name===leg[0])?.label.point;
+    const to=battleSites.find(site=>site.name===leg[1])?.label.point;
+    if(!from||!to)return null;
+    return {x:THREE.MathUtils.lerp(from.x,to.x,partyProgress),z:THREE.MathUtils.lerp(from.z,to.z,partyProgress)};
+  }
+  function followMovingParty(center){
+    const halfHeight=desired.distance*Math.tan(camera.fov*Math.PI/360);
+    const width=2*halfHeight*camera.aspect,margin=.22*halfHeight*Math.min(1,camera.aspect);
+    const dx=center.x-desired.x,dz=center.z-desired.z,gap=Math.hypot(dx,dz);
+    if(gap>margin){
+      const fraction=1-margin/gap;
+      const sx=dx*fraction,sz=dz*fraction;
+      desired.x+=sx;desired.z+=sz;target.x+=sx;target.z+=sz;
+    }
+    if(!fusionState||partyViewTimer!==null)return;
+    const last=mapFrame.toWorld(...fusionState.center);
+    if(Math.hypot(desired.x-last.x,desired.z-last.z)<width*.25)return;
+    // Small displacements reuse the current detail texture. Send only occasional
+    // settled centers to the parent, which owns raster exports and the flat view.
+    const flush=()=>{
+      partyViewTimer=null;
+      if(!followParty||!fusionActive||!partyLegs[battleCastStage])return;
+      lastPartyViewAt=performance.now();sendFusionView('view');
+    };
+    const delay=lastPartyViewAt+2000-performance.now();
+    if(delay<=0)flush();
+    else partyViewTimer=setTimeout(flush,delay);
   }
   function createSiegeRing(name,point,originY){
     // A broken, ground-hugging seal around the town icon denotes its story status.
@@ -994,6 +1033,7 @@
         mesh.setColorAt(i,color.set(tint));
       });
       target.add(mesh);
+      return mesh;
     }
     addParts(group,'city-walls',new THREE.BoxGeometry(),walls);
     addParts(group,'city-roofs',new THREE.ConeGeometry(1,1,4).rotateY(Math.PI/4),roofs);
@@ -1013,30 +1053,35 @@
       const ox=royal?3.6:jin?-5.2:0,oz=royal?3.4:jin?1.3:0;
       actor.name='ChangsheCast:'+id;
       actor.position.set(ox,0,oz);
-      const ground=(x,z)=>mounted?terrainSurfaceHeight(point.x+ox+x,point.z+oz+z,1)-group.position.y:0;
+      const ground=(x,z)=>mounted&&!royal?terrainSurfaceHeight(point.x+ox+x,point.z+oz+z,1)-group.position.y:0;
       const palette={cloth:royal?'#882542':jin?'#285c66':'#a74635',wood:'#a78155',dark:'#342b27'};
       const batches={body:[],head:[],horse:[],'horse-head':[]};
-      function collect(parts,x,z,lead=false){
+      function collect(parts,x,z,foot,lead=false){
         const y=ground(x,z);
         for(const [role,,tint,dx,dy,dz,w,h,d] of parts){
           const color=lead&&(role==='horse'||role==='horse-head')?'#e9d8ae':palette[tint];
-          batches[role].push([x+dx*scale,y+dy*scale,z+dz*scale,w*scale,h*scale,d*scale,color]);
+          batches[role].push([x+dx*scale,y+dy*scale,z+dz*scale,w*scale,h*scale,d*scale,color,foot]);
         }
       }
-      slots.forEach(([x,z],i)=>collect(recipe.parts(mounted),x*scale,z*scale,royal&&i===1));
+      slots.forEach(([x,z],i)=>collect(recipe.parts(mounted),x*scale,z*scale,i,royal&&i===1));
       // The legacy banner has one pole and one panel. Anchor it to the same
       // patch of ground as the standard bearer when drawing it on the atlas.
       const bannerOffset=royal?.32:0;
       const poleX=(recipe.standard[0][3]+bannerOffset)*scale,fy=ground(poleX,0);
       for(const [, ,tint,x,y,z,w,h,d] of recipe.standard){
-        batches.body.push([(x+bannerOffset)*scale,fy+y*scale,z*scale,w*scale,h*scale,d*scale,palette[tint]]);
+        batches.body.push([(x+bannerOffset)*scale,fy+y*scale,z*scale,w*scale,h*scale,d*scale,palette[tint],slots.length]);
       }
-      if(royal)batches.body.push([(-.84+bannerOffset)*scale,fy+.64*scale,.026*scale,.14*scale,.14*scale,.03*scale,'#ffd35d']);
-      addParts(actor,'garrison-figures',new THREE.BoxGeometry(),batches.body);
-      addParts(actor,'cast-heads',new THREE.SphereGeometry(.1,7,5),batches.head);
+      if(royal)batches.body.push([(-.84+bannerOffset)*scale,fy+.64*scale,.026*scale,.14*scale,.14*scale,.03*scale,'#ffd35d',slots.length]);
+      const movingBatches=[];
+      function actorParts(name,geometry,parts){
+        const mesh=addParts(actor,name,geometry,parts);
+        if(royal)movingBatches.push({mesh,parts});
+      }
+      actorParts('garrison-figures',new THREE.BoxGeometry(),batches.body);
+      actorParts('cast-heads',new THREE.SphereGeometry(.1,7,5),batches.head);
       if(mounted){
-        addParts(actor,royal?'party-horses':'mounts',new THREE.BoxGeometry(),batches.horse);
-        addParts(actor,'mount-heads',new THREE.SphereGeometry(.1,7,5),batches['horse-head']);
+        actorParts(royal?'party-horses':'mounts',new THREE.BoxGeometry(),batches.horse);
+        actorParts('mount-heads',new THREE.SphereGeometry(.1,7,5),batches['horse-head']);
       }
       group.add(actor);
       const caption=document.createElement('span');
@@ -1047,7 +1092,28 @@
         group.position.y+(royal?ground(0,labelZ):fy+.82*scale),point.z+oz+labelZ),
         cast:true,below:royal,show:false};
       screenLabels.push(actorLabel);
-      site.actors.push({id,title,actor,label:actorLabel});
+      const entry={id,title,actor,label:actorLabel};
+      if(royal){
+        // Four feet and one banner are sampled on the same DEM triangles as the ground.
+        const feet=slots.map(([x,z])=>[x*scale,z*scale]).concat([[poleX,0]]);
+        const levels=new Float64Array(feet.length);
+        let lastX,lastZ,lastParent;
+        entry.placeAt=(center)=>{
+          const parent=actor.parent,wx=center.x+ox,wz=center.z+oz;
+          if(wx===lastX&&wz===lastZ&&parent===lastParent)return;
+          lastX=wx;lastZ=wz;lastParent=parent;
+          const wy=terrainSurfaceHeight(wx,wz,1);
+          actor.position.set(wx-parent.position.x,wy-parent.position.y,wz-parent.position.z);
+          feet.forEach(([x,z],i)=>{levels[i]=terrainSurfaceHeight(wx+x,wz+z,1)-wy;});
+          for(const {mesh,parts} of movingBatches){
+            const array=mesh.instanceMatrix.array;
+            for(let i=0;i<parts.length;i++)array[i*16+13]=parts[i][1]+levels[parts[i][7]];
+            mesh.instanceMatrix.needsUpdate=true;mesh.boundingSphere=null;
+          }
+          actorLabel.point.set(wx,terrainSurfaceHeight(wx,wz+labelZ,1),wz+labelZ);
+        };
+      }
+      site.actors.push(entry);
     }
     for(const entry of cityCast[name]||[])addActor(...entry);
     site.addParty=()=>addActor('zhao',partyScenes[battleCastStage][1],'song');
@@ -1058,18 +1124,18 @@
     if(site===partySite)return;
     if(partySite){
       const index=partySite.actors.findIndex(entry=>entry.id==='zhao');
-      const [{actor,label}]=partySite.actors.splice(index,1);
-      actor.removeFromParent();label.el.remove();
-      screenLabels.splice(screenLabels.indexOf(label),1);
-      // Each instanced batch owns its geometry; its material belongs to the city.
-      for(const mesh of actor.children){mesh.geometry.dispose();mesh.dispose();}
-    }
-    site.addParty();partySite=site;
+      const [entry]=partySite.actors.splice(index,1);
+      site.model.add(entry.actor);site.actors.push(entry);
+    }else site.addParty();
+    partySite=site;
   }
   function updateBattleCities(visibleWidth){
     const show=visibleWidth<=200&&terrain.visible&&document.body.dataset.surfaceYear===String(historyYear);
     const pixelsPerKm=$('stage').clientWidth/visibleWidth;
-    const [partyTown,partyTitle]=partyScenes[battleCastStage];
+    const [partyTown,sceneTitle]=partyScenes[battleCastStage];
+    const travelCenter=partyCenter();
+    const arrived=travelCenter&&partyProgress===1;
+    const partyTitle=arrived?(battleCastStage==='journey'?'赵玖 · 赤心队｜抵鄢陵':'赵玖 · 赤心队｜抵长社一带'):sceneTitle;
     const relieved=battleCastStage==='relieved'||battleCastStage==='aftermath';
     for(const site of battleSites){
       if(show&&!site.model&&window.ChangsheFigures)site.model=createBattleCity(site);
@@ -1084,7 +1150,9 @@
           site.label.el.classList.toggle('siege-status',show&&besieged);site.label.width=undefined;
         }
       }
-      for(const {id,title,actor,label} of site.actors||[]){
+      for(const entry of site.actors||[]){
+        const {id,title,actor,label}=entry;
+        if(show&&id==='zhao')entry.placeAt(travelCenter||site.label.point);
         const shown=show&&!(id==='jin-changshe'&&relieved);
         actor.visible=shown;
         label.show=shown&&visibleWidth<115;
@@ -1215,6 +1283,11 @@
   }
   function animate(){
     requestAnimationFrame(animate);if(!renderer||!dataset||(embedded&&!fusionActive))return;
+    if(dirty&&partyCameraPending){
+      const center=partyCenter();
+      if(center)followMovingParty(center);
+      if(center||!partyLegs[battleCastStage])partyCameraPending=false;
+    }
     if(dirty)constrainDesired();
     // Wheel/pinch events already supply intermediate zoom steps. Avoid drawing
     // extra interpolated frames behind a stream of input on slower hardware.

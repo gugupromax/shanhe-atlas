@@ -73,7 +73,9 @@
       }else if(message.type==='surface-error' && typeof handlers.onSurfaceError==='function'){
         if(typeof message.sceneKey==='string')handlers.onSurfaceError(message.sceneKey);
       }else if(message.type==='battle-cast'){
-        if(['siege','journey','yanling','reinforcing','joined','relieved','aftermath'].includes(message.stage))handlers.onBattleCast?.(message.stage);
+        const progress=message.progress===undefined?0:message.progress;
+        if(['siege','journey','yanling','reinforcing','joined','relieved','aftermath'].includes(message.stage)&&
+          Number.isFinite(progress)&&progress>=0&&progress<=1)handlers.onBattleCast?.(message.stage,progress,message.follow===true);
       }else if(message.type==='config'){
         const config={};if(['map','relief','top','east'].includes(message.view))config.view=message.view;
         if(Number.isFinite(message.exaggeration)&&message.exaggeration>=1&&message.exaggeration<=120)config.exaggeration=message.exaggeration;

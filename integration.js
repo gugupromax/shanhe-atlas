@@ -89,13 +89,22 @@
     let battleView = 'overview', battleHidden = false, resumeBattleTerrain = false;
     let overviewCamera;
     const flatTowns = [];
-    let battleCastStage = 'siege';
+    let battleCastStage = 'siege', battleProgress = 0, followParty = false, flatParty;
+    const travelTowns = {journey:['nanyang','yanling'], reinforcing:['yanling','changshe']};
     const partyCaptions = {
       siege:['nanyang','赵玖 · 赤心队'], journey:['nanyang','赵玖 · 赤心队赴鄢陵途中'],
       yanling:['yanling','赵玖 · 赤心队与岳飞会合'], reinforcing:['changshe','赵玖 · 赤心队进援途中'],
       joined:['changshe','赵玖 · 赤心队与援军会合'], relieved:['changshe','赵玖 · 赤心队'],
       aftermath:['changshe','赵玖 · 赤心队拟返东京'],
     };
+    function travelPoint() {
+      const leg = travelTowns[battleCastStage];
+      if (!leg) return null;
+      const from = flatTowns.find(town => town.key === leg[0]).point;
+      const to = flatTowns.find(town => town.key === leg[1]).point;
+      return [from[0] + (to[0] - from[0]) * battleProgress,
+        from[1] + (to[1] - from[1]) * battleProgress];
+    }
     function updateFlatCast() {
       const relieved = battleCastStage === 'relieved' || battleCastStage === 'aftermath';
       const [partyTown, partyText] = partyCaptions[battleCastStage];
@@ -104,14 +113,24 @@
         button.toggleAttribute('data-besieged',besieged);
         const detail = key === 'changshe' ? (relieved ? '长社已解围' : '长社被围 · 韩世忠守城') :
           key === 'nanyang' ? '南阳被围 · 兀术围城' : key === 'shanzhou' ? '金国西路军' : '鄢陵宋军';
-        caption.textContent = key === partyTown ? detail + '\n' + partyText : detail;
+        caption.textContent = !travelTowns[battleCastStage] && key === partyTown ? detail + '\n' + partyText : detail;
       }
     }
-    function updateBattleCast(stage) {
-      if (!Object.prototype.hasOwnProperty.call(partyCaptions,stage) || stage === battleCastStage) return;
+    function updateBattleCast(stage, progress = 0, follow = false) {
+      if (!Object.prototype.hasOwnProperty.call(partyCaptions,stage) || !finite(progress) || progress < 0 || progress > 1) return;
+      if (stage === battleCastStage && progress === battleProgress && follow === followParty) return;
+      const changed = stage !== battleCastStage;
       battleCastStage = stage;
-      updateFlatCast();
-      if (ready) post({ type:'battle-cast', stage });
+      battleProgress = progress;
+      followParty = follow === true;
+      if (changed) updateFlatCast();
+      if (ready) post({ type:'battle-cast', stage, progress, follow:followParty });
+      if (!active && followParty && travelTowns[stage]) {
+        const [x,y] = travelPoint(), camera = app.camera;
+        if (Math.abs(x-camera.x-camera.w/2)>camera.w*.22 || Math.abs(y-camera.y-camera.h/2)>camera.h*.22) {
+          applyChildCamera({...camera,x:x-camera.w/2,y:y-camera.h/2});
+        }
+      }
       positionFlatTowns();
     }
     const parentOrigin = root.location.protocol === 'file:' ? '*' : root.location.origin;
@@ -135,6 +154,10 @@
       const overlay = doc.createElement('div');
       overlay.className = 'changshe-towns';
       doc.getElementById('svg-stage-wrap').append(overlay);
+      flatParty = doc.createElement('span');
+      flatParty.className = 'changshe-travelling-party';
+      flatParty.hidden = true;
+      overlay.append(flatParty);
       for (const town of battleTowns) {
         const button = doc.createElement('button');
         button.type = 'button';
@@ -157,6 +180,19 @@
       const { x, y, w, h } = app.camera;
       const scale = Math.min(width / w, height / h);
       const viewWidthKm = width / scale / app.projector.scale * KM_PER_DEGREE;
+      const travelling = travelPoint();
+      flatParty.hidden = true;
+      if (travelling) {
+        const px = (width - w * scale) / 2 + (travelling[0] - x) * scale;
+        const py = (height - h * scale) / 2 + (travelling[1] - y) * scale;
+        if (px>=0 && px<=width && py>=0 && py<=height) {
+          flatParty.hidden = false;
+          const caption = battleProgress < 1 ? '赤心队 · 途中' :
+            battleCastStage === 'journey' ? '赤心队 · 抵鄢陵' : '赤心队 · 抵长社一带';
+          if (flatParty.textContent !== caption) flatParty.textContent = caption;
+          flatParty.style.left = px+'px'; flatParty.style.top = py+'px';
+        }
+      }
       const boxes = [];
       for (const { button, caption, point } of flatTowns) {
         caption.hidden = !(viewWidthKm <= 200);
@@ -550,7 +586,7 @@
         app._applyCamera(true);
       } finally { applyingChild = false; }
     }
-    function changeBattleView(mode, refocus) {
+    function changeBattleView(mode, refocus, following) {
       if (mode === 'hidden') {
         if (battleHidden) return;
         battleHidden = true;
@@ -568,8 +604,9 @@
         const aspect = rect.width / Math.max(1, rect.height);
         // A town close-up and the two-city regional view share the national camera.
         const widthKm = town ? Math.max(26, Math.min(54, 27 * aspect)) : Math.max(64, 52 * aspect);
-        const camera = mode === 'overview' ? { ...overviewCamera } :
-          cameraForView(app, rect, town ? town.coord : [114, 34.06], widthKm);
+        const inTransit = following && travelPoint();
+        const center = inTransit ? app.projector.toGeo(...inTransit) : town ? town.coord : [114, 34.06];
+        const camera = mode === 'overview' ? { ...overviewCamera } : cameraForView(app, rect, center, widthKm);
         pendingChildCamera = null;
         applyChildCamera(camera);
         sync('battle-view');
@@ -689,7 +726,7 @@
         tilesFailed = false;
         surfaceBaseKey = ''; surfaceBasePendingId = -1; surfaceKey = ''; surfaceRequest++; surfaceGeneration++;
         configure();
-        if (parentBattle) post({ type:'battle-cast', stage:battleCastStage });
+        if (parentBattle) post({ type:'battle-cast', stage:battleCastStage, progress:battleProgress, follow:followParty });
         sync('activate', true);
       } else if (message.type === 'surface-applied' && message.quality === 'base' && message.sceneKey === lastSceneKey && message.renderId === surfaceBasePendingId) {
         surfaceBaseKey = message.sceneKey;
@@ -788,8 +825,8 @@
     if (parentBattle) {
       root.addEventListener('message', event => {
         if (event.source !== root.parent || event.origin !== root.location.origin) return;
-        if (event.data?.type === 'atlas-changshe-map') changeBattleView(event.data.mode, event.data.refocus === true);
-        else if (event.data?.type === 'atlas-changshe-cast') updateBattleCast(event.data.stage);
+        if (event.data?.type === 'atlas-changshe-map') changeBattleView(event.data.mode, event.data.refocus === true, event.data.follow === true);
+        else if (event.data?.type === 'atlas-changshe-cast') updateBattleCast(event.data.stage,event.data.progress,event.data.follow);
       });
       positionFlatTowns();
       if (params.get('terrain') === '3d') setMode(true);

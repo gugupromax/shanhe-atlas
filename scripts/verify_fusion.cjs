@@ -76,7 +76,7 @@ assert.deepEqual(output,[{name:'长安',coord:[108.94,34.26],kind:'city'}],'pare
 const sent=[],parent={postMessage:m=>sent.push(m)},handlers={};let received=0;
 const fake={parent,addEventListener:(k,v)=>handlers[k]=v};
 const castUpdates=[];
-const child=protocol.createChild(fake,{onState:()=>received++,onConfig:()=>{},onBattleCast:stage=>castUpdates.push(stage)});child.ready();child.ready();assert.equal(sent.length,1);
+const child=protocol.createChild(fake,{onState:()=>received++,onConfig:()=>{},onBattleCast:(...update)=>castUpdates.push(update)});child.ready();child.ready();assert.equal(sent.length,1);
 handlers.message({source:{},data:good});assert.equal(received,0);
 handlers.message({source:parent,data:good});assert.equal(received,1);
 handlers.message({source:parent,data:{...good,seq:0}});assert.equal(received,1);
@@ -85,7 +85,9 @@ handlers.message({source:{},data:cast});
 handlers.message({source:parent,data:{...cast,stage:'invalid'}});
 const chapterStages=['journey','yanling','reinforcing','joined','relieved','aftermath','siege'];
 for (const stage of chapterStages) handlers.message({source:parent,data:{...cast,stage}});
-assert.deepEqual(castUpdates,chapterStages);
+for (const progress of [-.1,1.2,NaN,'0.2']) handlers.message({source:parent,data:{...cast,progress}});
+handlers.message({source:parent,data:{...cast,stage:'journey',progress:.4,follow:true}});
+assert.deepEqual(castUpdates,[...chapterStages.map(stage=>[stage,0,false]),['journey',.4,true]]);
 // Accept transferred bitmaps only from the paired parent, within the same renderer budget.
 class BitmapFixture {
   constructor(width=16){this.width=width;this.height=16;this.closed=false;}

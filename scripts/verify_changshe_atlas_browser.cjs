@@ -35,8 +35,11 @@ async function openBattle(browser, base, viewport, {storyClock=false,partyLink=f
       const m=event.data;
       if(m?.type==='surface' && m.quality==='detail') window.testDetailBounds=m.bounds;
       if(m?.type==='state')window.testView={seq:m.seq,reason:m.reason,center:m.center,widthKm:m.widthKm,locations:m.locations?.length};
-      if(event.source===parent && m?.channel==='jiangshan-fusion' && m.type==='battle-cast')
-        (window.testCastStages??=[]).push(m.stage);
+      if(event.source===parent && m?.channel==='jiangshan-fusion' && m.type==='battle-cast'){
+        window.testCastPacket=m;
+        const stages=window.testCastStages??=[];
+        if(stages.at(-1)!==m.stage)stages.push(m.stage);
+      }
     });
     const events = window.__THREE_DEVTOOLS__ = new EventTarget();
     events.addEventListener('observe', e => {
@@ -185,10 +188,56 @@ const changsheCast=besieged=>[['song-changshe',besieged?'韩世忠':'长社解�
 const party=['zhao','赤心队',true];
 const nanyangCast=[['song-nanyang','南阳守军',true],['jin-nanyang','兀术',true]];
 const westCast=[['li','李彦仙',true],['jin-west','西路军',true]];
-async function setCastStage(page,terrain,stage) {
-  await page.evaluate(stage=>document.getElementById('national-atlas').contentWindow
-    .postMessage({type:'atlas-changshe-cast',stage},location.origin),stage);
-  await terrain.waitForFunction(stage=>window.testCastStages.at(-1)===stage,stage);
+async function setCastStage(page,terrain,stage,progress=0) {
+  await page.evaluate(({stage,progress})=>document.getElementById('national-atlas').contentWindow
+    .postMessage({type:'atlas-changshe-cast',stage,progress,follow:false},location.origin),{stage,progress});
+  await terrain.waitForFunction(({stage,progress})=>window.testCastPacket?.stage===stage &&
+    (window.testCastPacket.progress??0)===progress,{stage,progress});
+}
+
+async function sampleParty(terrain) {
+  return terrain.evaluate(()=>{
+    const group=window.testTerrainScene.getObjectByName('ChangsheCast:zhao');
+    const p=group.getWorldPosition(new THREE.Vector3());
+    const {x,z}=p;
+    p.project(window.testTerrainCamera);
+    const rect=document.querySelector('#canvas-host canvas').getBoundingClientRect();
+    const sx=rect.x+(p.x+1)*rect.width/2, sy=rect.y+(1-p.y)*rect.height/2;
+    const label=document.querySelector('[data-cast=zhao]'), box=label.getBoundingClientRect();
+    return {uuid:group.uuid,x,z,mounts:group.getObjectByName('party-horses').count,
+      clock:top.document.getElementById('clock').textContent,stage:window.testCastPacket.stage,
+      caption:label.textContent,shown:getComputedStyle(label).visibility==='visible',
+      screenGap:Math.hypot(Math.max(0,box.left-sx,sx-box.right),Math.max(0,box.top-sy,sy-box.bottom))};
+  });
+}
+const travelDistance=(a,b)=>Math.hypot(b.x-a.x,b.z-a.z);
+
+async function checkDepartureMotion(page,terrain) {
+  await terrain.waitForFunction(()=>window.testCastPacket?.stage==='journey'&&window.testCastPacket.progress>.08);
+  await clickControl(page,'#play');
+  await page.waitForFunction(()=>document.getElementById('play').textContent==='继续');
+  // Allow the final clock message to reach the nested iframe before sampling the pause.
+  await page.waitForTimeout(350);
+  const paused=await sampleParty(terrain);
+  assert.match(paused.caption,/途中/);
+  await capture(page,'南阳出发-暂停');
+  await page.waitForTimeout(1200);
+  const still=await sampleParty(terrain);
+  assert.equal(paused.clock,still.clock);
+  assert.equal(paused.uuid,still.uuid);
+  assert.ok(travelDistance(paused,still)<.01,'paused party should keep its world position');
+  await clickControl(page,'#play');
+  await terrain.waitForFunction(({x,z})=>{
+    const group=window.testTerrainScene.getObjectByName('ChangsheCast:zhao');
+    const p=group.getWorldPosition(new THREE.Vector3());
+    return window.testCastPacket.stage==='journey'&&Math.hypot(p.x-x,p.z-z)>8;
+  },still,{timeout:25000});
+  const moving=await sampleParty(terrain);
+  assert.equal(still.uuid,moving.uuid,'keep the same four-rider model during a travel leg');
+  assert.equal(moving.mounts,4);
+  assert.ok(moving.shown&&moving.screenGap<100,'travelling caption stays beside the visible party: '+JSON.stringify(moving));
+  await capture(page,'赴鄢陵途中-继续');
+  console.log('PASS journey: actual UI pause and resume, model displacement:',travelDistance(paused,moving).toFixed(1));
 }
 
 async function checkScale(geographic,near) {
@@ -309,22 +358,32 @@ async function desktop(browser,base) {
     await clickControl(page,'#play');
     const depart=page.getByRole('button',{name:'南阳佯动 · 赵玖绕行',exact:true});
     await depart.click({timeout:45000});
-    await terrain.waitForFunction(()=>window.testCastStages.includes('journey'));
+    await checkDepartureMotion(page,terrain);
     await terrain.waitForFunction(()=>window.testCastStages.at(-1)==='yanling',null,{timeout:60000});
     await waitDetail(terrain,114.18);
     await checkPartyCity(terrain,'鄢陵');
     await checkCast(terrain,[['yue','岳飞',true],party]);
+    const arrived=await sampleParty(terrain);
+    await page.waitForTimeout(650);
+    assert.ok(travelDistance(arrived,await sampleParty(terrain))<.01,'party rests at the destination');
     await capture(page,'鄢陵会合');
     await page.locator(selector('changshe')).click();
     await waitDetail(terrain,113.82);
     for(const stage of ['reinforcing','joined','relieved','aftermath']){
-      await setCastStage(page,terrain,stage);
+      await setCastStage(page,terrain,stage,stage==='reinforcing'?1:0);
       const besieged=stage==='reinforcing'||stage==='joined';
       await checkPartyCity(terrain,'长社');
       await checkCast(terrain,[...changsheCast(besieged),party]);
       await checkSiegeRing(terrain,'长社',besieged);
       if(stage==='relieved')await capture(page,'长社解围');
     }
+    await page.locator('#reset').click();
+    await page.locator('#situation-intro [data-atlas-view="zhao"]').click();
+    await waitDetail(terrain,112.53);
+    await checkPartyCity(terrain,'南阳');
+    const reset=await sampleParty(terrain);
+    assert.equal(reset.stage,'siege');
+    assert.equal(reset.clock,'0:00');
     assert.deepEqual(errors,[]);
     assert.deepEqual(oldRequests,[]);
     assert.deepEqual(adminRequests,[],'A battle map with hidden county labels must skip the county package');
@@ -353,6 +412,16 @@ async function mobile(browser,base,flat) {
       await checkCast(terrain,[...nanyangCast,party]);
       await checkSiegeRing(terrain,'南阳',true);
       await capture(page,'赵玖赤心队手机');
+      const start=await sampleParty(terrain);
+      await setCastStage(page,terrain,'journey',.03);
+      await terrain.waitForFunction(({x,z})=>{
+        const p=window.testTerrainScene.getObjectByName('ChangsheCast:zhao').getWorldPosition(new THREE.Vector3());
+        return Math.hypot(p.x-x,p.z-z)>1;
+      },start);
+      const moved=await sampleParty(terrain);
+      assert.equal(start.uuid,moved.uuid);
+      assert.ok(moved.shown&&moved.screenGap<100,'mobile moving label stays with its four riders');
+      await setCastStage(page,terrain,'siege');
       await page.locator(selector('shanzhou')).click();
       await waitForCity(terrain,'陕州',true);
       await waitDetail(terrain,111.19);
@@ -390,14 +459,29 @@ async function followStory(browser,base){
     await page.clock.fastForward(16000);
     await action(1).click();
     await expectFocus('nanyang','journey');
+    const flatParty=atlas.locator('.changshe-travelling-party');
+    await flatParty.waitFor();
+    const flatPosition=()=>flatParty.evaluate(el=>{
+      const a=window.atlasApp,c=a.camera,r=a.svg.getBoundingClientRect();
+      const scale=Math.min(r.width/c.w,r.height/c.h);
+      return [c.x+(parseFloat(el.style.left)-(r.width-c.w*scale)/2)/scale,
+        c.y+(parseFloat(el.style.top)-(r.height-c.h*scale)/2)/scale];
+    });
+    const flatStart=await flatPosition();
+    await page.clock.fastForward(2000);
+    await atlas.waitForFunction(()=>window.testBattleMessages.filter(m=>m.type==='atlas-changshe-cast').at(-1)?.progress>.06);
+    const flatLater=await flatPosition();
+    assert.ok(Math.hypot(flatLater[0]-flatStart[0],flatLater[1]-flatStart[1])>.01,'Flat travel marker advances even when its camera follows');
     await page.clock.fastForward(19000);
     await expectFocus('yanling','yanling');
+    await flatParty.waitFor({state:'hidden'});
     await action(2).click();
     await action(3).click();
     await page.locator('#scene-dialog form button').click();
     await action(4).click();
     await page.clock.fastForward(90000);
     await expectFocus('changshe','reinforcing');
+    await atlas.waitForFunction(()=>window.testBattleMessages.filter(m=>m.type==='atlas-changshe-cast').at(-1)?.progress===1);
     await page.locator(selector('shanzhou')).click();
     await action(5).click();
     for(let i=0;i<60;++i){

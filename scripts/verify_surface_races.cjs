@@ -140,7 +140,7 @@ function childFixture() {
     let atlasSurface,surfaceSceneKey='',surfaceLoads=0,surfaceBaseId=-1,surfaceDetailId=-1,pendingSurfaceDetail=null,pendingBaseDraw=null;
     let fusionState=null,fusionPaintedKey=null,fusionLocations=[],fusionLayers={},fusionOverlays={},currentSnapshot=null,selectedEvent=null,historyYear=0;
     let desired={theta:0,phi:.7,distance:10,x:0,z:0},theta,phi,distance,target,fusionViewKey='',fusionStarted=true,fusionActive=true,dirty=false;
-    let fusionViewTimer=null;const clearTimeout=()=>{};
+    let fusionViewTimer=null,partyViewTimer=null,followParty=false,partyCameraPending=false;const clearTimeout=()=>{};
     let tangTilePlanKey='',tangBaseApplied=false,tangAppliedTier='far',areaOverlay=null,areaOverlayId=0,adminLabelData=[],passLabelData=[];
     const images=[],acks=[],applied=[],elements={},$=id=>elements[id]||(elements[id]={dataset:{},querySelector:()=>({})});
     const document={body:{dataset:{}}},dataset={bounds:[40,-10,165,70]},mapFrame={toWorld:(x,z)=>({x,z})},camera={fov:40,aspect:1};

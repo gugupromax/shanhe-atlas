@@ -27,6 +27,7 @@
 }
 .changshe-battle-embed :is(#embed-badge, #act-toggle-pane, #act-reset-camera, #genealogy-card, #hover-tip) { display:none !important; }
 .changshe-towns { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+.changshe-travelling-party:not([hidden]) { position:absolute; z-index:1; transform:translate(-50%,5px); white-space:nowrap; padding:2px 6px; border:1px solid #dbc57d; border-radius:3px; background:#752b3f; color:#fff3d5; font:600 12px/1.4 "Microsoft YaHei",sans-serif; }
 #viewport-frame.fusion-is-3d .changshe-towns { display:none; }
 .changshe-towns button {
   position:absolute; visibility:hidden; pointer-events:auto; cursor:pointer; white-space:nowrap;
