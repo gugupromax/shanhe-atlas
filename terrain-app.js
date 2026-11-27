@@ -1008,7 +1008,8 @@
       // use the same infantry block as Han Shizhong's defenders.
       const type=royal?'light':jin?'elite':'infantry',formation=royal?'column':jin?'mounted':'block';
       const mounted=Boolean(window.atlasBattleUnits[type].mounted),recipe=window.ChangsheFigures;
-      const slots=recipe.slots(formation),scale=mounted?3.25:1.92;
+      // Four riders identify the small travelling party at national map scale.
+      const slots=recipe.slots(formation,royal?2:undefined),scale=mounted?3.25:1.92;
       const ox=royal?3.6:jin?-5.2:0,oz=royal?3.4:jin?1.3:0;
       actor.name='ChangsheCast:'+id;
       actor.position.set(ox,0,oz);
@@ -1025,11 +1026,12 @@
       slots.forEach(([x,z],i)=>collect(recipe.parts(mounted),x*scale,z*scale,royal&&i===1));
       // The legacy banner has one pole and one panel. Anchor it to the same
       // patch of ground as the standard bearer when drawing it on the atlas.
-      const poleX=recipe.standard[0][3]*scale,fy=ground(poleX,0);
+      const bannerOffset=royal?.32:0;
+      const poleX=(recipe.standard[0][3]+bannerOffset)*scale,fy=ground(poleX,0);
       for(const [, ,tint,x,y,z,w,h,d] of recipe.standard){
-        batches.body.push([x*scale,fy+y*scale,z*scale,w*scale,h*scale,d*scale,palette[tint]]);
+        batches.body.push([(x+bannerOffset)*scale,fy+y*scale,z*scale,w*scale,h*scale,d*scale,palette[tint]]);
       }
-      if(royal)batches.body.push([-.84*scale,fy+.64*scale,.026*scale,.14*scale,.14*scale,.03*scale,'#ffd35d']);
+      if(royal)batches.body.push([(-.84+bannerOffset)*scale,fy+.64*scale,.026*scale,.14*scale,.14*scale,.03*scale,'#ffd35d']);
       addParts(actor,'garrison-figures',new THREE.BoxGeometry(),batches.body);
       addParts(actor,'cast-heads',new THREE.SphereGeometry(.1,7,5),batches.head);
       if(mounted){

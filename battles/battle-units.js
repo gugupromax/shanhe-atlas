@@ -42,8 +42,9 @@ window.ChangsheFigures = (() => {
       ['body','box','wood',-1.05,.38,0,.045,.77,.045],
       ['body','box','cloth',-.84,.64,0,.39,.29,.035],
     ],
-    slots(formation) {
-      const {rows,columns} = window.atlasBattleFormations[formation], slots = [];
+    slots(formation, maxPerSide = Infinity) {
+      const shape = window.atlasBattleFormations[formation], slots = [];
+      const rows = Math.min(shape.rows, maxPerSide), columns = Math.min(shape.columns, maxPerSide);
       for (let row=0; row<rows; row++) for (let col=0; col<columns; col++) {
         slots.push([(col-(columns-1)/2)*.29,(row-(rows-1)/2)*.28]);
       }

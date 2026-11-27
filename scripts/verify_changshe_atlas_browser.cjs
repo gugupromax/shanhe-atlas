@@ -141,12 +141,11 @@ async function checkCast(terrain,expected) {
     assert.equal(result.visible,visible,id+' geometry visibility');
     if(visible){
       assert.ok(result.clear>=result.total/2,id+' heads visible and clear of labels: '+JSON.stringify(result));
-      // Changshe's original actor table gives the emperor a column, Jin horsemen
-      // a mounted formation, and Han's foot soldiers a block.
+      // The national map shows the Chixin party as four representative riders.
       const mounted=id==='zhao'||id.startsWith('jin-');
-      const [rows,columns]=id==='zhao'?[4,3]:mounted?[3,4]:[3,5];
+      const [rows,columns]=id==='zhao'?[2,2]:mounted?[3,4]:[3,5];
       assert.deepEqual([result.rows,result.columns,result.total,result.mounts],
-        [rows,columns,rows*columns,mounted?rows*columns:0],id+' retains its original formation and mount count');
+        [rows,columns,rows*columns,mounted?rows*columns:0],id+' displays its expected formation and mount count');
     }
   }
   const boxes=await Promise.all(expected.filter(([, ,visible])=>visible).map(([id])=>
@@ -178,7 +177,7 @@ async function checkPartyCity(terrain,city){
     });
     const party=parties[0], horses=party?.getObjectByName('party-horses');
     return parties.length===1 && party.parent.name==='ChangsheCity:'+city &&
-      horses?.isInstancedMesh && horses.count>1;
+      horses?.isInstancedMesh && horses.count===4;
   },city,{timeout:30000});
 }
 
